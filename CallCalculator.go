@@ -627,8 +627,9 @@ func (ms my_spline) Init(splineType []string, x []float64, y []float64) my_splin
 		fmt.Println("Caution: Solution not unique!")
 	}
 	ms.coeffs = lgs.y
-	ms.deg, err = strconv.Atoi(splineType[0])
+	tmp, err := strconv.ParseFloat(splineType[0],64)
 	check(err)
+	ms.deg = int(tmp)
 	return ms
 }
 
