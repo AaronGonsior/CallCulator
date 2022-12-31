@@ -135,7 +135,7 @@ func main(){
 		optreq = opt.OptionURLReq{
 			Ticker:      ticker,
 			ApiKey:      apiKey,
-			StrikeRange: []int{0,1000},
+			StrikeRange: []int{100,200},
 			DateRange:   []string{"2023-06-01","2023-07-01"},
 			Contract_type: "call",
 		}
@@ -214,6 +214,12 @@ func main(){
 
 		ns := NewNormedSpline(s,dx)
 
+		fmt.Println("New Spline Integral Test:")
+		fmt.Println("Old normed spline Integral:")
+		fmt.Println(ns.Integral(ns.x[0],ns.x[len(ns.x)-1],dx))
+		fmt.Println("New Spline Full Integral:")
+		fmt.Println(ns.FullIntegralSpline())
+
 		mathCode = ns.PrintMathematicaCode()
 		fmt.Println(mathCode)
 
@@ -225,7 +231,7 @@ func main(){
 		fmt.Println(mathCode)
 
 		fmt.Println("Print all calls")
-		mathCode = PrintMathematicaCode(callList,123)
+		mathCode = PrintMathematicaCode(callList,share_price)
 		fmt.Println(mathCode)
 
 		fmt.Println("Distribution Chart for Call-Long intersections:")
@@ -631,10 +637,12 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	inmethodprint := false
 
 	//spline_func_deg := 3
-	spline_func_deg ,err := strconv.Atoi(splineType[0])
+	tmp ,err := strconv.ParseFloat(splineType[0],64)
 	check(err)
-	lamda ,err := strconv.Atoi(splineType[0])
+	spline_func_deg := int(tmp)
+	tmp ,err = strconv.ParseFloat(splineType[0],64)
 	check(err)
+	lamda := int(tmp)
 	if lamda != 2{
 		fmt.Errorf("spline type only supported with lamda=2")
 	}
@@ -890,6 +898,51 @@ func (ms my_spline) Integral(a float64, b float64, dx float64) float64{
 		check(err)
 	}
 	return Integral(f, dx)
+}
+
+func (ms my_spline) IntegralSpline(a,b float64) float64 {
+	var newX []float64
+	var newY []float64
+	var newCoeffs []float64
+	newX = append(newX,a)
+	newY = append(newY,ms.At(a))
+	j:=0
+	for ms.x[j]<=a {
+		j++
+	}
+	for i := j ; /*ms.x[i] > a &&*/ ms.x[i] < b && i < len(ms.x)-1 ; i++ {
+		newX = append(newX, ms.x[i])
+		newY = append(newY, ms.At(ms.x[i]))
+		for d:=0 ; d < ms.deg ; d++ {
+			newCoeffs = append(newCoeffs,ms.coeffs[4*i+d])
+		}
+	}
+	if b < ms.x[len(ms.x)-1] {
+		newX = append(newX, b)
+		newY = append(newY, ms.At(b))
+	}
+
+	var newSpline my_spline = my_spline{
+		deg:        ms.deg,
+		splineType: ms.splineType,
+		x:          newX,
+		y:          newY,
+		coeffs:     newCoeffs,
+		unique:     false,
+	}
+
+	return newSpline.FullIntegralSpline()
+
+}
+
+func (ms my_spline) FullIntegralSpline() float64 {
+	integral := 0.0
+	for i := 0 ; i < len(ms.x)-2 ; i++ {
+		for d := 0 ; d < ms.deg ; d++ {
+			integral += (ms.coeffs[4*i+d]/(float64(d)+1))*math.Pow(ms.x[i+1],float64(ms.deg-d)+1) - (ms.coeffs[4*i+d]/(float64(d)+1))*math.Pow(ms.x[i],float64(ms.deg-d)+1)
+		}
+	}
+	return integral
 }
 
 func NewNormedSpline(ms my_spline, precision float64) my_spline{
