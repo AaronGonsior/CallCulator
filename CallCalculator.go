@@ -938,9 +938,9 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 
 func (ms my_spline) FullIntegralSpline() float64 {
 	integral := 0.0
-	for i := 0 ; i < len(ms.x)-2 ; i++ {
-		for d := 0 ; d < ms.deg ; d++ {
-			integral += (ms.coeffs[4*i+d]/(float64(d)+1))*math.Pow(ms.x[i+1],float64(ms.deg-d)+1) - (ms.coeffs[4*i+d]/(float64(d)+1))*math.Pow(ms.x[i],float64(ms.deg-d)+1)
+	for i := 0 ; i < len(ms.x)-1 ; i++ {
+		for d := 0 ; d <= ms.deg ; d++ {
+			integral += (ms.coeffs[4*i+d]/(float64(ms.deg-d)+1))*math.Pow(ms.x[i+1],float64(ms.deg-d)+1) - (ms.coeffs[4*i+d]/(float64(ms.deg-d)+1))*math.Pow(ms.x[i],float64(ms.deg-d)+1)
 		}
 	}
 	return integral
