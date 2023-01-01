@@ -292,10 +292,10 @@ func main(){
 		costs := []float64{}
 		for _,opt := range options {
 			strikes = append(strikes,float64(opt.Strike_price))
-			costs = append(costs, opt.Close)
+			costs = append(costs, 1.0/(opt.Close))
 		}
 		mathCode = MathematicaXYPlot(strikes,costs)
-		fmt.Println("Plot strike vs cost:")
+		fmt.Println("Plot strike vs cost(1/):")
 		fmt.Println(mathCode)
 
 	}
@@ -1090,18 +1090,18 @@ func MathematicaCodeLongIntersection(callList []callfunc, share_price float64) s
 
 func MathematicaXYPlot(x,y []float64) string {
 	code := "x={"
-	for i,x := range x {
-		code += fmt.Sprintf("%.0f",x)
-		if i!=0 {
+	for i,xx := range x {
+		code += fmt.Sprintf("%.0f",xx)
+		if i!=0 && i!=len(x)-1 {
 			code += ","
 		}
 	}
 	code += "};\n"
 
 	code += "y={"
-	for i,y := range y {
-		code += fmt.Sprintf("%.0f",y)
-		if i!=0 {
+	for i,yy := range y {
+		code += fmt.Sprintf("%.0f",yy)
+		if i!=0 && i!=len(y)-1 {
 			code += ","
 		}
 	}
