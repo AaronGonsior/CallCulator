@@ -1015,7 +1015,8 @@ func (ms my_spline) FullIntegralSpline() float64 {
 }
 
 func NewNormedSpline(ms my_spline, precision float64) my_spline{
-	area := ms.Integral(min(ms.x),max(ms.x),precision)
+	//area := ms.Integral(min(ms.x),max(ms.x),precision)
+	area := ms.FullIntegralSpline()
 	ns_y := make([]float64, len(ms.y))
 	for i,y := range ms.y {
 		ns_y[i] = y/area
@@ -1189,6 +1190,16 @@ func (call callfunc) ExpectedReturn(pdist my_spline,dx float64) float64{
 	return E
 }
 
+func (call callfunc) ToSpline(a,b float64) my_spline {
+	return my_spline{
+		deg:        1,
+		splineType: nil,
+		x:          []float64{a,call.base,b},
+		y:          []float64{0,0,call.At(b)},
+		coeffs:     []float64{0,0,call.factor/call.cost},
+		unique:     false,
+	}
+}
 
 func (call callfunc) LongIntersection(share_price float64) float64 {
 	return share_price*(call.factor*call.base+call.cost)/(call.cost+call.factor*share_price)
