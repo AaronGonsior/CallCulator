@@ -288,6 +288,16 @@ func main(){
 		mathCode = MathematicaPrintExpectedReturns(pdist,callList[:len(callList)-2],dx)
 		fmt.Println(mathCode)
 
+		strikes := []float64{}
+		costs := []float64{}
+		for _,opt := range options {
+			strikes = append(strikes,float64(opt.Strike_price))
+			costs = append(costs, opt.Close)
+		}
+		mathCode = MathematicaXYPlot(strikes,costs)
+		fmt.Println("Plot strike vs cost:")
+		fmt.Println(mathCode)
+
 	}
 
 
@@ -1077,6 +1087,23 @@ func MathematicaCodeLongIntersection(callList []callfunc, share_price float64) s
 
 // ------------------------------- general functions -------------------------------
 
+
+func MathematicaXYPlot(x,y []float64) string {
+	code := "x={"
+	for _,x := range x {
+		code += fmt.Sprintf("%.0f",x)
+	}
+	code += "};\n"
+
+	code += "y={"
+	for _,y := range y {
+		code += fmt.Sprintf("%.0f",y)
+	}
+	code += "};\n"
+	code += "xy:=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic,Joined -> True];\n"
+	code += "Show[xy]"
+	return code
+}
 
 //repeats the string s n times, returns as combined string
 func repeatstr(s string, n int) string{
