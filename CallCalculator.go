@@ -1090,14 +1090,20 @@ func MathematicaCodeLongIntersection(callList []callfunc, share_price float64) s
 
 func MathematicaXYPlot(x,y []float64) string {
 	code := "x={"
-	for _,x := range x {
+	for i,x := range x {
 		code += fmt.Sprintf("%.0f",x)
+		if i!=0 {
+			code += ","
+		}
 	}
 	code += "};\n"
 
 	code += "y={"
-	for _,y := range y {
+	for i,y := range y {
 		code += fmt.Sprintf("%.0f",y)
+		if i!=0 {
+			code += ","
+		}
 	}
 	code += "};\n"
 	code += "xy:=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic,Joined -> True];\n"
