@@ -102,7 +102,7 @@ func main(){
 		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
 		s := NewSpline(splinetype,x,y)
 
-		dx := 0.01
+		dx := 0.001
 
 		fmt.Println(s.Integral(min(x),max(x),dx))
 
@@ -120,6 +120,12 @@ func main(){
 		//bugged
 		fmt.Println("New Spline Integral in bound but max bounds:")
 		fmt.Println(ns.IntegralSpline(ns.x[0],ns.x[len(ns.x)-1]))
+		a:=120.0
+		b:=325.0
+		fmt.Printf("New Spline Integral in bound with bounds %v and %v:\n",a,b)
+		fmt.Println(ns.IntegralSpline(a,b))
+		fmt.Println("Old Integral for same range:")
+		fmt.Println(ns.Integral(a,b,dx))
 
 		mathCode = ns.PrintMathematicaCode()
 		fmt.Println(mathCode)
@@ -255,7 +261,9 @@ func main(){
 		fmt.Println(ns.FullIntegralSpline())
 		//bugged
 		fmt.Println("New Spline Integral in bound but max bounds:")
-		fmt.Println(ns.IntegralSpline(ns.x[0],ns.x[len(ns.x)-3]))
+		fmt.Println(ns.IntegralSpline(ns.x[0],ns.x[len(ns.x)-1]))
+		fmt.Println("New Spline Integral in bound with bounds 0 and 300:")
+		fmt.Println(ns.IntegralSpline(0,300))
 
 		mathCode = ns.PrintMathematicaCode()
 		fmt.Println(mathCode)
@@ -938,7 +946,6 @@ func (ms my_spline) Integral(a float64, b float64, dx float64) float64{
 	return Integral(f, dx)
 }
 
-//still bugged - problem with bounds
 func (ms my_spline) IntegralSpline(a,b float64) float64 {
 	debug := true
 
@@ -952,8 +959,14 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 	var newX []float64
 	var newY []float64
 	var newCoeffs []float64
-	newX = append(newX,a)
-	newY = append(newY,ms.At(a))
+	if a >= ms.x[0] {
+		newX = append(newX,a)
+		newY = append(newY,ms.At(a))
+	} else {
+		newX = append(newX,ms.x[0])
+		newY = append(newY,ms.y[0])
+	}
+
 	j:=0
 	for ms.x[j] <= a {
 		j++
@@ -961,7 +974,7 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 	for d := 0 ; d < ms.deg+1 ; d++ {
 		newCoeffs = append(newCoeffs,ms.coeffs[4*j+d])
 	}
-	for i := j ; ms.x[i] < b && i <= len(ms.x)-1 ; i++ {
+	for i := j ; ms.x[i] < b && i < len(ms.x)-1 ; i++ {
 		newX = append(newX, ms.x[i])
 		newY = append(newY, ms.At(ms.x[i]))
 		for d := 0 ; d < ms.deg+1 ; d++ {
