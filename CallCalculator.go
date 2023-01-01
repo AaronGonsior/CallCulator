@@ -89,8 +89,8 @@ var eurtousd float64
 
 func main(){
 
-	newIntegraltesting := true
-	apitesting := false
+	newIntegraltesting := false
+	apitesting := true
 	calltesting := false
 	splinetesting := false
 
@@ -481,167 +481,6 @@ func main(){
 
 
 
-// ------------------------------- LGS specific functions -------------------------------
-
-
-//Solves LGS
-func (M LGS) GaussElimination() bool {
-
-	//M := A
-	inmethodprint := false
-
-	//identity matrix
-	id := make([][]float64,M.n)
-	for i := 0 ; i < M.n ; i++{
-		id[i] = make([]float64,M.n)
-		id[i][i] = 1
-	}
-	//zero vector
-	zerovector := make([]float64,M.n)
-
-	exchanges := make([][]float64,M.n)
-	copy(exchanges, id)
-	exchangesM := LGS{M.n,exchanges,zerovector}
-	/*//not supported yet
-	inverse := make([][]float64,M.n)
-	copy(inverse,id)
-	*/
-
-	unique := true
-
-	//clear lower left triangle
-	for i := 0 ; i < M.n ; i ++ {
-		if inmethodprint{
-			fmt.Println("In method print:")
-			M.Print()
-		}
-
-
-		if M.A[i][i] == 0 {
-			//check for row exchanges
-			for j := i+1 ; j < M.n ; j++ {
-				if M.A[j][i] != 0{
-					//exchange rows (I) and (J)
-					if inmethodprint{
-						fmt.Println("In method print: (",i,")<->(",j,")")
-					}
-					M.RowExchange(i,j)
-					exchangesM.RowExchange(i,j)
-					if inmethodprint{
-						M.Print()
-					}
-					break
-				}
-			}
-		}
-
-		if M.A[i][i] != 0 {
-			if inmethodprint{
-				fmt.Println("In method print: (",i,")*=",1/M.A[i][i])
-			}
-			M.MultiplyRow(i , 1/M.A[i][i])
-			if inmethodprint{
-				M.Print()
-			}
-		} else{
-			continue
-		}
-
-		for j := i+1 ; j < M.n ; j++ {
-			if M.A[j][i] != 0 {
-				if inmethodprint{
-					fmt.Println("In method print: (",j,")+=",-M.A[j][i],"*(",i,")")
-				}
-				M.OnePlusEqualsXxTwo(j,-M.A[j][i],i)
-				if inmethodprint{
-					M.Print()
-				}
-			}
-		}
-	}
-
-	//clear upper right triangle
-	for i := M.n-1 ; i >= 0 ; i-- {
-		if M.A[i][i] == 0 {
-			unique = false
-			M.A[i][i]=-1.0
-			continue
-		} else {
-			for j := i-1 ; j >= 0 ; j-- {
-				if M.A[j][i] != 0 {
-
-					if inmethodprint {
-						fmt.Println("In method print: (",j,")+=",-M.A[j][i],"*(",i,")")
-					}
-					M.OnePlusEqualsXxTwo(j,-M.A[j][i],i)
-					if inmethodprint{
-						M.Print()
-					}
-				}
-			}
-		}
-	}
-
-	M.y = MVProduct(exchangesM.A,M.y)
-
-
-	return unique
-
-}
-
-func (M LGS) AddRow(row int, addA []float64, addFrom int, addY float64){
-	for col := addFrom; col < addFrom+len(addA) ; col++ {
-		M.A[row][col] = M.A[row][col-addFrom] + addA[col-addFrom]
-	}
-	M.y[row] = M.y[row] + addY
-}
-
-func (M LGS) SetRow(row int, setA []float64, setFrom int, setY float64){
-	for col := setFrom; col < setFrom + len(setA) ; col++ {
-		M.A[row][col] = setA[col - setFrom]
-	}
-	M.y[row] = M.y[row] + setY
-}
-
-//(1)<->(2)
-func (A LGS) RowExchange(one int, two int){
-	var temp float64
-	for col := 0 ; col < A.n ; col++ {
-		temp = A.A[one][col]
-		A.A[one][col] = A.A[two][col]
-		A.A[two][col] = temp
-	}
-	temp = A.y[one]
-	A.y[one] = A.y[two]
-	A.y[two] = temp
-}
-
-//(row)*=factor
-func (A LGS) MultiplyRow(row int, factor float64){
-	for col := 0 ; col < A.n ; col++{
-		A.A[row][col] = factor * A.A[row][col]
-	}
-	A.y[row] = factor * A.y[row]
-}
-
-// (1)+=x*(2)
-func (A LGS) OnePlusEqualsXxTwo (one int, X float64, two int){
-	for col:=0 ; col < A.n ; col++{
-		A.A[one][col]=A.A[one][col]+X*A.A[two][col]
-	}
-	A.y[one] = A.y[one]+X*A.y[two]
-}
-
-func (A LGS) Print(){
-	fmt.Println("LGS Print")
-	for i:=0 ; i < A.n ; i++ {
-		for j:=0 ; j < A.n ; j++{
-			fmt.Printf("%.1f"+"  ",A.A[i][j])
-		}
-		fmt.Printf("|  "+"%.1f",A.y[i])
-		fmt.Println("")
-	}
-}
 
 
 
@@ -1002,6 +841,11 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 
 	return newSpline.FullIntegralSpline()
 
+}
+
+//need UnionXYC first
+func (ms1 my_spline) SplineMultiply(ms2 my_spline) my_spline {
+	return my_spline{}
 }
 
 func (ms my_spline) FullIntegralSpline() float64 {
@@ -1374,6 +1218,169 @@ func min(x []float64) float64{
 		}
 	}
 	return min
+}
+
+
+// ------------------------------- LGS specific functions -------------------------------
+
+
+//Solves LGS
+func (M LGS) GaussElimination() bool {
+
+	//M := A
+	inmethodprint := false
+
+	//identity matrix
+	id := make([][]float64,M.n)
+	for i := 0 ; i < M.n ; i++{
+		id[i] = make([]float64,M.n)
+		id[i][i] = 1
+	}
+	//zero vector
+	zerovector := make([]float64,M.n)
+
+	exchanges := make([][]float64,M.n)
+	copy(exchanges, id)
+	exchangesM := LGS{M.n,exchanges,zerovector}
+	/*//not supported yet
+	inverse := make([][]float64,M.n)
+	copy(inverse,id)
+	*/
+
+	unique := true
+
+	//clear lower left triangle
+	for i := 0 ; i < M.n ; i ++ {
+		if inmethodprint{
+			fmt.Println("In method print:")
+			M.Print()
+		}
+
+
+		if M.A[i][i] == 0 {
+			//check for row exchanges
+			for j := i+1 ; j < M.n ; j++ {
+				if M.A[j][i] != 0{
+					//exchange rows (I) and (J)
+					if inmethodprint{
+						fmt.Println("In method print: (",i,")<->(",j,")")
+					}
+					M.RowExchange(i,j)
+					exchangesM.RowExchange(i,j)
+					if inmethodprint{
+						M.Print()
+					}
+					break
+				}
+			}
+		}
+
+		if M.A[i][i] != 0 {
+			if inmethodprint{
+				fmt.Println("In method print: (",i,")*=",1/M.A[i][i])
+			}
+			M.MultiplyRow(i , 1/M.A[i][i])
+			if inmethodprint{
+				M.Print()
+			}
+		} else{
+			continue
+		}
+
+		for j := i+1 ; j < M.n ; j++ {
+			if M.A[j][i] != 0 {
+				if inmethodprint{
+					fmt.Println("In method print: (",j,")+=",-M.A[j][i],"*(",i,")")
+				}
+				M.OnePlusEqualsXxTwo(j,-M.A[j][i],i)
+				if inmethodprint{
+					M.Print()
+				}
+			}
+		}
+	}
+
+	//clear upper right triangle
+	for i := M.n-1 ; i >= 0 ; i-- {
+		if M.A[i][i] == 0 {
+			unique = false
+			M.A[i][i]=-1.0
+			continue
+		} else {
+			for j := i-1 ; j >= 0 ; j-- {
+				if M.A[j][i] != 0 {
+
+					if inmethodprint {
+						fmt.Println("In method print: (",j,")+=",-M.A[j][i],"*(",i,")")
+					}
+					M.OnePlusEqualsXxTwo(j,-M.A[j][i],i)
+					if inmethodprint{
+						M.Print()
+					}
+				}
+			}
+		}
+	}
+
+	M.y = MVProduct(exchangesM.A,M.y)
+
+
+	return unique
+
+}
+
+func (M LGS) AddRow(row int, addA []float64, addFrom int, addY float64){
+	for col := addFrom; col < addFrom+len(addA) ; col++ {
+		M.A[row][col] = M.A[row][col-addFrom] + addA[col-addFrom]
+	}
+	M.y[row] = M.y[row] + addY
+}
+
+func (M LGS) SetRow(row int, setA []float64, setFrom int, setY float64){
+	for col := setFrom; col < setFrom + len(setA) ; col++ {
+		M.A[row][col] = setA[col - setFrom]
+	}
+	M.y[row] = M.y[row] + setY
+}
+
+//(1)<->(2)
+func (A LGS) RowExchange(one int, two int){
+	var temp float64
+	for col := 0 ; col < A.n ; col++ {
+		temp = A.A[one][col]
+		A.A[one][col] = A.A[two][col]
+		A.A[two][col] = temp
+	}
+	temp = A.y[one]
+	A.y[one] = A.y[two]
+	A.y[two] = temp
+}
+
+//(row)*=factor
+func (A LGS) MultiplyRow(row int, factor float64){
+	for col := 0 ; col < A.n ; col++{
+		A.A[row][col] = factor * A.A[row][col]
+	}
+	A.y[row] = factor * A.y[row]
+}
+
+// (1)+=x*(2)
+func (A LGS) OnePlusEqualsXxTwo (one int, X float64, two int){
+	for col:=0 ; col < A.n ; col++{
+		A.A[one][col]=A.A[one][col]+X*A.A[two][col]
+	}
+	A.y[one] = A.y[one]+X*A.y[two]
+}
+
+func (A LGS) Print(){
+	fmt.Println("LGS Print")
+	for i:=0 ; i < A.n ; i++ {
+		for j:=0 ; j < A.n ; j++{
+			fmt.Printf("%.1f"+"  ",A.A[i][j])
+		}
+		fmt.Printf("|  "+"%.1f",A.y[i])
+		fmt.Println("")
+	}
 }
 
 
