@@ -89,10 +89,42 @@ var eurtousd float64
 
 func main(){
 
-	apitesting := true
+	newIntegraltesting := true
+	apitesting := false
 	calltesting := false
 	splinetesting := false
 
+	if newIntegraltesting {
+
+		x := []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
+		y := []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
+
+		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
+		s := NewSpline(splinetype,x,y)
+
+		dx := 0.01
+
+		fmt.Println(s.Integral(min(x),max(x),dx))
+
+		mathCode := s.PrintMathematicaCode()
+		fmt.Println(mathCode)
+
+
+		ns := NewNormedSpline(s,dx)
+
+		fmt.Println("New Spline Integral Test:")
+		fmt.Println("Old normed spline Integral:")
+		fmt.Println(ns.Integral(ns.x[0],ns.x[len(ns.x)-1],dx))
+		fmt.Println("New Spline Full Integral:")
+		fmt.Println(ns.FullIntegralSpline())
+		//bugged
+		fmt.Println("New Spline Integral in bound but max bounds:")
+		fmt.Println(ns.IntegralSpline(ns.x[0],ns.x[len(ns.x)-1]))
+
+		mathCode = ns.PrintMathematicaCode()
+		fmt.Println(mathCode)
+
+	}
 
 	if apitesting {
 
@@ -135,8 +167,8 @@ func main(){
 		optreq = opt.OptionURLReq{
 			Ticker:      ticker,
 			ApiKey:      apiKey,
-			StrikeRange: []int{100,200},
-			DateRange:   []string{"2023-06-01","2023-07-01"},
+			StrikeRange: []int{0,1000},
+			DateRange:   []string{"2024-06-01","2024-07-01"},
 			Contract_type: "call",
 		}
 
@@ -194,12 +226,14 @@ func main(){
 
 
 		/*
+		//25Q1
 		x := []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
 		y := []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     }
 		 */
 
+		//24Q2
 		x := []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
-		y := []float64{0, 2	, 6	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     }
+		y := []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
 
 		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
 		s := NewSpline(splinetype,x,y)
@@ -219,6 +253,9 @@ func main(){
 		fmt.Println(ns.Integral(ns.x[0],ns.x[len(ns.x)-1],dx))
 		fmt.Println("New Spline Full Integral:")
 		fmt.Println(ns.FullIntegralSpline())
+		//bugged
+		fmt.Println("New Spline Integral in bound but max bounds:")
+		fmt.Println(ns.IntegralSpline(ns.x[0],ns.x[len(ns.x)-1]))
 
 		mathCode = ns.PrintMathematicaCode()
 		fmt.Println(mathCode)
@@ -901,27 +938,41 @@ func (ms my_spline) Integral(a float64, b float64, dx float64) float64{
 	return Integral(f, dx)
 }
 
+//bugged
 func (ms my_spline) IntegralSpline(a,b float64) float64 {
+	debug := true
+
+	if debug {
+		fmt.Printf("original spline: deg: %v , len(x)=%v , len(y)=%v, len(coeffs)=%v \n",ms.deg, len(ms.x), len(ms.y), len(ms.coeffs))
+	}
+
+	if b <= a {
+		return 0
+	}
 	var newX []float64
 	var newY []float64
 	var newCoeffs []float64
 	newX = append(newX,a)
 	newY = append(newY,ms.At(a))
 	j:=0
-	for ms.x[j]<=a {
+	for ms.x[j] <= a {
 		j++
 	}
-	for i := j ; /*ms.x[i] > a &&*/ ms.x[i] < b && i < len(ms.x)-1 ; i++ {
+	for d := 0 ; d < ms.deg+1 ; d++ {
+		newCoeffs = append(newCoeffs,ms.coeffs[4*j+d])
+	}
+	for i := j ; ms.x[i] < b && i <= len(ms.x)-1 ; i++ {
 		newX = append(newX, ms.x[i])
 		newY = append(newY, ms.At(ms.x[i]))
-		for d:=0 ; d < ms.deg ; d++ {
+		for d := 0 ; d < ms.deg+1 ; d++ {
 			newCoeffs = append(newCoeffs,ms.coeffs[4*i+d])
 		}
 	}
-	if b < ms.x[len(ms.x)-1] {
+	if b <= ms.x[len(ms.x)-1] {
 		newX = append(newX, b)
 		newY = append(newY, ms.At(b))
 	}
+
 
 	var newSpline my_spline = my_spline{
 		deg:        ms.deg,
@@ -932,6 +983,10 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 		unique:     false,
 	}
 
+	if debug {
+		fmt.Printf("newSpline: deg: %v , len(x)=%v , len(y)=%v, len(coeffs)=%v \n",newSpline.deg, len(newSpline.x), len(newSpline.y), len(newSpline.coeffs))
+	}
+
 	return newSpline.FullIntegralSpline()
 
 }
@@ -939,7 +994,7 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 func (ms my_spline) FullIntegralSpline() float64 {
 	integral := 0.0
 	for i := 0 ; i < len(ms.x)-1 ; i++ {
-		for d := 0 ; d <= ms.deg ; d++ {
+		for d := 0 ; d < ms.deg+1 ; d++ {
 			integral += (ms.coeffs[4*i+d]/(float64(ms.deg-d)+1))*math.Pow(ms.x[i+1],float64(ms.deg-d)+1) - (ms.coeffs[4*i+d]/(float64(ms.deg-d)+1))*math.Pow(ms.x[i],float64(ms.deg-d)+1)
 		}
 	}
