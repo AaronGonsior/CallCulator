@@ -255,7 +255,7 @@ func main(){
 		fmt.Println(ns.FullIntegralSpline())
 		//bugged
 		fmt.Println("New Spline Integral in bound but max bounds:")
-		fmt.Println(ns.IntegralSpline(ns.x[0],ns.x[len(ns.x)-1]))
+		fmt.Println(ns.IntegralSpline(ns.x[0],ns.x[len(ns.x)-3]))
 
 		mathCode = ns.PrintMathematicaCode()
 		fmt.Println(mathCode)
@@ -938,7 +938,7 @@ func (ms my_spline) Integral(a float64, b float64, dx float64) float64{
 	return Integral(f, dx)
 }
 
-//bugged
+//still bugged - problem with bounds
 func (ms my_spline) IntegralSpline(a,b float64) float64 {
 	debug := true
 
