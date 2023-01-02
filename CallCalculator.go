@@ -277,14 +277,15 @@ func main(){
 
 		fmt.Println("owning $TSLA has an expected return of: ",long.ExpectedReturn(ns,dx))
 
-		fmt.Println("Print all calls")
+		fmt.Println("\nPrint all calls:\n")
 		mathCode = PrintMathematicaCode(callList,share_price)
 		fmt.Println(mathCode)
 
-		fmt.Println("Distribution Chart for Call-Long intersections:")
+		fmt.Println("\nDistribution Chart for Call-Long intersections:\n")
 		mathCode = MathematicaCodeLongIntersection(callList,share_price)
 		fmt.Println(mathCode)
 
+		fmt.Println("\nExpected returns for each strike:\n")
 		mathCode = MathematicaPrintExpectedReturns(pdist,callList[:len(callList)-2],dx)
 		fmt.Println(mathCode)
 
@@ -292,10 +293,10 @@ func main(){
 		costs := []float64{}
 		for _,opt := range options {
 			strikes = append(strikes,float64(opt.Strike_price))
-			costs = append(costs, 1.0/(opt.Close))
+			costs = append(costs, (opt.Close))
 		}
 		mathCode = MathematicaXYPlot(strikes,costs)
-		fmt.Println("Plot strike vs cost(1/):")
+		fmt.Println("\nPlot strike vs cost:\n")
 		fmt.Println(mathCode)
 
 	}
@@ -984,8 +985,8 @@ func PrintMathematicaCode(calls []callfunc, share_price float64) string {
 	}
 	code := "xmax:=1.5*"+fmt.Sprintf("%.0f",xmax)+";\n"
 	for i,call := range calls {
-		code += fmt.Sprint("call"+strconv.Itoa(i)+":=Plot[100*Max[-1,(x/(",call.cost/call.factor,")-",call.base/(call.cost/call.factor),"-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];")
 		code += fmt.Sprintf("(* strike: %v *)\n",call.base)
+		code += fmt.Sprint("call"+strconv.Itoa(i)+":=Plot[100*Max[-1,(x/(",call.cost/call.factor,")-",call.base/(call.cost/call.factor),"-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];\n")
 	}
 
 	code += "long := Plot[100*(x - "+fmt.Sprintf("%.0f",share_price)+")/"+fmt.Sprintf("%.0f",share_price)+", {x, 0, xmax}, PlotStyle -> Red];"
