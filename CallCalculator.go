@@ -2,7 +2,7 @@ package main
 
 import (
 	//"encoding/json"
-	//"os"
+	"os"
 
 	//"encoding/json"
 	"fmt"
@@ -11,6 +11,7 @@ import (
 	//"os"
 	"strconv"
 	"strings"
+	"bufio"
 	//"github.com/cnkei/gospline"
 
 	//"github.com/Arafatk/glot"
@@ -87,6 +88,53 @@ type my_spline struct {
 var usdtoeur float64
 var eurtousd float64
 
+
+
+func WriteFile(filename string, content string, pathExt string) {
+
+	/*
+	d1 := []byte("hello\ngo\n")
+	err := os.WriteFile("/tmp/dat1", d1, 0644)
+	check(err)
+	 */
+
+	path, err := os.Getwd()
+
+	fmt.Println(path)
+
+	f, err := os.Create(path+pathExt+filename)
+	check(err)
+
+	defer f.Close()
+	/*
+	d2 := []byte{115, 111, 109, 101, 10}
+	n2, err := f.Write(content)
+	check(err)
+	fmt.Printf("wrote %d bytes\n", n2)
+	 */
+
+	/*
+	n3, err := f.WriteString("writes\n")
+	check(err)
+	fmt.Printf("wrote %d bytes\n", n3)
+
+	 */
+
+	f.Sync()
+
+	w := bufio.NewWriter(f)
+	n4, err := w.WriteString(content)
+	check(err)
+	fmt.Printf("wrote %d bytes\n", n4)
+
+	w.Flush()
+
+}
+
+
+
+
+
 func main(){
 
 	newIntegraltesting := false
@@ -133,6 +181,8 @@ func main(){
 	}
 
 	if apitesting {
+
+		WriteFile("dat1.nb","testing\ntesting","/tmp/")
 
 		update := true
 
@@ -1087,6 +1137,7 @@ func MathematicaCodeLongIntersection(callList []callfunc, share_price float64) s
 
 
 // ------------------------------- general functions -------------------------------
+
 
 
 func MathematicaXYPlot(x,y []float64) string {
