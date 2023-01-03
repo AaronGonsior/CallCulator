@@ -194,7 +194,7 @@ func main(){
 		fmt.Println("url: ",url)
 		_,body,err := opt.APIRequest(url)
 		check(err)
-		body = strings.Split(body,"\"c\":")[1]
+		body = strings.Split(body,"\"vw\":")[1]
 		body = strings.Split(body,",")[0]
 		fmt.Println(body)
 
@@ -209,7 +209,7 @@ func main(){
 		fmt.Println("url: ",url)
 		_,body,err = opt.APIRequest(url)
 		check(err)
-		body = strings.Split(body,"\"c\":")[1]
+		body = strings.Split(body,"\"vw\":")[1]
 		body = strings.Split(body,",")[0]
 
 		share_price,err = strconv.ParseFloat(body,64)
