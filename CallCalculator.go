@@ -182,7 +182,9 @@ func main(){
 
 	if apitesting {
 
-		WriteFile("dat1.nb","testing\ntesting","/tmp/")
+
+		content := "SetDirectory[NotebookDirectory[]]\n"
+
 
 		update := true
 
@@ -258,14 +260,24 @@ func main(){
 			fmt.Println("loaded options: \n",options)
 		}
 
+		debug := true
 
 		callList := []callfunc{}
 		for _,opt := range options {
+			dateStr := strings.Split(opt.Expiration_date,"-")
+			if debug {
+				fmt.Println(dateStr)
+			}
+			dateInt := []int{}
+			for i:=0;i<3;i++ {
+				tmp,_ := strconv.Atoi(dateStr[i])
+				dateInt = append(dateInt,tmp)
+			}
 			callList = append(callList,callfunc{
 				base:   float64(opt.Strike_price),
 				cost:   opt.Close,
 				factor: /*float64(opt.Shares_per_contract)*/1,
-				date:   nil,
+				date:  dateInt ,
 			})
 		}
 		//add long
@@ -298,11 +310,16 @@ func main(){
 
 		fmt.Println(s.Integral(min(x),max(x),dx))
 
-		mathCode := s.PrintMathematicaCode()
+		var mathCode string
+
+		/*
+		mathCode = s.PrintMathematicaCode()
 		fmt.Println(mathCode)
+		 */
 
 
 		ns := NewNormedSpline(s,dx)
+		pdist := ns
 
 		fmt.Println("New Spline Integral Test:")
 		fmt.Println("Old normed spline Integral:")
@@ -315,29 +332,53 @@ func main(){
 		fmt.Println("New Spline Integral in bound with bounds 0 and 300:")
 		fmt.Println(ns.IntegralSpline(0,300))
 
-		mathCode = ns.PrintMathematicaCode()
+
+		mathCode = pdist.PrintMathematicaCode()
 		fmt.Println(mathCode)
+		content += mathCode
+		content += "Export[\"pdist.png\", Show[fct], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
 
-		pdist := ns
 		bestcall, bestE := findBestCall(pdist, callList, dx)
 		fmt.Println("Best Call:",bestcall,"\nwith expected return:", bestE)
 		mathCode = bestcall.PrintMathematicaCode()
 		fmt.Println(mathCode)
+
+		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n",callList[0].date,bestcall.base,bestE,ticker,long.ExpectedReturn(ns,dx))
+		content += mathCode
+		content += "Export[\"bestCall.png\", {msg1 \n , Show[fct], Show[call,long]}, \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+
+
 
 		fmt.Println("owning $TSLA has an expected return of: ",long.ExpectedReturn(ns,dx))
 
 		fmt.Println("\nPrint all calls:\n")
 		mathCode = PrintMathematicaCode(callList,share_price)
 		fmt.Println(mathCode)
+		content += mathCode
+		content += "Export[\"allCalls.png\", Show[s], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
 		fmt.Println("\nDistribution Chart for Call-Long intersections:\n")
 		mathCode = MathematicaCodeLongIntersection(callList,share_price)
 		fmt.Println(mathCode)
+		content += mathCode
+		content += "Export[\"CallLongIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+
+
+		fmt.Println("\nDistribution Chart for Call-Zero intersections:\n")
+		mathCode = MathematicaCodeZeroIntersection(callList)
+		fmt.Println(mathCode)
+		content += mathCode
+		content += "Export[\"CallZeroIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+
+
 
 		fmt.Println("\nExpected returns for each strike:\n")
 		mathCode = MathematicaPrintExpectedReturns(pdist,callList[:len(callList)-2],dx)
 		fmt.Println(mathCode)
+		content += mathCode
+		content += "Export[\"expected_returns_strike.png\", Show[xy], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+
 
 		strikes := []float64{}
 		costs := []float64{}
@@ -348,6 +389,11 @@ func main(){
 		mathCode = MathematicaXYPlot(strikes,costs)
 		fmt.Println("\nPlot strike vs cost:\n")
 		fmt.Println(mathCode)
+		content += mathCode
+		content += "Export[\"strike_price.png\", Show[xy], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+
+
+		WriteFile("output.nb",content,"/tmp/")
 
 	}
 
@@ -801,7 +847,7 @@ func (ms my_spline) PrintMathematicaCode() string {
 	result += fmt.Sprint("},ImageSize->Large, PlotRange -> Automatic];\n")
 
 	//Show
-	result += fmt.Sprintln("Show[fct, xy]")
+	result += fmt.Sprintln("s:=Show[fct, xy];\n")
 
 	return result
 }
@@ -990,7 +1036,7 @@ func MathematicaPrintExpectedReturns(pdist my_spline, calllist []callfunc, dx fl
 	}
 	code += "};\n"
 	code += "xy:=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic,Joined -> True];\n"
-	code += "Show[xy]"
+	code += "Show[xy];"
 	return code
 }
 
@@ -1043,12 +1089,12 @@ func PrintMathematicaCode(calls []callfunc, share_price float64) string {
 
 	for i := range calls {
 		if i==0{
-			code += "Show[{call"+strconv.Itoa(i)
+			code += "s:=Show[{call"+strconv.Itoa(i)
 			continue
 		}
 		code += fmt.Sprintln(",call"+strconv.Itoa(i))
 	}
-	code += ",long}]"
+	code += ",long}]\n"
 	return code
 }
 
@@ -1111,6 +1157,10 @@ func (call callfunc) LongIntersection(share_price float64) float64 {
 	return share_price*(call.factor*call.base+call.cost)/(call.cost+call.factor*share_price)
 }
 
+func (call callfunc) ZeroIntersection() float64 {
+	return call.base+call.cost/call.factor
+}
+
 func LongIntersection(callList []callfunc, share_price float64) []float64 {
 	var interList []float64
 	for _,call := range callList {
@@ -1121,7 +1171,7 @@ func LongIntersection(callList []callfunc, share_price float64) []float64 {
 
 func MathematicaCodeLongIntersection(callList []callfunc, share_price float64) string {
 	interList := LongIntersection(callList,share_price)
-	code := "DistributionChart[{"
+	code := "dist:=DistributionChart[{"
 	for i,inter := range interList {
 		if i==0 {
 			code += ""+fmt.Sprintf("%.0f",inter)
@@ -1129,7 +1179,29 @@ func MathematicaCodeLongIntersection(callList []callfunc, share_price float64) s
 		}
 		code += ","+fmt.Sprintf("%.0f",inter)
 	}
-	code += "}]"
+	code += "}];\n"
+	return code
+}
+
+func ZeroIntersection(callList []callfunc) []float64 {
+	var interList []float64
+	for _,call := range callList {
+		interList = append(interList,call.ZeroIntersection())
+	}
+	return interList
+}
+
+func MathematicaCodeZeroIntersection(callList []callfunc) string {
+	interList := ZeroIntersection(callList)
+	code := "dist:=DistributionChart[{"
+	for i,inter := range interList {
+		if i==0 {
+			code += ""+fmt.Sprintf("%.0f",inter)
+			continue
+		}
+		code += ","+fmt.Sprintf("%.0f",inter)
+	}
+	code += "}];\n"
 	return code
 }
 
@@ -1159,7 +1231,7 @@ func MathematicaXYPlot(x,y []float64) string {
 	}
 	code += "};\n"
 	code += "xy:=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic,Joined -> True];\n"
-	code += "Show[xy]"
+	code += "Show[xy]\n"
 	return code
 }
 
