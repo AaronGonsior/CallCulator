@@ -275,7 +275,7 @@ func main(){
 			}
 			callList = append(callList,callfunc{
 				base:   float64(opt.Strike_price),
-				cost:   opt.Close,
+				cost:   opt.Vw,
 				factor: /*float64(opt.Shares_per_contract)*/1,
 				date:  dateInt ,
 			})
@@ -384,7 +384,7 @@ func main(){
 		costs := []float64{}
 		for _,opt := range options {
 			strikes = append(strikes,float64(opt.Strike_price))
-			costs = append(costs, (opt.Close))
+			costs = append(costs, (opt.Vw))
 		}
 		mathCode = MathematicaXYPlot(strikes,costs)
 		fmt.Println("\nPlot strike vs cost:\n")
