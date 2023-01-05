@@ -7,18 +7,18 @@ y={0,0.00044639488807029994,0.0013391846642108998,0.0015623821082460497,0.003347
 xy:=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic];fct:=Plot[Piecewise[{{+0.00000001837687327271x^3-0.00000045942182517846x^2+0.00001785579535683144x^1+0.00000000000000000000,0.000<=x<=25.000},{-0.00000002656134751276x^3+0.00000291094473373162x^2-0.00006640336861592048x^1+0.00070215969977293279,25.000<=x<=50.000},{+0.00000001305832805131x^3-0.00000303200660087968x^2+0.00023074419811464457x^1-0.00425029974573648290,50.000<=x<=100.000},{-0.00000000986228766331x^3+0.00000384417811350725x^2-0.00045687427332404809x^1+0.01867031596888659578,100.000<=x<=150.000},{+0.00000000317828842226x^3-0.00000202408112499951x^2+0.00042336461245196568x^1-0.02534162831991411055,150.000<=x<=200.000},{+0.00000000072029307882x^3-0.00000054928391893477x^2+0.00012840517123901670x^1-0.00567766557238417926,200.000<=x<=250.000},{-0.00000000070272208070x^3+0.00000051797745070844x^2-0.00013841017117178394x^1+0.01655694629518253413,250.000<=x<=300.000},{+0.00000000209059524399x^3-0.00000199600814151656x^2+0.00061578550649571374x^1-0.05886262147156712254,300.000<=x<=350.000},{-0.00000000230292023842x^3+0.00000261718311501373x^2-0.00099883143328989088x^1+0.12950935483675365956,350.000<=x<=400.000},{+0.00000000176434705284x^3-0.00000226353763449440x^2+0.00095345686651335975x^1-0.13079575180367944420,400.000<=x<=450.000},{-0.00000000118330886837x^3+0.00000171579785914055x^2-0.00083724410562236676x^1+0.13780939401667954836,450.000<=x<=500.000}}],{x,0.000,500.000},ImageSize->Large, PlotRange -> Automatic];
 s:=Show[fct, xy];
 
-Export["pdist.png", Show[fct], "CompressionLevel" -> .25, 
+Export["TSLA2024-06-21(live data from 2023-01-05)\pdist.png", Show[fct], "CompressionLevel" -> .25, 
  ImageResolution -> 300];
-msg1 := Text["Assuming the probability distribution (left) for the date [2024 6 21], the call with strike 193.0 has the highest expected return out of all calls options available with 222.5 % expected return. Owning the underlying asset (TSLA) has an expected return of 90.7 %.  "];
+msg1 := Text["Assuming the probability distribution (left) for the date [2024 6 21], the call with strike 206.0 has the highest expected return out of all calls options available with 362.6 % expected return. Owning the underlying asset (TSLA) has an expected return of 108.4 %.  "];
 
-call:=Plot[100*Max[-1,(x/( 19.885 )- 9.705808398290168 -1)],{x,0,500},ImageSize->Large, PlotRange->Automatic];
+call:=Plot[100*Max[-1,(x/( 12.1954 )- 16.891614871180938 -1)],{x,0,500},ImageSize->Large, PlotRange->Automatic];
 Show[call]
-Export["bestCall.png", {msg1 
+Export["TSLA2024-06-21(live data from 2023-01-05)\-bestCall.png", {msg1 
  , Show[fct], Show[call,long]}, "CompressionLevel" -> .25, 
  ImageResolution -> 300];
-xmax:=1.5*758;
+xmax:=1.5*750;
 (* strike: 1 *)
-call0:=Plot[100*Max[-1,(x/(120.8539)-0.0082744536998806-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call0:=Plot[100*Max[-1,(x/(104.3524)-0.009582913282301125-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 3 *)
 call1:=Plot[100*Max[-1,(x/(165)-0.01818181818181818-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 5 *)
@@ -28,7 +28,7 @@ call3:=Plot[100*Max[-1,(x/(107.45)-0.05583992554676594-1)],{x,0,xmax},ImageSize-
 (* strike: 8 *)
 call4:=Plot[100*Max[-1,(x/(114.4)-0.06993006993006992-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 10 *)
-call5:=Plot[100*Max[-1,(x/(112.49)-0.0888967908258512-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call5:=Plot[100*Max[-1,(x/(98.4077)-0.10161806444007938-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 11 *)
 call6:=Plot[100*Max[-1,(x/(112)-0.09821428571428571-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 13 *)
@@ -36,248 +36,244 @@ call7:=Plot[100*Max[-1,(x/(115.3583)-0.11269236803940419-1)],{x,0,xmax},ImageSiz
 (* strike: 16 *)
 call8:=Plot[100*Max[-1,(x/(110.7143)-0.14451611038501802-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 33 *)
-call9:=Plot[100*Max[-1,(x/(93.9167)-0.35137520803009475-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call9:=Plot[100*Max[-1,(x/(79.9433)-0.4127925667316711-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 50 *)
-call10:=Plot[100*Max[-1,(x/(82.5)-0.6060606060606061-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call10:=Plot[100*Max[-1,(x/(72.8968)-0.6859011643858167-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 55 *)
-call11:=Plot[100*Max[-1,(x/(78)-0.7051282051282052-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call11:=Plot[100*Max[-1,(x/(67.94)-0.8095378274948484-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 60 *)
-call12:=Plot[100*Max[-1,(x/(65.6548)-0.9138707299390144-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call12:=Plot[100*Max[-1,(x/(60.83)-0.9863554167351636-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 65 *)
-call13:=Plot[100*Max[-1,(x/(71.12)-0.9139482564679414-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call13:=Plot[100*Max[-1,(x/(62.2)-1.045016077170418-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 66 *)
-call14:=Plot[100*Max[-1,(x/(71.2522)-0.9262871883254131-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call14:=Plot[100*Max[-1,(x/(56.1733)-1.1749354230568616-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 70 *)
-call15:=Plot[100*Max[-1,(x/(68.095)-1.0279756222923857-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call15:=Plot[100*Max[-1,(x/(54.575)-1.2826385707741639-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 75 *)
-call16:=Plot[100*Max[-1,(x/(64.89)-1.155802126675913-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call16:=Plot[100*Max[-1,(x/(56.6818)-1.3231760459265585-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 80 *)
-call17:=Plot[100*Max[-1,(x/(62.15)-1.2872083668543846-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call17:=Plot[100*Max[-1,(x/(49.234)-1.6248933663728318-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 83 *)
-call18:=Plot[100*Max[-1,(x/(60.605)-1.3695239666694168-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call18:=Plot[100*Max[-1,(x/(52.2483)-1.5885684318915638-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 85 *)
-call19:=Plot[100*Max[-1,(x/(60.5)-1.4049586776859504-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call19:=Plot[100*Max[-1,(x/(52.1875)-1.6287425149700598-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 90 *)
-call20:=Plot[100*Max[-1,(x/(55.825)-1.61218092252575-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call20:=Plot[100*Max[-1,(x/(47.72)-1.8860016764459346-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 95 *)
-call21:=Plot[100*Max[-1,(x/(53.7664)-1.7669027496726581-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call21:=Plot[100*Max[-1,(x/(46.8025)-2.0298061001014904-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 100 *)
-call22:=Plot[100*Max[-1,(x/(52.1443)-1.917755152528656-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call22:=Plot[100*Max[-1,(x/(42.472)-2.3544923714447163-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 105 *)
-call23:=Plot[100*Max[-1,(x/(49.09)-2.1389284986759014-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call23:=Plot[100*Max[-1,(x/(40.7358)-2.5775853180740285-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 110 *)
-call24:=Plot[100*Max[-1,(x/(46.5)-2.3655913978494625-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call24:=Plot[100*Max[-1,(x/(38.5625)-2.852512155591572-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 115 *)
-call25:=Plot[100*Max[-1,(x/(45.065)-2.551869521801842-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call25:=Plot[100*Max[-1,(x/(37.2725)-3.0853846669796767-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 116 *)
-call26:=Plot[100*Max[-1,(x/(44.0222)-2.6350341418647867-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call26:=Plot[100*Max[-1,(x/(36.77)-3.154745716616807-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 120 *)
-call27:=Plot[100*Max[-1,(x/(43.0663)-2.786401432210336-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call27:=Plot[100*Max[-1,(x/(35.4957)-3.3806911823122237-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 123 *)
-call28:=Plot[100*Max[-1,(x/(40.5175)-3.0357253038810392-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call28:=Plot[100*Max[-1,(x/(33.84)-3.634751773049645-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 125 *)
-call29:=Plot[100*Max[-1,(x/(40.4955)-3.0867627267227222-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call29:=Plot[100*Max[-1,(x/(31.6625)-3.9478878799842083-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 126 *)
-call30:=Plot[100*Max[-1,(x/(39.1425)-3.219007472695919-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call30:=Plot[100*Max[-1,(x/(32.5456)-3.8714910771348507-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 130 *)
-call31:=Plot[100*Max[-1,(x/(36.7)-3.542234332425068-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call31:=Plot[100*Max[-1,(x/(30.95)-4.20032310177706-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 133 *)
-call32:=Plot[100*Max[-1,(x/(38.1169)-3.4892659161684185-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call32:=Plot[100*Max[-1,(x/(30.52)-4.3577981651376145-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 135 *)
-call33:=Plot[100*Max[-1,(x/(35.9725)-3.7528667732295506-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call33:=Plot[100*Max[-1,(x/(28.75)-4.695652173913044-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 136 *)
-call34:=Plot[100*Max[-1,(x/(35.53)-3.827751196172249-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call34:=Plot[100*Max[-1,(x/(26.226)-5.185693586517197-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 140 *)
-call35:=Plot[100*Max[-1,(x/(34.78)-4.025301897642323-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call35:=Plot[100*Max[-1,(x/(28.2559)-4.95471742184818-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 143 *)
-call36:=Plot[100*Max[-1,(x/(33.6)-4.2559523809523805-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call36:=Plot[100*Max[-1,(x/(27.25)-5.247706422018348-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 145 *)
-call37:=Plot[100*Max[-1,(x/(32.9514)-4.400420012503263-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call37:=Plot[100*Max[-1,(x/(26.828)-5.4048009542269275-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 146 *)
-call38:=Plot[100*Max[-1,(x/(34.13)-4.277761500146498-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call38:=Plot[100*Max[-1,(x/(25.588)-5.7057995935594805-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 150 *)
-call39:=Plot[100*Max[-1,(x/(31.6135)-4.744808388821232-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call39:=Plot[100*Max[-1,(x/(24.8941)-6.025524120173053-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 153 *)
-call40:=Plot[100*Max[-1,(x/(30.3224)-5.04577474078569-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call40:=Plot[100*Max[-1,(x/(25.5)-6-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 155 *)
-call41:=Plot[100*Max[-1,(x/(29.8643)-5.190143415382246-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call41:=Plot[100*Max[-1,(x/(22.625)-6.850828729281768-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 156 *)
-call42:=Plot[100*Max[-1,(x/(28.1)-5.551601423487544-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call42:=Plot[100*Max[-1,(x/(23.95)-6.51356993736952-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 160 *)
-call43:=Plot[100*Max[-1,(x/(28.7182)-5.57137982185513-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call43:=Plot[100*Max[-1,(x/(22.7333)-7.038133486999248-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 163 *)
 call44:=Plot[100*Max[-1,(x/(27.4174)-5.9451297351317045-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 165 *)
-call45:=Plot[100*Max[-1,(x/(25.985)-6.349817202232057-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call45:=Plot[100*Max[-1,(x/(20.8856)-7.900180028344888-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 166 *)
-call46:=Plot[100*Max[-1,(x/(27.165)-6.110804343824775-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call46:=Plot[100*Max[-1,(x/(21.4933)-7.723337039914764-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 170 *)
-call47:=Plot[100*Max[-1,(x/(26.75)-6.355140186915888-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call47:=Plot[100*Max[-1,(x/(20.165)-8.430448797421274-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 173 *)
-call48:=Plot[100*Max[-1,(x/(24.7856)-6.979859273126332-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call48:=Plot[100*Max[-1,(x/(19.55)-8.849104859335037-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 175 *)
-call49:=Plot[100*Max[-1,(x/(24.722)-7.07871531429496-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call49:=Plot[100*Max[-1,(x/(19.26)-9.086188992731048-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 180 *)
-call50:=Plot[100*Max[-1,(x/(23.7471)-7.579872910797529-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call50:=Plot[100*Max[-1,(x/(18.6025)-9.676118801236393-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 183 *)
-call51:=Plot[100*Max[-1,(x/(22.85)-8.00875273522976-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call51:=Plot[100*Max[-1,(x/(17.87)-10.240626748740906-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 186 *)
-call52:=Plot[100*Max[-1,(x/(22.11)-8.412483039348711-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call52:=Plot[100*Max[-1,(x/(17.05)-10.909090909090908-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 193 *)
-call53:=Plot[100*Max[-1,(x/(19.885)-9.705808398290168-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call53:=Plot[100*Max[-1,(x/(15.2167)-12.683433333114277-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 200 *)
-call54:=Plot[100*Max[-1,(x/(19.801)-10.10049997474875-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call54:=Plot[100*Max[-1,(x/(14.9396)-13.387239283514953-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 206 *)
-call55:=Plot[100*Max[-1,(x/(18.82)-10.945802337938364-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call55:=Plot[100*Max[-1,(x/(12.1954)-16.891614871180938-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 213 *)
-call56:=Plot[100*Max[-1,(x/(17.01)-12.522045855379188-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call56:=Plot[100*Max[-1,(x/(13.925)-15.296229802513464-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 216 *)
-call57:=Plot[100*Max[-1,(x/(16.9)-12.781065088757398-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call57:=Plot[100*Max[-1,(x/(12.75)-16.941176470588236-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 220 *)
-call58:=Plot[100*Max[-1,(x/(16.1455)-13.626087764392556-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call58:=Plot[100*Max[-1,(x/(12.044)-18.26635669212886-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 226 *)
-call59:=Plot[100*Max[-1,(x/(15.52)-14.561855670103093-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call59:=Plot[100*Max[-1,(x/(11.725)-19.275053304904052-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 233 *)
-call60:=Plot[100*Max[-1,(x/(14.4662)-16.10651034826008-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call60:=Plot[100*Max[-1,(x/(10.6853)-21.80565824076067-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 240 *)
-call61:=Plot[100*Max[-1,(x/(13.7484)-17.456576765296326-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call61:=Plot[100*Max[-1,(x/(10.33)-23.23330106485963-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 246 *)
-call62:=Plot[100*Max[-1,(x/(12.8417)-19.15634222883263-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call62:=Plot[100*Max[-1,(x/(9.75)-25.23076923076923-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 250 *)
-call63:=Plot[100*Max[-1,(x/(12.7712)-19.57529441242796-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call63:=Plot[100*Max[-1,(x/(9.4818)-26.36630175705035-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 253 *)
-call64:=Plot[100*Max[-1,(x/(12.3286)-20.52138928994371-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call64:=Plot[100*Max[-1,(x/(9.1547)-27.63607764317782-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 260 *)
-call65:=Plot[100*Max[-1,(x/(11.65)-22.317596566523605-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call65:=Plot[100*Max[-1,(x/(8.2)-31.707317073170735-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 266 *)
-call66:=Plot[100*Max[-1,(x/(11.2057)-23.737919094746424-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call66:=Plot[100*Max[-1,(x/(8.3164)-31.98499350680583-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 270 *)
-call67:=Plot[100*Max[-1,(x/(10.7463)-25.12492671896374-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call67:=Plot[100*Max[-1,(x/(7.85)-34.39490445859873-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 273 *)
-call68:=Plot[100*Max[-1,(x/(9.76)-27.971311475409838-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call68:=Plot[100*Max[-1,(x/(7.11)-38.39662447257384-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 276 *)
-call69:=Plot[100*Max[-1,(x/(9.6378)-28.637240864097613-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call69:=Plot[100*Max[-1,(x/(7.5)-36.8-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 280 *)
-call70:=Plot[100*Max[-1,(x/(10.101)-27.72002772002772-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call70:=Plot[100*Max[-1,(x/(7.1062)-39.402212152768-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 283 *)
 call71:=Plot[100*Max[-1,(x/(9.5667)-29.581778460702225-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 286 *)
-call72:=Plot[100*Max[-1,(x/(8.831)-32.38591326010644-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call72:=Plot[100*Max[-1,(x/(5.9574)-48.00752005908618-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 290 *)
-call73:=Plot[100*Max[-1,(x/(9.336)-31.06255355612682-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call73:=Plot[100*Max[-1,(x/(6.5583)-44.21877620724883-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 293 *)
-call74:=Plot[100*Max[-1,(x/(8.18)-35.81907090464548-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call74:=Plot[100*Max[-1,(x/(6.625)-44.22641509433962-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 296 *)
-call75:=Plot[100*Max[-1,(x/(9.15)-32.349726775956285-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call75:=Plot[100*Max[-1,(x/(8.1782)-36.193783473135895-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 300 *)
-call76:=Plot[100*Max[-1,(x/(8.7082)-34.45028823407823-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call76:=Plot[100*Max[-1,(x/(6.205)-48.348106365834006-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 303 *)
-call77:=Plot[100*Max[-1,(x/(8.35)-36.2874251497006-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call77:=Plot[100*Max[-1,(x/(5.8)-52.24137931034483-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 306 *)
-call78:=Plot[100*Max[-1,(x/(8.3406)-36.68800805697432-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call78:=Plot[100*Max[-1,(x/(6)-51-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 310 *)
-call79:=Plot[100*Max[-1,(x/(8.054)-38.49019120933698-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call79:=Plot[100*Max[-1,(x/(5.83)-53.17324185248714-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 313 *)
-call80:=Plot[100*Max[-1,(x/(6.1663)-50.759774905534925-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call80:=Plot[100*Max[-1,(x/(5.65)-55.39823008849557-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 316 *)
-call81:=Plot[100*Max[-1,(x/(7.05)-44.822695035460995-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call81:=Plot[100*Max[-1,(x/(5.8)-54.48275862068966-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 320 *)
-call82:=Plot[100*Max[-1,(x/(7.6045)-42.08034716286409-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call82:=Plot[100*Max[-1,(x/(5.4)-59.25925925925925-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 323 *)
-call83:=Plot[100*Max[-1,(x/(6.6667)-48.449757751211244-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call83:=Plot[100*Max[-1,(x/(4.9625)-65.088161209068-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 326 *)
-call84:=Plot[100*Max[-1,(x/(7.1)-45.91549295774648-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call84:=Plot[100*Max[-1,(x/(4.8375)-67.39018087855297-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 330 *)
-call85:=Plot[100*Max[-1,(x/(7.11)-46.41350210970464-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call85:=Plot[100*Max[-1,(x/(4.935)-66.86930091185411-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 333 *)
-call86:=Plot[100*Max[-1,(x/(6.8463)-48.639411068752466-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call86:=Plot[100*Max[-1,(x/(4.85)-68.659793814433-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 336 *)
-call87:=Plot[100*Max[-1,(x/(6.06)-55.44554455445545-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call87:=Plot[100*Max[-1,(x/(4.8125)-69.81818181818181-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 340 *)
-call88:=Plot[100*Max[-1,(x/(6.115)-55.60098119378577-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call88:=Plot[100*Max[-1,(x/(5.6917)-59.73610696277035-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 343 *)
-call89:=Plot[100*Max[-1,(x/(5.214)-65.7844265439202-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call89:=Plot[100*Max[-1,(x/(4.2)-81.66666666666666-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 346 *)
 call90:=Plot[100*Max[-1,(x/(8.45)-40.94674556213018-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 350 *)
-call91:=Plot[100*Max[-1,(x/(6.1131)-57.25409366769724-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call91:=Plot[100*Max[-1,(x/(4.3022)-81.35372600065082-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 353 *)
-call92:=Plot[100*Max[-1,(x/(5.68)-62.147887323943664-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call92:=Plot[100*Max[-1,(x/(4.425)-79.77401129943503-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 356 *)
-call93:=Plot[100*Max[-1,(x/(6.1)-58.360655737704924-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call93:=Plot[100*Max[-1,(x/(4.2)-84.76190476190476-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 360 *)
-call94:=Plot[100*Max[-1,(x/(5.8)-62.06896551724138-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call94:=Plot[100*Max[-1,(x/(4)-90-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 363 *)
-call95:=Plot[100*Max[-1,(x/(5.4461)-66.65320137345991-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call95:=Plot[100*Max[-1,(x/(3.6)-100.83333333333333-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 366 *)
-call96:=Plot[100*Max[-1,(x/(5.5567)-65.86643151510789-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call96:=Plot[100*Max[-1,(x/(3.7758)-96.93310027014144-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 370 *)
-call97:=Plot[100*Max[-1,(x/(5.65)-65.48672566371681-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call97:=Plot[100*Max[-1,(x/(3.79)-97.62532981530343-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 373 *)
 call98:=Plot[100*Max[-1,(x/(5.3)-70.37735849056604-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 376 *)
-call99:=Plot[100*Max[-1,(x/(5.2143)-72.10939148111923-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call99:=Plot[100*Max[-1,(x/(3.75)-100.26666666666667-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 380 *)
-call100:=Plot[100*Max[-1,(x/(5.1)-74.50980392156863-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call100:=Plot[100*Max[-1,(x/(3.35)-113.43283582089552-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 383 *)
 call101:=Plot[100*Max[-1,(x/(3.67)-104.35967302452316-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 386 *)
 call102:=Plot[100*Max[-1,(x/(4.85)-79.58762886597938-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 390 *)
-call103:=Plot[100*Max[-1,(x/(4.8)-81.25-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call103:=Plot[100*Max[-1,(x/(3.375)-115.55555555555556-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 393 *)
-call104:=Plot[100*Max[-1,(x/(4.75)-82.73684210526316-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call104:=Plot[100*Max[-1,(x/(3.29)-119.45288753799392-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 396 *)
 call105:=Plot[100*Max[-1,(x/(4.65)-85.16129032258064-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 400 *)
-call106:=Plot[100*Max[-1,(x/(4.6356)-86.28872206402623-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call106:=Plot[100*Max[-1,(x/(3.1958)-125.16427811502597-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 416 *)
-call107:=Plot[100*Max[-1,(x/(4.315)-96.40787949015063-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call107:=Plot[100*Max[-1,(x/(2.8572)-145.59708805823882-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 433 *)
-call108:=Plot[100*Max[-1,(x/(3.9019)-110.97157794920423-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call108:=Plot[100*Max[-1,(x/(2.7519)-157.34583378756494-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 450 *)
-call109:=Plot[100*Max[-1,(x/(3.5709)-126.01865076031252-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call109:=Plot[100*Max[-1,(x/(2.3941)-187.96207343051668-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 466 *)
-call110:=Plot[100*Max[-1,(x/(3.3125)-140.67924528301887-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call110:=Plot[100*Max[-1,(x/(2.3064)-202.04647936177594-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 483 *)
-call111:=Plot[100*Max[-1,(x/(3.175)-152.1259842519685-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call111:=Plot[100*Max[-1,(x/(2.0171)-239.45267958950967-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 500 *)
-call112:=Plot[100*Max[-1,(x/(2.9062)-172.0459706833666-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call112:=Plot[100*Max[-1,(x/(2.0079)-249.01638527815132-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 516 *)
-call113:=Plot[100*Max[-1,(x/(2.7056)-190.71555292726197-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call113:=Plot[100*Max[-1,(x/(1.6978)-303.9227235245612-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 533 *)
-call114:=Plot[100*Max[-1,(x/(2.4887)-214.168039538715-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call114:=Plot[100*Max[-1,(x/(1.74)-306.32183908045977-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 550 *)
-call115:=Plot[100*Max[-1,(x/(2.4189)-227.3760800363802-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call115:=Plot[100*Max[-1,(x/(1.69)-325.4437869822485-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 566 *)
-call116:=Plot[100*Max[-1,(x/(2.228)-254.03949730700177-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call116:=Plot[100*Max[-1,(x/(1.514)-373.84412153236457-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 583 *)
-call117:=Plot[100*Max[-1,(x/(2.1)-277.6190476190476-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call117:=Plot[100*Max[-1,(x/(1.3664)-426.6686182669789-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 600 *)
-call118:=Plot[100*Max[-1,(x/(2.011)-298.35902536051714-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call118:=Plot[100*Max[-1,(x/(1.405)-427.0462633451957-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 616 *)
-call119:=Plot[100*Max[-1,(x/(1.495)-412.0401337792642-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call119:=Plot[100*Max[-1,(x/(1.1771)-523.3200237872738-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 633 *)
-call120:=Plot[100*Max[-1,(x/(1.825)-346.8493150684932-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call120:=Plot[100*Max[-1,(x/(1.11)-570.2702702702702-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 650 *)
-call121:=Plot[100*Max[-1,(x/(1.68)-386.9047619047619-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call121:=Plot[100*Max[-1,(x/(1.1852)-548.4306446169422-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 666 *)
-call122:=Plot[100*Max[-1,(x/(1.6169)-411.89931350114415-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call122:=Plot[100*Max[-1,(x/(1.09)-611.0091743119266-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 683 *)
-call123:=Plot[100*Max[-1,(x/(1.57)-435.03184713375794-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call123:=Plot[100*Max[-1,(x/(1.07)-638.3177570093458-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 700 *)
-call124:=Plot[100*Max[-1,(x/(1.505)-465.1162790697675-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call124:=Plot[100*Max[-1,(x/(0.9466699999999999)-739.4340160774083-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 716 *)
-call125:=Plot[100*Max[-1,(x/(1.41)-507.8014184397163-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call125:=Plot[100*Max[-1,(x/(1.0013)-715.0704084689903-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 733 *)
-call126:=Plot[100*Max[-1,(x/(1.3361)-548.6116308659531-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+call126:=Plot[100*Max[-1,(x/(0.9283)-789.6154260476139-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
 (* strike: 750 *)
-call127:=Plot[100*Max[-1,(x/(1.3167)-569.6058327637276-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
-(* strike: 758 *)
-call128:=Plot[100*Max[-1,(x/(1.2884)-588.3266066438994-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
-(* strike: 0 *)
-call129:=Plot[100*Max[-1,(x/(122.1341)-0-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
-long := Plot[100*(x - 122)/122, {x, 0, xmax}, PlotStyle -> Red];s:=Show[{call0,call1
+call127:=Plot[100*Max[-1,(x/(0.96595)-776.4377038148973-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+long := Plot[100*(x - 112)/112, {x, 0, xmax}, PlotStyle -> Red];s:=Show[{call0,call1
 ,call2
 ,call3
 ,call4
@@ -404,25 +400,195 @@ long := Plot[100*(x - 122)/122, {x, 0, xmax}, PlotStyle -> Red];s:=Show[{call0,c
 ,call125
 ,call126
 ,call127
-,call128
-,call129
 ,long}]
-Export["allCalls.png", Show[s], "CompressionLevel" -> .25, 
+Export["TSLA2024-06-21(live data from 2023-01-05)\allCalls.png", Show[s], "CompressionLevel" -> .25, 
  ImageResolution -> 300];
-dist:=DistributionChart[{61,71,62,60,63,64,64,66,66,72,79,81,82,86,87,89,91,94,96,97,100,103,107,110,113,117,118,121,123,124,125,128,130,132,133,136,138,140,141,144,147,149,150,153,156,157,158,161,164,166,171,173,176,183,189,195,202,205,209,214,221,228,234,238,241,248,254,258,262,265,268,271,275,278,282,284,288,291,294,298,304,305,308,313,315,319,322,326,330,334,332,339,343,345,349,353,355,359,363,366,370,375,376,380,383,386,390,406,423,441,457,474,491,507,525,542,558,575,592,610,625,643,659,676,693,709,726,743,751,61}];
-Export["CallLongIntersectionDistribution.png", Show[dist], "CompressionLevel" -> .25, 
+dist:=DistributionChart[{54,68,59,58,60,58,61,63,64,66,74,76,78,82,81,84,87,90,92,94,97,100,103,107,110,114,115,118,120,122,123,126,128,130,131,134,137,139,140,143,145,148,148,152,153,157,157,161,164,166,170,173,176,183,190,197,202,205,209,215,222,229,235,239,242,250,255,260,263,266,270,270,277,280,283,283,290,294,296,300,303,306,310,314,317,321,324,327,329,335,330,341,344,347,351,355,358,362,361,367,372,374,375,382,385,385,392,408,425,443,459,476,493,510,527,543,560,577,594,611,628,644,661,678,695,711,728,745}];
+Export["TSLA2024-06-21(live data from 2023-01-05)\CallLongIntersectionDistribution.png", Show[dist], "CompressionLevel" -> .25, 
  ImageResolution -> 300];
-dist:=DistributionChart[{122,168,121,113,122,122,123,128,127,127,132,133,126,136,137,138,140,142,144,146,146,149,152,154,156,160,160,163,164,165,165,167,171,171,172,175,177,178,180,182,183,185,184,189,190,191,193,197,198,200,204,206,208,213,220,225,230,233,236,242,247,254,259,263,265,272,277,281,283,286,290,293,295,299,301,305,309,311,314,318,319,323,328,330,333,337,340,342,346,348,354,356,359,362,366,368,372,376,378,381,385,387,391,395,398,401,405,420,437,454,469,486,503,519,535,552,568,585,602,617,635,652,668,685,702,717,734,751,759,122}];
-Export["CallZeroIntersectionDistribution.png", Show[dist], "CompressionLevel" -> .25, 
+dist:=DistributionChart[{105,168,121,113,122,108,123,128,127,113,123,123,121,127,122,125,132,129,135,137,138,142,142,146,149,152,153,155,157,157,159,161,164,164,162,168,170,172,172,175,178,178,180,183,190,186,187,190,193,194,199,201,203,208,215,218,227,229,232,238,244,250,256,259,262,268,274,278,280,284,287,293,292,297,300,304,306,309,312,316,319,322,325,328,331,335,338,341,346,347,354,354,357,360,364,367,370,374,378,380,383,387,391,393,396,401,403,419,436,452,468,485,502,518,535,552,568,584,601,617,634,651,667,684,701,717,734,751}];
+Export["TSLA2024-06-21(live data from 2023-01-05)\CallZeroIntersectionDistribution.png", Show[dist], "CompressionLevel" -> .25, 
  ImageResolution -> 300];
 x={1,3,5,6,8,10,11,13,16,33,50,55,60,65,66,70,75,80,83,85,90,95,100,105,110,115,116,120,123,125,126,130,133,135,136,140,143,145,146,150,153,155,156,160,163,165,166,170,173,175,180,183,186,193,200,206,213,216,220,226,233,240,246,250,253,260,266,270,273,276,280,283,286,290,293,296,300,303,306,310,313,316,320,323,326,330,333,336,340,343,346,350,353,356,360,363,366,370,373,376,380,383,386,390,393,396,400,416,433,450,466,483,500,516,533,550,566,583,600,616,633,650,666,683,700,716,733,750};
-y={92,39,96,111,97,98,98,91,96,113,122,129,165,137,136,141,146,149,151,148,161,162,162,169,175,174,178,176,187,183,191,201,183,195,197,194,197,198,185,198,203,203,219,202,208,219,203,197,212,207,205,209,210,223,202,200,209,201,202,195,193,185,185,173,173,165,156,154,169,162,137,141,150,124,145,110,109,109,100,95,144,104,77,93,73,62,60,72,59,77,3,33,35,19,16,16,7,-3,-3,-8,-14,11,-22,-28,-33,-36,-43,-61,-76,-87,-94,-99,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100};
+y={122,39,96,111,97,127,98,91,96,150,151,163,186,172,199,201,181,214,191,188,205,201,222,224,231,231,233,235,244,262,250,257,254,270,302,262,266,266,281,279,260,300,274,281,208,297,283,294,295,294,290,295,302,321,301,363,277,299,305,290,297,279,275,268,268,277,245,247,269,237,237,141,271,219,203,135,193,200,178,169,166,147,150,159,154,133,125,116,71,119,3,89,74,73,68,76,57,44,-3,28,31,11,-22,2,-3,-36,-17,-42,-66,-81,-92,-98,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100,-100};
 xy:=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic,Joined -> True];
-Show[xy];Export["expected_returns_strike.png", Show[xy], "CompressionLevel" -> .25, 
+Show[xy];Export["TSLA2024-06-21(live data from 2023-01-05)\expected_returns_strike.png", Show[xy], "CompressionLevel" -> .25, 
  ImageResolution -> 300];
-x={13,5,6,8,10,11,13,16,33,50,55,60,65,66,70,75,80,83,85,90,95,100,105,110,115,116,120,123,125,126,130,133,135,136,140,143,145,146,150,153,155,156,160,163,165,166,170,173,175,180,183,186,193,200,206,213,216,220,226,233,240,246,250,253,260,266,270,273,276,280,283,286,290,293,296,300,303,306,310,313,316,320,323,326,330,333,336,340,343,346,350,353,356,360,363,366,370,373,376,380,383,386,390,393,396,400,416,433,450,466,483,500,516,533,550,566,583,600,616,633,650,666,683,700,716,733,750,758};
-y={121165,116,107,114,112,112,115,111,94,82,78,66,71,71,68,65,62,61,60,56,54,52,49,46,45,44,43,41,40,39,37,38,36,36,35,34,33,34,32,30,30,28,29,27,26,27,27,25,25,24,23,22,20,20,19,17,17,16,16,14,14,13,13,12,12,11,11,10,10,10,10,9,9,8,9,9,8,8,8,6,7,8,7,7,7,7,6,6,5,8,6,6,6,6,5,6,6,5,5,5,4,5,5,5,5,5,4,4,4,3,3,3,3,2,2,2,2,2,1,2,2,2,2,2,1,1,1,1};
-xy:=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic,Joined -> True];
+x={1,3,5,6,8,10,11,13,16,33,50,55,60,65,66,70,75,80,83,85,90,95,100,105,110,115,116,120,123,125,126,130,133,135,136,140,143,145,146,150,153,155,156,160,163,165,166,170,173,175,180,183,186,193,200,206,213,216,220,226,233,240,246,250,253,260,266,270,273,276,280,283,286,290,293,296,300,303,306,310,313,316,320,323,326,330,333,336,340,343,346,350,353,356,360,363,366,370,373,376,380,383,386,390,393,396,400,416,433,450,466,483,500,516,533,550,566,583,600,616,633,650,666,683,700,716,733,750758};
+y={104,165,116,107,114,98,112,115,111,80,73,68,61,62,56,55,57,49,52,52,48,47,42,41,39,37,37,35,34,32,33,31,31,29,26,28,27,27,26,25,26,23,24,23,27,21,21,20,20,19,19,18,17,15,15,12,14,13,12,12,11,10,10,9,9,8,8,8,7,8,7,10,6,7,7,8,6,6,6,6,6,6,5,5,5,5,5,5,6,4,8,4,4,4,4,4,4,4,5,4,3,4,5,3,3,5,3,3,3,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,11};
+xy=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic,Joined -> True];
 Show[xy]
-Export["strike_price.png", Show[xy], "CompressionLevel" -> .25, 
+Export["TSLA2024-06-21(live data from 2023-01-05)\strike_price.png", Show[xy], "CompressionLevel" -> .25, 
+ ImageResolution -> 300];
+Mathematica Code to visualize:
+
+
+x={0,25,50,100,150,200,250,300,350,400,450,500};
+y={0,0.00044639488807029994,0.0013391846642108998,0.0015623821082460497,0.0033479616605272496,0.0037943565485975494,0.0033479616605272496,0.0026783693284217996,0.0017855795522811998,0.0013391846642108998,0.0006695923321054499,0.00022319744403514997};
+xy:=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic];fct:=Plot[Piecewise[{{+0.00000001837687327271x^3-0.00000045942182517846x^2+0.00001785579535683144x^1+0.00000000000000000000,0.000<=x<=25.000},{-0.00000002656134751276x^3+0.00000291094473373162x^2-0.00006640336861592048x^1+0.00070215969977293279,25.000<=x<=50.000},{+0.00000001305832805131x^3-0.00000303200660087968x^2+0.00023074419811464457x^1-0.00425029974573648290,50.000<=x<=100.000},{-0.00000000986228766331x^3+0.00000384417811350725x^2-0.00045687427332404809x^1+0.01867031596888659578,100.000<=x<=150.000},{+0.00000000317828842226x^3-0.00000202408112499951x^2+0.00042336461245196568x^1-0.02534162831991411055,150.000<=x<=200.000},{+0.00000000072029307882x^3-0.00000054928391893477x^2+0.00012840517123901670x^1-0.00567766557238417926,200.000<=x<=250.000},{-0.00000000070272208070x^3+0.00000051797745070844x^2-0.00013841017117178394x^1+0.01655694629518253413,250.000<=x<=300.000},{+0.00000000209059524399x^3-0.00000199600814151656x^2+0.00061578550649571374x^1-0.05886262147156712254,300.000<=x<=350.000},{-0.00000000230292023842x^3+0.00000261718311501373x^2-0.00099883143328989088x^1+0.12950935483675365956,350.000<=x<=400.000},{+0.00000000176434705284x^3-0.00000226353763449440x^2+0.00095345686651335975x^1-0.13079575180367944420,400.000<=x<=450.000},{-0.00000000118330886837x^3+0.00000171579785914055x^2-0.00083724410562236676x^1+0.13780939401667954836,450.000<=x<=500.000}}],{x,0.000,500.000},ImageSize->Large, PlotRange -> Automatic];
+s:=Show[fct, xy];
+
+Export["TSLA2024-09-20(live data from 2023-01-05)\pdist.png", Show[fct], "CompressionLevel" -> .25, 
+ ImageResolution -> 300];
+msg1 := Text["Assuming the probability distribution (left) for the date [2024 9 20], the call with strike 185.0 has the highest expected return out of all calls options available with 276.0 % expected return. Owning the underlying asset (TSLA) has an expected return of 108.4 %.  "];
+
+call:=Plot[100*Max[-1,(x/( 18.4067 )- 10.050688064672103 -1)],{x,0,500},ImageSize->Large, PlotRange->Automatic];
+Show[call]
+Export["TSLA2024-09-20(live data from 2023-01-05)\-bestCall.png", {msg1 
+ , Show[fct], Show[call,long]}, "CompressionLevel" -> .25, 
+ ImageResolution -> 300];
+xmax:=1.5*340;
+(* strike: 50 *)
+call0:=Plot[100*Max[-1,(x/(73.1733)-0.6833093491751773-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 55 *)
+call1:=Plot[100*Max[-1,(x/(69.1833)-0.7949895422739303-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 60 *)
+call2:=Plot[100*Max[-1,(x/(64.575)-0.9291521486643437-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 65 *)
+call3:=Plot[100*Max[-1,(x/(63.9677)-1.0161378320621188-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 70 *)
+call4:=Plot[100*Max[-1,(x/(59.73)-1.1719403984597356-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 75 *)
+call5:=Plot[100*Max[-1,(x/(57.4)-1.3066202090592334-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 80 *)
+call6:=Plot[100*Max[-1,(x/(50.97)-1.5695507161075142-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 85 *)
+call7:=Plot[100*Max[-1,(x/(54)-1.5740740740740742-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 90 *)
+call8:=Plot[100*Max[-1,(x/(47.0535)-1.9127163760400396-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 95 *)
+call9:=Plot[100*Max[-1,(x/(48.35)-1.9648397104446742-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 100 *)
+call10:=Plot[100*Max[-1,(x/(45.6483)-2.1906620838015876-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 105 *)
+call11:=Plot[100*Max[-1,(x/(42.986)-2.4426557483831948-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 110 *)
+call12:=Plot[100*Max[-1,(x/(41.3)-2.663438256658596-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 115 *)
+call13:=Plot[100*Max[-1,(x/(41.0567)-2.801004464557551-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 120 *)
+call14:=Plot[100*Max[-1,(x/(36.45)-3.2921810699588474-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 125 *)
+call15:=Plot[100*Max[-1,(x/(36.2392)-3.4493035166339214-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 130 *)
+call16:=Plot[100*Max[-1,(x/(34.7622)-3.7396942656103467-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 135 *)
+call17:=Plot[100*Max[-1,(x/(33.0583)-4.083694563846295-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 140 *)
+call18:=Plot[100*Max[-1,(x/(30.97)-4.520503713270908-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 145 *)
+call19:=Plot[100*Max[-1,(x/(27.886)-5.19974180592412-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 150 *)
+call20:=Plot[100*Max[-1,(x/(27.525)-5.4495912806539515-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 155 *)
+call21:=Plot[100*Max[-1,(x/(27.2606)-5.685861646478801-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 160 *)
+call22:=Plot[100*Max[-1,(x/(25.675)-6.2317429406036995-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 165 *)
+call23:=Plot[100*Max[-1,(x/(25.2818)-6.526434035551266-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 170 *)
+call24:=Plot[100*Max[-1,(x/(22.3945)-7.591149612628101-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 175 *)
+call25:=Plot[100*Max[-1,(x/(23.055)-7.590544350466276-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 180 *)
+call26:=Plot[100*Max[-1,(x/(21.9)-8.219178082191782-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 185 *)
+call27:=Plot[100*Max[-1,(x/(18.4067)-10.050688064672103-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 190 *)
+call28:=Plot[100*Max[-1,(x/(18.4625)-10.29113067027759-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 195 *)
+call29:=Plot[100*Max[-1,(x/(16.83)-11.586452762923352-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 200 *)
+call30:=Plot[100*Max[-1,(x/(18.645)-10.726736390453205-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 210 *)
+call31:=Plot[100*Max[-1,(x/(16.9)-12.42603550295858-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 220 *)
+call32:=Plot[100*Max[-1,(x/(14.725)-14.940577249575552-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 230 *)
+call33:=Plot[100*Max[-1,(x/(13.88)-16.570605187319885-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 240 *)
+call34:=Plot[100*Max[-1,(x/(12.8)-18.75-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 250 *)
+call35:=Plot[100*Max[-1,(x/(12.3086)-20.311002063597808-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 260 *)
+call36:=Plot[100*Max[-1,(x/(10.7)-24.299065420560748-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 270 *)
+call37:=Plot[100*Max[-1,(x/(10.7)-25.233644859813086-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 280 *)
+call38:=Plot[100*Max[-1,(x/(8.73)-32.07331042382589-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 290 *)
+call39:=Plot[100*Max[-1,(x/(8.4471)-34.33130896994234-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 300 *)
+call40:=Plot[100*Max[-1,(x/(8.1775)-36.68602873738918-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 310 *)
+call41:=Plot[100*Max[-1,(x/(7.5)-41.333333333333336-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 320 *)
+call42:=Plot[100*Max[-1,(x/(6.3689)-50.24415519163435-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 330 *)
+call43:=Plot[100*Max[-1,(x/(6.6929)-49.30598096490311-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+(* strike: 340 *)
+call44:=Plot[100*Max[-1,(x/(6.3)-53.96825396825397-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];
+long := Plot[100*(x - 112)/112, {x, 0, xmax}, PlotStyle -> Red];s:=Show[{call0,call1
+,call2
+,call3
+,call4
+,call5
+,call6
+,call7
+,call8
+,call9
+,call10
+,call11
+,call12
+,call13
+,call14
+,call15
+,call16
+,call17
+,call18
+,call19
+,call20
+,call21
+,call22
+,call23
+,call24
+,call25
+,call26
+,call27
+,call28
+,call29
+,call30
+,call31
+,call32
+,call33
+,call34
+,call35
+,call36
+,call37
+,call38
+,call39
+,call40
+,call41
+,call42
+,call43
+,call44
+,long}]
+Export["TSLA2024-09-20(live data from 2023-01-05)\allCalls.png", Show[s], "CompressionLevel" -> .25, 
+ ImageResolution -> 300];
+dist:=DistributionChart[{74,77,79,82,85,87,90,94,96,100,103,107,110,114,118,122,126,130,134,138,142,147,151,155,160,164,169,175,179,184,187,197,207,217,227,236,247,256,268,277,287,298,309,318,328}];
+Export["TSLA2024-09-20(live data from 2023-01-05)\CallLongIntersectionDistribution.png", Show[dist], "CompressionLevel" -> .25, 
+ ImageResolution -> 300];
+dist:=DistributionChart[{123,124,125,129,130,132,131,139,137,143,146,148,151,156,156,161,165,168,171,173,178,182,186,190,192,198,202,203,208,212,219,227,235,244,253,262,271,281,289,298,308,318,326,337,346}];
+Export["TSLA2024-09-20(live data from 2023-01-05)\CallZeroIntersectionDistribution.png", Show[dist], "CompressionLevel" -> .25, 
+ ImageResolution -> 300];
+x={50,55,60,65,70,75,80,85,90,95,100,105,110,115,120,125,130,135,140,145,150,155,160,165,170,175,180,185,190,195,200,210,220,230,240,250,260,270,280,290,300,310,320,330,340};
+y={151,158,169,164,175,178,204,178,209,192,199,207,209,200,226,216,218,221,230,252,242,232,237,228,254,229,231,276,258,274,221,220,231,216,206,183,189,155,174,148,122,109,112,72,54};
+xy:=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic,Joined -> True];
+Show[xy];Export["TSLA2024-09-20(live data from 2023-01-05)\expected_returns_strike.png", Show[xy], "CompressionLevel" -> .25, 
+ ImageResolution -> 300];
+x={50,55,60,65,70,75,80,85,90,95,100,105,110,115,120,125,130,135,140,145,150,155,160,165,170,175,180,185,190,195,200,210,220,230,240,250,260,270,280,290,300,310,320,330,340350};
+y={73,69,65,64,60,57,51,54,47,48,46,43,41,41,36,36,35,33,31,28,28,27,26,25,22,23,22,18,18,17,19,17,15,14,13,12,11,11,9,8,8,8,6,7,66};
+xy=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic,Joined -> True];
+Show[xy]
+Export["TSLA2024-09-20(live data from 2023-01-05)\strike_price.png", Show[xy], "CompressionLevel" -> .25, 
  ImageResolution -> 300];

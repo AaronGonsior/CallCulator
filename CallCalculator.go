@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"encoding/json"
 	"os"
 
 	//"encoding/json"
@@ -16,6 +15,7 @@ import (
 
 	//"github.com/Arafatk/glot"
 	//_ "github.com/gnuplot/gnuplot-old"
+	"time"
 
 	opt "github.com/AaronGonsior/optionsscheine2"
 )
@@ -135,6 +135,9 @@ func WriteFile(filename string, content string, pathExt string) {
 
 
 
+
+
+
 func main(){
 
 	newIntegraltesting := false
@@ -158,7 +161,7 @@ func main(){
 		fmt.Println(mathCode)
 
 
-		ns := NewNormedSpline(s,dx)
+		ns := NewNormedSpline(s)
 
 		fmt.Println("New Spline Integral Test:")
 		fmt.Println("Old normed spline Integral:")
@@ -226,7 +229,7 @@ func main(){
 			Ticker:      ticker,
 			ApiKey:      apiKey,
 			StrikeRange: []int{0,1000},
-			DateRange:   []string{"2024-06-01","2024-07-01"},
+			DateRange:   /*[]string{"2024-06-01","2024-07-01"}*/[]string{"2024-06-01","2025-01-01"},
 			Contract_type: "call",
 		}
 
@@ -262,33 +265,95 @@ func main(){
 
 		debug := true
 
-		callList := []callfunc{}
-		for _,opt := range options {
-			dateStr := strings.Split(opt.Expiration_date,"-")
-			if debug {
-				fmt.Println(dateStr)
-			}
-			dateInt := []int{}
-			for i:=0;i<3;i++ {
-				tmp,_ := strconv.Atoi(dateStr[i])
-				dateInt = append(dateInt,tmp)
-			}
-			callList = append(callList,callfunc{
-				base:   float64(opt.Strike_price),
-				cost:   opt.Vw,
-				factor: /*float64(opt.Shares_per_contract)*/1,
-				date:  dateInt ,
-			})
-		}
-		//add long
+
 		long := callfunc{
 			base:   0,
 			cost:   share_price,
 			factor: 1,
 			date:   nil,
 		}
+		var addToAll []callfunc
+		addToAll = append(addToAll,long)
+
+
+
+		optionsDates,optionsMap, callListMap :=OptionsToOptionsDates (options, addToAll)
+
+		/*
+		var optionsMap map[string][]opt.Option
+		optionsMap = make(map[string][]opt.Option)
+		var optionsDates []string
+		var callListMap map[string][]callfunc
+		callListMap = make(map[string][]callfunc)
+
+		callList := []callfunc{}
+		for _,optt := range options {
+
+			dateStr := strings.Split(optt.Expiration_date,"-")
+			dateInt := []int{}
+			for i:=0;i<3;i++ {
+				tmp,_ := strconv.Atoi(dateStr[i])
+				dateInt = append(dateInt,tmp)
+			}
+
+			if len(optionsMap[optt.Expiration_date])>0 {
+				optionsMap[optt.Expiration_date] = append(optionsMap[optt.Expiration_date],optt)
+				callListMap[optt.Expiration_date] = append(callListMap[optt.Expiration_date],callfunc{
+					base:   float64(optt.Strike_price),
+					cost:   optt.Vw,
+					factor: 1,
+					date:   dateInt,
+				})
+			} else {
+				optionsDates = append(optionsDates,optt.Expiration_date)
+				tmp := make([]opt.Option,1)
+				tmp[0] = optt
+				optionsMap[optt.Expiration_date] = tmp
+				tmpp := make([]callfunc,2)
+				tmpp[0] = callfunc{
+					base:   float64(optt.Strike_price),
+					cost:   optt.Vw,
+					factor: 1,
+					date:   dateInt,
+				}
+				tmpp[1] = long
+				callListMap[optt.Expiration_date] = tmpp
+			}
+
+
+			callList = append(callList,callfunc{
+				base:   float64(optt.Strike_price),
+				cost:   optt.Vw,
+				factor: 1,
+				date:  dateInt ,
+			})
+
+		}
+		 */
+
+
+
+		if debug {
+			fmt.Println("len of optionsDates2: ", len(optionsMap), " aka. for how many different dates call options got loaded.\n These are all the dates:")
+			for _,d := range optionsDates {
+				fmt.Println(d,":")
+				fmt.Println("callListMap:")
+				for _,c := range callListMap[d] {
+					fmt.Println("   ",c)
+				}
+				fmt.Println("OptionsMap:")
+				for _,o := range optionsMap[d] {
+					fmt.Println("   ",o)
+				}
+			}
+		}
+
+		//add long
+
+		/*
 		callList = append(callList,long)
 		fmt.Println(callList)
+		 */
 
 		// var shift float64 = +0
 
@@ -306,9 +371,7 @@ func main(){
 		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
 		s := NewSpline(splinetype,x,y)
 
-		dx := 0.01
-
-		fmt.Println(s.Integral(min(x),max(x),dx))
+		//fmt.Println(s.Integral(min(x),max(x),dx))
 
 		var mathCode string
 
@@ -318,9 +381,10 @@ func main(){
 		 */
 
 
-		ns := NewNormedSpline(s,dx)
+		ns := NewNormedSpline(s)
 		pdist := ns
 
+		/*
 		fmt.Println("New Spline Integral Test:")
 		fmt.Println("Old normed spline Integral:")
 		fmt.Println(ns.Integral(ns.x[0],ns.x[len(ns.x)-1],dx))
@@ -332,65 +396,79 @@ func main(){
 		fmt.Println("New Spline Integral in bound with bounds 0 and 300:")
 		fmt.Println(ns.IntegralSpline(0,300))
 
+		 */
 
-		mathCode = pdist.PrintMathematicaCode()
-		fmt.Println(mathCode)
-		content += mathCode
-		content += "Export[\"pdist.png\", Show[fct], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+		dx := 0.01
 
+		path, err := os.Getwd()
+		check(err)
+		fmt.Println(path)
+		currentTime := time.Now()
+		live := currentTime.Format("2006-01-02")
 
-		bestcall, bestE := findBestCall(pdist, callList, dx)
-		fmt.Println("Best Call:",bestcall,"\nwith expected return:", bestE)
-		mathCode = bestcall.PrintMathematicaCode()
-		fmt.Println(mathCode)
+		var strikes []float64
+		var costs []float64
 
-		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n",callList[0].date,bestcall.base,bestE,ticker,long.ExpectedReturn(ns,dx))
-		content += mathCode
-		content += "Export[\"bestCall.png\", {msg1 \n , Show[fct], Show[call,long]}, \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+		for _,d := range optionsDates {
+			folderName := ticker+d+"(live data from "+live+")"
+			err = os.Mkdir(path+"\\tmp\\"+folderName, 0755)
+			check(err)
+			callList := callListMap[d]
+			callList = callList[len(addToAll):len(callList)-1]
 
+			mathCode = pdist.PrintMathematicaCode()
+			fmt.Println(mathCode)
+			content += mathCode
+			content += "Export[\"" + folderName + "\\pdist.png\", Show[fct], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
+			bestcall, bestE := findBestCall(pdist, callList, dx)
+			fmt.Println("Best Call:", bestcall, "\nwith expected return:", bestE)
+			mathCode = bestcall.PrintMathematicaCode()
+			fmt.Println(mathCode)
 
-		fmt.Println("owning $TSLA has an expected return of: ",long.ExpectedReturn(ns,dx))
+			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(ns, dx))
+			content += mathCode
+			content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , Show[fct], Show[call,long]}, \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
-		fmt.Println("\nPrint all calls:\n")
-		mathCode = PrintMathematicaCode(callList,share_price)
-		fmt.Println(mathCode)
-		content += mathCode
-		content += "Export[\"allCalls.png\", Show[s], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(ns, dx))
 
-		fmt.Println("\nDistribution Chart for Call-Long intersections:\n")
-		mathCode = MathematicaCodeLongIntersection(callList,share_price)
-		fmt.Println(mathCode)
-		content += mathCode
-		content += "Export[\"CallLongIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			fmt.Println("\nPrint all calls:\n")
+			mathCode = PrintMathematicaCode(callList, share_price)
+			fmt.Println(mathCode)
+			content += mathCode
+			content += "Export[\"" + folderName + "\\allCalls.png\", Show[s], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
+			fmt.Println("\nDistribution Chart for Call-Long intersections:\n")
+			mathCode = MathematicaCodeLongIntersection(callList, share_price)
+			fmt.Println(mathCode)
+			content += mathCode
+			content += "Export[\"" + folderName + "\\CallLongIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
-		fmt.Println("\nDistribution Chart for Call-Zero intersections:\n")
-		mathCode = MathematicaCodeZeroIntersection(callList)
-		fmt.Println(mathCode)
-		content += mathCode
-		content += "Export[\"CallZeroIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			fmt.Println("\nDistribution Chart for Call-Zero intersections:\n")
+			mathCode = MathematicaCodeZeroIntersection(callList)
+			fmt.Println(mathCode)
+			content += mathCode
+			content += "Export[\"" + folderName + "\\CallZeroIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
+			fmt.Println("\nExpected returns for each strike:\n")
+			mathCode = MathematicaPrintExpectedReturns(pdist, callList, dx)
+			fmt.Println(mathCode)
+			content += mathCode
+			content += "Export[\"" + folderName + "\\expected_returns_strike.png\", Show[xy], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
+			strikes = make([]float64,0)
+			costs = make([]float64,0)
+			for _, opt := range optionsMap[d] {
+				strikes = append(strikes, float64(opt.Strike_price))
+				costs = append(costs, (opt.Vw))
+			}
+			mathCode = MathematicaXYPlot(strikes, costs)
+			fmt.Println("\nPlot strike vs cost:\n")
+			fmt.Println(mathCode)
+			content += mathCode
+			content += "Export[\"" + folderName + "\\strike_price.png\", Show[xy], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
-		fmt.Println("\nExpected returns for each strike:\n")
-		mathCode = MathematicaPrintExpectedReturns(pdist,callList[:len(callList)-2],dx)
-		fmt.Println(mathCode)
-		content += mathCode
-		content += "Export[\"expected_returns_strike.png\", Show[xy], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
-
-
-		strikes := []float64{}
-		costs := []float64{}
-		for _,opt := range options {
-			strikes = append(strikes,float64(opt.Strike_price))
-			costs = append(costs, (opt.Vw))
 		}
-		mathCode = MathematicaXYPlot(strikes,costs)
-		fmt.Println("\nPlot strike vs cost:\n")
-		fmt.Println(mathCode)
-		content += mathCode
-		content += "Export[\"strike_price.png\", Show[xy], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
 
 		WriteFile("output.nb",content,"/tmp/")
@@ -504,7 +582,7 @@ func main(){
 		fmt.Println(mathCode)
 
 
-		ns := NewNormedSpline(s,dx)
+		ns := NewNormedSpline(s)
 
 		mathCode = ns.PrintMathematicaCode()
 		fmt.Println(mathCode)
@@ -570,7 +648,7 @@ func main(){
 		fmt.Println("Integral:", area)
 
 
-		ns := NewNormedSpline(s, dx)
+		ns := NewNormedSpline(s)
 
 		nsarea := ns.Integral(min(x),max(x),dx)
 		fmt.Println("nsIntegral:", nsarea)
@@ -965,7 +1043,7 @@ func (ms my_spline) FullIntegralSpline() float64 {
 	return integral
 }
 
-func NewNormedSpline(ms my_spline, precision float64) my_spline{
+func NewNormedSpline(ms my_spline) my_spline{
 	//area := ms.Integral(min(ms.x),max(ms.x),precision)
 	area := ms.FullIntegralSpline()
 	ns_y := make([]float64, len(ms.y))
@@ -1212,25 +1290,80 @@ func MathematicaCodeZeroIntersection(callList []callfunc) string {
 
 
 
+func OptionsToOptionsDates (options []opt.Option, addToAll []callfunc) ([]string , map[string][]opt.Option , map[string][]callfunc) {
+
+
+	var optionsMap map[string][]opt.Option
+	optionsMap = make(map[string][]opt.Option)
+	var optionsDates []string
+	var callListMap map[string][]callfunc
+	callListMap = make(map[string][]callfunc)
+
+	var dateStr []string
+	var dateInt []int
+
+	for _,optt := range options {
+
+		dateStr = strings.Split(optt.Expiration_date,"-")
+		dateInt = []int{}
+		for i:=0;i<3;i++ {
+			tmp,_ := strconv.Atoi(dateStr[i])
+			dateInt = append(dateInt,tmp)
+		}
+
+		if len(optionsMap[optt.Expiration_date])>0 {
+			optionsMap[optt.Expiration_date] = append(optionsMap[optt.Expiration_date],optt)
+			callListMap[optt.Expiration_date] = append(callListMap[optt.Expiration_date],callfunc{
+				base:   float64(optt.Strike_price),
+				cost:   optt.Vw,
+				factor: 1,
+				date:   dateInt,
+			})
+		} else {
+			optionsDates = append(optionsDates,optt.Expiration_date)
+			tmp := make([]opt.Option,1)
+			tmp[0] = optt
+			optionsMap[optt.Expiration_date] = tmp
+			tmpp := make([]callfunc,len(addToAll))
+			for i := range addToAll {
+				tmpp[i] = addToAll[i]
+			}
+			tmpp = append(tmpp,callfunc{
+				base:   float64(optt.Strike_price),
+				cost:   optt.Vw,
+				factor: 1,
+				date:   dateInt,
+			})
+
+			callListMap[optt.Expiration_date] = tmpp
+		}
+
+	}
+
+	return optionsDates,optionsMap,callListMap
+
+}
+
+
 func MathematicaXYPlot(x,y []float64) string {
 	code := "x={"
 	for i,xx := range x {
-		code += fmt.Sprintf("%.0f",xx)
 		if i!=0 && i!=len(x)-1 {
 			code += ","
 		}
+		code += fmt.Sprintf("%.0f",xx)
 	}
 	code += "};\n"
 
 	code += "y={"
 	for i,yy := range y {
-		code += fmt.Sprintf("%.0f",yy)
 		if i!=0 && i!=len(y)-1 {
 			code += ","
 		}
+		code += fmt.Sprintf("%.0f",yy)
 	}
 	code += "};\n"
-	code += "xy:=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic,Joined -> True];\n"
+	code += "xy=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic,Joined -> True];\n"
 	code += "Show[xy]\n"
 	return code
 }
