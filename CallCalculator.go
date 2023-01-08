@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"bufio"
 	//"encoding/json"
 	"fmt"
 	"github.com/cnkei/gospline"
@@ -10,7 +11,6 @@ import (
 	//"os"
 	"strconv"
 	"strings"
-	"bufio"
 	//"github.com/cnkei/gospline"
 
 	//"github.com/Arafatk/glot"
@@ -131,13 +131,7 @@ func WriteFile(filename string, content string, pathExt string) {
 
 }
 
-
-
-
-
-
-
-
+//goland:noinspection ALL
 func main(){
 
 	newIntegraltesting := false
@@ -195,7 +189,7 @@ func main(){
 
 		url := "https://api.polygon.io/v2/aggs/ticker/C:USDEUR/prev?adjusted=true&apiKey="+apiKey
 		fmt.Println("url: ",url)
-		_,body,err := opt.APIRequest(url)
+		_,body,err := opt.APIRequest(url,1)
 		check(err)
 		body = strings.Split(body,"\"vw\":")[1]
 		body = strings.Split(body,",")[0]
@@ -210,7 +204,7 @@ func main(){
 		var share_price float64
 		url = "https://api.polygon.io/v2/aggs/ticker/"+ticker+"/prev?adjusted=true&apiKey="+apiKey
 		fmt.Println("url: ",url)
-		_,body,err = opt.APIRequest(url)
+		_,body,err = opt.APIRequest(url,1)
 		check(err)
 		body = strings.Split(body,"\"vw\":")[1]
 		body = strings.Split(body,",")[0]
@@ -229,7 +223,7 @@ func main(){
 			Ticker:      ticker,
 			ApiKey:      apiKey,
 			StrikeRange: []int{0,1000},
-			DateRange:   /*[]string{"2024-06-01","2024-07-01"}*/[]string{"2024-06-01","2025-01-01"},
+			DateRange:   /*[]string{"2024-06-01","2024-07-01"}*/[]string{"2023-06-01","2026-01-01"},
 			Contract_type: "call",
 		}
 
@@ -277,7 +271,7 @@ func main(){
 
 
 
-		optionsDates,optionsMap, callListMap :=OptionsToOptionsDates (options, addToAll)
+		optionsDates, optionsMap, callListMap := OptionsToOptionsDates(options, addToAll)
 
 		/*
 		var optionsMap map[string][]opt.Option
@@ -369,6 +363,7 @@ func main(){
 		y := []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
 
 		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
+		//splinetype := []string{"2","2","=Sl","=Cv","EQSl"}
 		s := NewSpline(splinetype,x,y)
 
 		//fmt.Println(s.Integral(min(x),max(x),dx))
@@ -406,15 +401,21 @@ func main(){
 		currentTime := time.Now()
 		live := currentTime.Format("2006-01-02")
 
+		err = os.Mkdir(path+"\\tmp\\"+live, 0755)
+		path = path+"\\tmp\\"+live+"\\"
+
 		var strikes []float64
 		var costs []float64
 
 		for _,d := range optionsDates {
 			folderName := ticker+d+"(live data from "+live+")"
-			err = os.Mkdir(path+"\\tmp\\"+folderName, 0755)
+			err = os.Mkdir(path+folderName, 0755)
 			check(err)
+			optionsList := optionsMap[d]
 			callList := callListMap[d]
-			callList = callList[len(addToAll):len(callList)-1]
+			callList = callList[len(addToAll):len(callList)]
+
+			fmt.Println(optionsList)
 
 			mathCode = pdist.PrintMathematicaCode()
 			fmt.Println(mathCode)
@@ -450,7 +451,12 @@ func main(){
 			content += mathCode
 			content += "Export[\"" + folderName + "\\CallZeroIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
-			fmt.Println("\nExpected returns for each strike:\n")
+			fmt.Println("\nDistribution Chart for Call-Zero-Volumes intersections:\n")
+			mathCode = MathematicaCodeZeroIntersectionVolumes(optionsList)
+			content += mathCode
+			content += "Export[\"" + folderName + "\\CallZeroVolumesIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+
+			fmt.Println("\nExpected returns for each strike:")
 			mathCode = MathematicaPrintExpectedReturns(pdist, callList, dx)
 			fmt.Println(mathCode)
 			content += mathCode
@@ -471,7 +477,7 @@ func main(){
 		}
 
 
-		WriteFile("output.nb",content,"/tmp/")
+		WriteFile("output.nb",content,"/tmp/"+live+"/")
 
 	}
 
@@ -612,7 +618,7 @@ func main(){
 	if splinetesting{
 
 		//splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
-		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
+		splinetype := []string{"2","2","=Sl","=Cv","EQSl"}
 
 
 		//x := []float64{1,2,3,4,5,6}
@@ -635,7 +641,7 @@ func main(){
 
 
 		s := NewSpline(splinetype,x,y)
-		//s = s.Init(splinetype,x,y)
+		s = s.Init(splinetype,x,y)
 
 		mathCode := s.PrintMathematicaCode()
 		fmt.Println(mathCode)
@@ -710,11 +716,11 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	tmp ,err := strconv.ParseFloat(splineType[0],64)
 	check(err)
 	spline_func_deg := int(tmp)
-	tmp ,err = strconv.ParseFloat(splineType[0],64)
+	tmp ,err = strconv.ParseFloat(splineType[1],64)
 	check(err)
 	lamda := int(tmp)
 	if lamda != 2{
-		fmt.Errorf("spline type only supported with lamda=2")
+		return LGS{},fmt.Errorf("spline type only supported with lamda=2")
 	}
 	deg := spline_func_deg+1 //=4
 
@@ -1247,8 +1253,8 @@ func LongIntersection(callList []callfunc, share_price float64) []float64 {
 	return interList
 }
 
-func MathematicaCodeLongIntersection(callList []callfunc, share_price float64) string {
-	interList := LongIntersection(callList,share_price)
+func MathematicaCodeLongIntersection(callList []callfunc, sharePrice float64) string {
+	interList := LongIntersection(callList, sharePrice)
 	code := "dist:=DistributionChart[{"
 	for i,inter := range interList {
 		if i==0 {
@@ -1267,6 +1273,47 @@ func ZeroIntersection(callList []callfunc) []float64 {
 		interList = append(interList,call.ZeroIntersection())
 	}
 	return interList
+}
+
+func ZeroIntersectionVolume (options []opt.Option) []float64 {
+	dateStr := strings.Split(options[0].Expiration_date,"-")
+	dateInt := []int{}
+	for i:=0;i<3;i++ {
+		tmp,_ := strconv.Atoi(dateStr[i])
+		dateInt = append(dateInt,tmp)
+	}
+	var callList []callfunc
+	var volumes []int
+	for _,optt := range options {
+		callList = append(callList, callfunc{
+			base:   float64(optt.Strike_price),
+			cost:   optt.Vw,
+			factor: 1,
+			date:   dateInt,
+		})
+		volumes = append(volumes, optt.Volume)
+	}
+	var interListVol []float64
+	for i,call := range callList {
+		for v:=0;v<volumes[i];v++ {
+			interListVol = append(interListVol,call.ZeroIntersection())
+		}
+	}
+	return interListVol
+}
+
+func MathematicaCodeZeroIntersectionVolumes(options []opt.Option) string {
+	interList := ZeroIntersectionVolume(options)
+	code := "dist:=DistributionChart[{"
+	for i,inter := range interList {
+		if i==0 {
+			code += ""+fmt.Sprintf("%.0f",inter)
+			continue
+		}
+		code += ","+fmt.Sprintf("%.0f",inter)
+	}
+	code += "}];\n"
+	return code
 }
 
 func MathematicaCodeZeroIntersection(callList []callfunc) string {
@@ -1344,11 +1391,10 @@ func OptionsToOptionsDates (options []opt.Option, addToAll []callfunc) ([]string
 
 }
 
-
 func MathematicaXYPlot(x,y []float64) string {
 	code := "x={"
 	for i,xx := range x {
-		if i!=0 && i!=len(x)-1 {
+		if i!=0 {
 			code += ","
 		}
 		code += fmt.Sprintf("%.0f",xx)
@@ -1357,7 +1403,7 @@ func MathematicaXYPlot(x,y []float64) string {
 
 	code += "y={"
 	for i,yy := range y {
-		if i!=0 && i!=len(y)-1 {
+		if i!=0 {
 			code += ","
 		}
 		code += fmt.Sprintf("%.0f",yy)
@@ -1387,6 +1433,9 @@ func Integral(f []float64, dx float64) float64{
 }
 
 func MVProduct(M [][]float64, V []float64) []float64{
+	if len(M)<1{
+		return nil
+	}
 	if len(M[0])!=len(V){
 		fmt.Errorf("Incompatible dimensions")
 		return nil
