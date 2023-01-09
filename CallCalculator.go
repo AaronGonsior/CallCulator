@@ -177,6 +177,9 @@ func main(){
 			mathCode += fmt.Sprintf("s%v\n",id)
 		}
 
+		var cumSplines []my_spline
+		var invCumSplines []my_spline
+
 		for _,d := range pdistDates {
 			cumX := []float64{}
 			fmt.Println("Test: FullIntegral: ",pdistSplines[d].FullIntegralSpline())
@@ -185,7 +188,10 @@ func main(){
 				fmt.Printf("Test: Integral from 0 to %v : %v \n",x,pdistSplines[d].IntegralSpline(0,float64(x)))
 			}
 			cumSpline := NewSpline(splinetype,pdistSplines[d].x,cumX)
+			cumSplines = append(cumSplines,cumSpline)
 			invIntSpline := NewSpline(splinetype,cumX,pdistSplines[d].x)
+			invCumSplines = append(invCumSplines,invIntSpline)
+
 			tmp,id := cumSpline.PrintMathematicaCode()
 			mathCode += tmp+"\n"
 			mathCode += fmt.Sprintf("s%v\n",id)
@@ -195,6 +201,10 @@ func main(){
 			mathCode += fmt.Sprintf("s%v\n",id)
 		}
 
+		//optimal transport between dates
+		//test: 0nly 2, manual
+		//??
+		cumSplines[0].At(invCumSplines[1].At(0.5))
 
 
 
