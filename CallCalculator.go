@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/rand"
 	"os"
 
 	"bufio"
@@ -134,10 +135,54 @@ func WriteFile(filename string, content string, pathExt string) {
 //goland:noinspection ALL
 func main(){
 
+	optimalTransporttesting := true
 	newIntegraltesting := false
 	apitesting := true
 	calltesting := false
 	splinetesting := false
+
+	if optimalTransporttesting{
+
+
+		var pdistX map[string][]float64 = make(map[string][]float64,0)
+		var pdistY map[string][]float64 = make(map[string][]float64,0)
+		var pdistDates []string
+
+		pdistDates = append(pdistDates,"2024-06-01")
+		pdistX["2024-06-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
+		pdistY["2024-06-01"] = []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
+
+
+		pdistDates = append(pdistDates,"2025-01-01")
+		pdistX["2025-01-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
+		pdistY["2025-01-01"] = []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     }
+
+		var pdistSplines map[string]my_spline
+		pdistSplines = make(map[string]my_spline,0)
+		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
+
+		for _,d := range pdistDates {
+			//fmt.Println(pdistX[d],pdistY[d])
+			s := NewSpline(splinetype,pdistX[d],pdistY[d])
+			ns := NewNormedSpline(s)
+			pdistSplines[d] = ns
+		}
+
+		mathCode := ""
+
+
+		for _,d := range pdistDates {
+			tmp,_ := pdistSplines[d].PrintMathematicaCode()
+			mathCode += tmp+"\n\n"
+		}
+
+
+
+
+		WriteFile("optTransport.nb",mathCode,"/")
+
+
+	}
 
 	if newIntegraltesting {
 
@@ -151,7 +196,8 @@ func main(){
 
 		fmt.Println(s.Integral(min(x),max(x),dx))
 
-		mathCode := s.PrintMathematicaCode()
+		tmp,_ := s.PrintMathematicaCode()
+		mathCode := tmp
 		fmt.Println(mathCode)
 
 
@@ -172,7 +218,8 @@ func main(){
 		fmt.Println("Old Integral for same range:")
 		fmt.Println(ns.Integral(a,b,dx))
 
-		mathCode = ns.PrintMathematicaCode()
+		tmp,_ = ns.PrintMathematicaCode()
+		mathCode = tmp
 		fmt.Println(mathCode)
 
 	}
@@ -351,7 +398,6 @@ func main(){
 
 		// var shift float64 = +0
 
-
 		/*
 		//25Q1
 		x := []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
@@ -363,21 +409,11 @@ func main(){
 		y := []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
 
 		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
-		//splinetype := []string{"2","2","=Sl","=Cv","EQSl"}
 		s := NewSpline(splinetype,x,y)
-
-		//fmt.Println(s.Integral(min(x),max(x),dx))
-
-		var mathCode string
-
-		/*
-		mathCode = s.PrintMathematicaCode()
-		fmt.Println(mathCode)
-		 */
-
-
 		ns := NewNormedSpline(s)
 		pdist := ns
+
+		//fmt.Println(s.Integral(min(x),max(x),dx))
 
 		/*
 		fmt.Println("New Spline Integral Test:")
@@ -393,6 +429,7 @@ func main(){
 
 		 */
 
+		var mathCode string
 		dx := 0.01
 
 		path, err := os.Getwd()
@@ -417,10 +454,11 @@ func main(){
 
 			fmt.Println(optionsList)
 
-			mathCode = pdist.PrintMathematicaCode()
+			tmp,id := pdist.PrintMathematicaCode()
+			mathCode = tmp
 			fmt.Println(mathCode)
 			content += mathCode
-			content += "Export[\"" + folderName + "\\pdist.png\", Show[fct], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			content += "Export[\"" + folderName + "\\pdist.png\", " + fmt.Sprintf("Show[fctplot%v]",id) + ", \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
 			bestcall, bestE := findBestCall(pdist, callList, dx)
 			fmt.Println("Best Call:", bestcall, "\nwith expected return:", bestE)
@@ -429,7 +467,7 @@ func main(){
 
 			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(ns, dx))
 			content += mathCode
-			content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , Show[fct], Show[call,long]}, \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , Show[fctplot], Show[call,long]}, \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
 			fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(ns, dx))
 
@@ -584,13 +622,15 @@ func main(){
 
 		fmt.Println(s.Integral(min(x),max(x),dx))
 
-		mathCode := s.PrintMathematicaCode()
+		tmp, _ := s.PrintMathematicaCode()
+		mathCode := tmp
 		fmt.Println(mathCode)
 
 
 		ns := NewNormedSpline(s)
 
-		mathCode = ns.PrintMathematicaCode()
+		tmp, _ = ns.PrintMathematicaCode()
+		mathCode = tmp
 		fmt.Println(mathCode)
 
 		/*
@@ -630,20 +670,19 @@ func main(){
 		x := []float64{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20}
 		y := []float64{1,2,3,5,5,2,0,.5,1,5,7,9,9,8,5,3,2,1,1,0}
 
-
-
-
-
+		/*
 		fmt.Println("splinetype:",splinetype)
 		fmt.Println("x =",x)
 		fmt.Println("y =",y)
+		 */
 
 
 
 		s := NewSpline(splinetype,x,y)
 		s = s.Init(splinetype,x,y)
 
-		mathCode := s.PrintMathematicaCode()
+		tmp,_ := s.PrintMathematicaCode()
+		mathCode := tmp
 		fmt.Println(mathCode)
 
 
@@ -659,7 +698,8 @@ func main(){
 		nsarea := ns.Integral(min(x),max(x),dx)
 		fmt.Println("nsIntegral:", nsarea)
 
-		mathCode = ns.PrintMathematicaCode()
+		tmp,_ = ns.PrintMathematicaCode()
+		mathCode = tmp
 		fmt.Println(mathCode)
 
 
@@ -874,29 +914,34 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	return M,nil
 }
 
-func (ms my_spline) PrintMathematicaCode() string {
+func (ms my_spline) PrintMathematicaCode() (string,string) {
+
+	id := fmt.Sprint(rand.Intn(999))
+
 	result := ""
-	result += fmt.Sprintln("Mathematica Code to visualize:\n\n")
+	//result += fmt.Sprintln("Mathematica Code to visualize:\n\n")
 
 	//x={x[0],...,x[n]};
-	result += fmt.Sprint("x={",ms.x[0])
+	result += fmt.Sprintf("x%v={",id)
+	result += fmt.Sprint(ms.x[0])
 	for i := 1 ; i < len(ms.x) ; i++ {
 		result += fmt.Sprint(",",ms.x[i])
 	}
 	result += fmt.Sprintln("};")
 
 	//y={y[0],...,y[n]};
-	result += fmt.Sprint("y={",ms.y[0])
+	result += fmt.Sprintf("y%v={",id)
+	result += fmt.Sprint(ms.y[0])
 	for i := 1 ; i < len(ms.y) ; i++ {
 		result += fmt.Sprint(",",ms.y[i])
 	}
 	result += fmt.Sprintln("};")
 
 	//xyPlot
-	result += fmt.Sprint("xy:=ListPlot[Transpose[{x, y}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic];")
+	result += fmt.Sprintf("xy%v:=ListPlot[Transpose[{x%v, y%v}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic];\n",id,id,id)
 
 	//piecewisePlot
-	result += fmt.Sprint("fct:=Plot[Piecewise[{")
+	result += fmt.Sprintf("fct%v[x_]:=Piecewise[{",id)
 	for i := 0 ; i < 4*(len(ms.x)-1) ; i+=4 {
 		result += fmt.Sprint("{")
 		if ms.coeffs[i]>=0{
@@ -924,16 +969,21 @@ func (ms my_spline) PrintMathematicaCode() string {
 			result += fmt.Sprint(",")
 		}
 	}
-	result += fmt.Sprint("}],{x,")
+	result += fmt.Sprint("}];\n")
+
+
+
+	result += fmt.Sprintf("fctplot%v := Plot[fct%v[x]",id,id)
+	result += ",{x,"
 	result += fmt.Sprintf("%.3f",ms.x[0])
 	result += fmt.Sprint(",")
 	result += fmt.Sprintf("%.3f",ms.x[len(ms.x)-1])
 	result += fmt.Sprint("},ImageSize->Large, PlotRange -> Automatic];\n")
 
 	//Show
-	result += fmt.Sprintln("s:=Show[fct, xy];\n")
+	result += fmt.Sprintf("s%v:=Show[fctplot%v, xy%v];\n\n",id,id,id)
 
-	return result
+	return result,id
 }
 
 func (ms my_spline) At (x float64) float64{
@@ -1148,7 +1198,7 @@ func call_v(x float64, call callfunc) float64{
  */
 
 func (call callfunc) PrintMathematicaCode() string{
-	fmt.Println("Mathematica Code to visualize call option value\n\n")
+	//fmt.Println("Mathematica Code to visualize call option value\n\n")
 	code := ""
 	code += fmt.Sprintln("call:=Plot[100*Max[-1,(x/(",call.cost/call.factor,")-",call.base/(call.cost/call.factor),"-1)],{x,0,500},ImageSize->Large, PlotRange->Automatic];")
 	code += fmt.Sprintln("Show[call]")
@@ -1156,7 +1206,7 @@ func (call callfunc) PrintMathematicaCode() string{
 }
 
 func PrintMathematicaCode(calls []callfunc, share_price float64) string {
-	fmt.Println("Mathematica Code to visualize call option value\n\n")
+	//fmt.Println("Mathematica Code to visualize call option value\n\n")
 	xmax := calls[0].base
 	for _,call := range calls {
 		if xmax < call.base{
