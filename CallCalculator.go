@@ -1114,15 +1114,6 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 
 }
 
-func containsFloat(list []float64, item float64) bool {
-	eps := 0.01
-	for _,l := range list {
-		if math.Abs(l-item)<eps {
-			return true
-		}
-	}
-	return false
-}
 
 func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 	if isUnionized(ms1,ms2){
@@ -1220,13 +1211,43 @@ func (ms1 my_spline) SplineMultiply(ms2 my_spline) my_spline {
 }
 func (ms1 my_spline) Add (ms2 my_spline) my_spline {
 	ms1,ms2 = UnionXYCC(ms1,ms2)
+
 	//careful at different degrees!
+	if ms1.deg != ms2.deg {
+		fmt.Println("unequal degrees in myspline.Add() not supported yet")
+		return my_spline{}
+	}
+
+	/*
+	degSmall,degBig := 0,0
+	if ms1.deg < ms2.deg{
+		msSmall := ms1
+		msBig := ms2
+		degSmall = ms1.deg
+		degBig = ms2.deg
+	} else if ms1.deg > ms2.deg {
+		msSmall := ms2
+		msBig := ms1
+		degSmall = ms2.deg
+		degBig = ms1.deg
+	}
+
+
+	if degSmall < degBig{
+		for
+	}
+	 */
+
+	newY,err := addFloat(ms1.y,ms2.y)
+	check(err)
+	newC,err := addFloat(ms1.coeffs,ms2.coeffs)
+	check(err)
 	return my_spline{
 		deg:        0,
-		splineType: nil,
-		x:          nil,
-		y:          nil,
-		coeffs:     nil,
+		splineType: ms1.splineType,
+		x:          ms1.x,
+		y:          newY,
+		coeffs:     newC,
 		unique:     false,
 	}
 }
@@ -1533,6 +1554,25 @@ func MathematicaCodeZeroIntersection(callList []callfunc) string {
 // ------------------------------- general functions -------------------------------
 
 
+
+func containsFloat(list []float64, item float64) bool {
+	eps := 0.01
+	for _,l := range list {
+		if math.Abs(l-item)<eps {
+			return true
+		}
+	}
+	return false
+}
+
+func addFloat(l1, l2 []float64) ([]float64,error) {
+	if len(l1)!=len(l2){return []float64{},fmt.Errorf("list not same length")}
+	var newL []float64
+	for i := range l1 {
+		newL = append(newL,l1[i]+l2[i])
+	}
+	return newL,nil
+}
 
 func OptionsToOptionsDates (options []opt.Option, addToAll []callfunc) ([]string , map[string][]opt.Option , map[string][]callfunc) {
 
