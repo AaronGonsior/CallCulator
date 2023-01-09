@@ -496,7 +496,7 @@ func main(){
 
 			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(ns, dx))
 			content += mathCode
-			content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , Show[fctplot], Show[call,long]}, \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",id) +", Show[call,long]}, \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
 			fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(ns, dx))
 
