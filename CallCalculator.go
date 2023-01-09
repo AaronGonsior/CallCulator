@@ -172,8 +172,27 @@ func main(){
 
 
 		for _,d := range pdistDates {
-			tmp,_ := pdistSplines[d].PrintMathematicaCode()
-			mathCode += tmp+"\n\n"
+			tmp,id := pdistSplines[d].PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += fmt.Sprintf("s%v\n",id)
+		}
+
+		for _,d := range pdistDates {
+			cumX := []float64{}
+			fmt.Println("Test: FullIntegral: ",pdistSplines[d].FullIntegralSpline())
+			for _,x := range pdistSplines[d].x {
+				cumX = append(cumX,pdistSplines[d].IntegralSpline(0,float64(x)))
+				fmt.Printf("Test: Integral from 0 to %v : %v \n",x,pdistSplines[d].IntegralSpline(0,float64(x)))
+			}
+			cumSpline := NewSpline(splinetype,pdistSplines[d].x,cumX)
+			invIntSpline := NewSpline(splinetype,cumX,pdistSplines[d].x)
+			tmp,id := cumSpline.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += fmt.Sprintf("s%v\n",id)
+
+			tmp,id = invIntSpline.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += fmt.Sprintf("s%v\n",id)
 		}
 
 
