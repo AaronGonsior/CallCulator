@@ -205,6 +205,7 @@ func main(){
 		//this is not enough
 		//for ref, see: https://math.nyu.edu/~tabak/publications/Kuang_Tabak.pdf
 		cumSplines[0].At(invCumSplines[1].At(0.5))
+		//cumSplines[0].
 
 
 
@@ -1113,10 +1114,127 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 
 }
 
+func containsFloat(list []float64, item float64) bool {
+	eps := 0.01
+	for _,l := range list {
+		if math.Abs(l-item)<eps {
+			return true
+		}
+	}
+	return false
+}
+
+func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
+	if isUnionized(ms1,ms2){
+		return ms1,ms2
+	}
+	newX := ms1.x
+	for _, x := range ms2.x {
+		if !containsFloat(newX,x) {
+			newX = append(newX,x)
+		}
+	}
+
+
+	var newY1, newY2, newC1, newC2 []float64
+	for i,nx := range newX {
+		i1 := 0
+		i2 := 0
+
+		//increase i1,i2 s.t. ms1.x and ms2.x are just under nx
+		for ms1.x[i1] < nx {i1++};i1--
+		for ms2.x[i2] < nx {i2++};i2--
+
+		//ms1 update
+		if !containsFloat(ms1.x,nx){
+			//add new Y
+			newY1 = append(newY1,ms1.At(nx))
+
+			//add new C
+			for j := ms1.deg*i1 ; j < i1 + ms1.deg+1 ; j++ {
+				newC1 = append(newC1,ms1.coeffs[j])
+			}
+
+		} else {
+			//add old Y
+			newY1 = append(newY1,ms1.y[i])
+			//add old C
+			for j := ms1.deg*i ; j < i + ms1.deg+1 ; j++ {
+				newC1 = append(newC1,ms1.coeffs[j])
+			}
+		}
+
+		//ms2 update
+		if !containsFloat(ms2.x,nx){
+			//add new Y
+			newY2 = append(newY2,ms2.At(nx))
+
+			//add new C
+			for j := ms2.deg*i2 ; j < i2 + ms2.deg+1 ; j++ {
+				newC2 = append(newC2,ms2.coeffs[j])
+			}
+
+		} else {
+			//add old Y
+			newY2 = append(newY2,ms2.y[i])
+			//add old C
+			for j := ms2.deg*i ; j < i + ms2.deg+1 ; j++ {
+				newC2 = append(newC2,ms2.coeffs[j])
+			}
+		}
+	}
+
+	newms1 := my_spline{
+		deg:        ms1.deg,
+		splineType: ms1.splineType,
+		x:          newX,
+		y:          newY1,
+		coeffs:     newC1,
+		unique:     false,
+	}
+	newms2 := my_spline{
+		deg:        ms2.deg,
+		splineType: ms2.splineType,
+		x:          newX,
+		y:          newY2,
+		coeffs:     newC2,
+		unique:     false,
+	}
+	return newms1,newms2
+
+
+}
+
+func isUnionized (ms1, ms2 my_spline) bool {
+	if len(ms1.x) != len(ms2.x){return false}
+	for i := range ms1.x {
+		if ms1.x[i] != ms2.x[i]{return false}
+	}
+	if len(ms1.coeffs) != len(ms2.coeffs){return false}
+	return true
+}
+
 //need UnionXYC first
 func (ms1 my_spline) SplineMultiply(ms2 my_spline) my_spline {
 	return my_spline{}
 }
+func (ms1 my_spline) Add (ms2 my_spline) my_spline {
+	ms1,ms2 = UnionXYCC(ms1,ms2)
+	//careful at different degrees!
+	return my_spline{
+		deg:        0,
+		splineType: nil,
+		x:          nil,
+		y:          nil,
+		coeffs:     nil,
+		unique:     false,
+	}
+}
+func (ms1 my_spline) Subtract (ms2 my_spline) my_spline {
+	//careful at different degrees!
+	return my_spline{}
+}
+
 
 func (ms my_spline) FullIntegralSpline() float64 {
 	integral := 0.0
