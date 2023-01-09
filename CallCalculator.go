@@ -202,8 +202,8 @@ func main(){
 		}
 
 		//optimal transport between dates
-		//test: 0nly 2, manual
-		//??
+		//this is not enough
+		//for ref, see: https://math.nyu.edu/~tabak/publications/Kuang_Tabak.pdf
 		cumSplines[0].At(invCumSplines[1].At(0.5))
 
 
