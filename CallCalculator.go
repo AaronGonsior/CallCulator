@@ -135,11 +135,17 @@ func WriteFile(filename string, content string, pathExt string) {
 //goland:noinspection ALL
 func main(){
 
-	optimalTransporttesting := true
+	riskAndTimePlottesting := true
+	optimalTransporttesting := false
 	newIntegraltesting := false
 	apitesting := true
 	calltesting := false
 	splinetesting := false
+
+	if riskAndTimePlottesting {
+
+		//FindSigmas
+	}
 
 	if optimalTransporttesting{
 
@@ -204,8 +210,27 @@ func main(){
 		//optimal transport between dates
 		//this is not enough
 		//for ref, see: https://math.nyu.edu/~tabak/publications/Kuang_Tabak.pdf
-		cumSplines[0].At(invCumSplines[1].At(0.5))
-		//cumSplines[0].
+		//cumSplines[0].At(invCumSplines[1].At(0.5))
+
+		test := cumSplines[0].Subtract(cumSplines[1])
+		tmp,id := test.PrintMathematicaCode()
+		mathCode += tmp+"\n"
+		mathCode += fmt.Sprintf("s%v\n",id)
+
+
+		var transportMapFloat []float64
+		//cumSplines[0], cumSplines[1] = UnionXYCC(cumSplines[0],cumSplines[1])
+		//dx := 0.1
+		for _,x := range test.x {
+			transportMapFloat = append(transportMapFloat,cumSplines[0].Subtract(cumSplines[1]).IntegralSpline(0,x))
+		}
+		transportMapSpline := NewSpline(splinetype,cumSplines[0].x,transportMapFloat)
+		tmp,id = transportMapSpline.PrintMathematicaCode()
+		mathCode += tmp+"\n"
+		mathCode += fmt.Sprintf("s%v\n",id)
+
+
+
 
 
 
@@ -300,7 +325,7 @@ func main(){
 			Ticker:      ticker,
 			ApiKey:      apiKey,
 			StrikeRange: []int{0,1000},
-			DateRange:   /*[]string{"2024-06-01","2024-07-01"}*/[]string{"2023-06-01","2026-01-01"},
+			DateRange:   /*[]string{"2024-06-01","2024-07-01"}*/[]string{"2023-06-01","2027-01-01"},
 			Contract_type: "call",
 		}
 
@@ -1209,6 +1234,26 @@ func isUnionized (ms1, ms2 my_spline) bool {
 func (ms1 my_spline) SplineMultiply(ms2 my_spline) my_spline {
 	return my_spline{}
 }
+
+func (ms my_spline) Factor (factor float64) my_spline {
+	var newY []float64
+	var newC []float64
+	for _,y := range ms.y {
+		newY = append(newY,y*factor)
+	}
+	for _,c := range ms.coeffs {
+		newC = append(newC,c*factor)
+	}
+	return my_spline{
+		deg:        ms.deg,
+		splineType: ms.splineType,
+		x:          ms.x,
+		y:          newY,
+		coeffs:     newC,
+		unique:     false,
+	}
+}
+
 func (ms1 my_spline) Add (ms2 my_spline) my_spline {
 	ms1,ms2 = UnionXYCC(ms1,ms2)
 
@@ -1251,11 +1296,12 @@ func (ms1 my_spline) Add (ms2 my_spline) my_spline {
 		unique:     false,
 	}
 }
-func (ms1 my_spline) Subtract (ms2 my_spline) my_spline {
-	//careful at different degrees!
-	return my_spline{}
-}
 
+func (ms1 my_spline) Subtract (ms2 my_spline) my_spline {
+	ms2 = ms2.Factor(-1.0)
+	//careful at different degrees!
+	return ms1.Add(ms2)
+}
 
 func (ms my_spline) FullIntegralSpline() float64 {
 	integral := 0.0
@@ -1286,6 +1332,67 @@ func NewNormedSpline(ms my_spline) my_spline{
 		coeffs:     ns_coeffs,
 		unique:     ms.unique,
 	}
+}
+
+//return Integrated spline, one dim higher
+//still to be tested
+func (ms my_spline) Integrate() my_spline {
+	cumX := []float64{}
+	fmt.Println("Test: FullIntegral: ",ms.FullIntegralSpline())
+	for _,x := range ms.x {
+		cumX = append(cumX,ms.IntegralSpline(min(ms.x),float64(x)))
+		fmt.Printf("Test: Integral from 0 to %v : %v \n",x,ms.IntegralSpline(min(ms.x),float64(x)))
+	}
+	return NewSpline(ms.splineType,ms.x,cumX)
+}
+
+//return derivated spline, one dim lower
+func (ms my_spline) Derive() my_spline {
+	return my_spline{}
+}
+
+//returns the value of the derivative of ms at x
+func (ms my_spline) D (x float64) float64 {
+	//find ix s.t. ms.x[ix] just under x
+	ix:=0;for ms.x[ix]<x {ix++};ix--;
+	var coeffs []float64
+	for i := 0 ; i < ms.deg+1 ; i++ {
+		coeffs = append(coeffs, ms.coeffs[ix*(ms.deg+1)+i])
+	}
+
+	result := 0.0
+	for i,c := range coeffs[0:len(coeffs)-2] {
+		result += c*math.Pow(x,float64(ms.deg-i)-1)
+	}
+	return result
+}
+
+func (ms my_spline) NewtonRoot(x0 float64, y float64, tol float64) float64 {
+	xn := x0
+	for math.Abs(ms.At(xn))>tol{
+		xn = xn+(ms.At(xn)-y)/ms.D(xn)
+	}
+	return xn
+}
+
+//implement Newton-method first
+func (ms my_spline) FindSigmas() []float64 {
+	/*
+	l := min(ms.x)
+	r := max(ms.x)
+	m := (l+r)/2
+	ml := (m+l)/2
+	mr := (m+r)/2
+	x0s := []float64{l,r,m,ml,mr}
+	 */
+	levels := []float64{0,0.125,0.25,0.5,0.75,0.875,1}
+	tol := 0.0001
+	var intersections []float64
+	cumSpline := ms.Integrate()
+	for _,l := range levels {
+		intersections = append(intersections, cumSpline.NewtonRoot(0,l,tol))
+	}
+	return intersections
 }
 
 
