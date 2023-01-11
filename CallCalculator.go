@@ -144,7 +144,60 @@ func main(){
 
 	if riskAndTimePlottesting {
 
+		var pdistX map[string][]float64 = make(map[string][]float64,0)
+		var pdistY map[string][]float64 = make(map[string][]float64,0)
+		var pdistDates []string
+
+		pdistDates = append(pdistDates,"2024-06-01")
+		pdistX["2024-06-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
+		pdistY["2024-06-01"] = []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
+
+
+		pdistDates = append(pdistDates,"2025-01-01")
+		pdistX["2025-01-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
+		pdistY["2025-01-01"] = []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     }
+
+		var pdistSplines map[string]my_spline
+		pdistSplines = make(map[string]my_spline,0)
+		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
+
+		for _,d := range pdistDates {
+			//fmt.Println(pdistX[d],pdistY[d])
+			s := NewSpline(splinetype,pdistX[d],pdistY[d])
+			ns := NewNormedSpline(s)
+			pdistSplines[d] = ns
+		}
+
+		mathCode := "SetDirectory[NotebookDirectory[]]\n"
+
 		//FindSigmas
+		var sigmasMap map[string][]float64
+		sigmasMap = make(map[string][]float64,0)
+		levels := []float64{0,0.125,0.25,0.5,0.75,0.875,1}
+		for _,d := range pdistDates {
+			cumSpline := pdistSplines[d].Integrate()
+			tmp,id := cumSpline.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += fmt.Sprintf("s%v\n",id)
+			sigmasMap[d] = pdistSplines[d].FindSigmas(levels)
+		}
+
+
+
+		//Test Print
+		for _,d := range pdistDates {
+			fmt.Println(d+" : ")
+			for _,s := range sigmasMap[d] {
+				fmt.Printf("%.6f , ",s)
+			}
+			fmt.Println("")
+		}
+
+
+		WriteFile("sigmas.nb",mathCode,"/")
+
+
+
 	}
 
 	if optimalTransporttesting{
@@ -174,7 +227,7 @@ func main(){
 			pdistSplines[d] = ns
 		}
 
-		mathCode := ""
+		mathCode := "SetDirectory[NotebookDirectory[]]\n"
 
 
 		for _,d := range pdistDates {
@@ -1082,7 +1135,7 @@ func (ms my_spline) Integral(a float64, b float64, dx float64) float64{
 }
 
 func (ms my_spline) IntegralSpline(a,b float64) float64 {
-	debug := true
+	debug := false
 
 	if debug {
 		fmt.Printf("original spline: deg: %v , len(x)=%v , len(y)=%v, len(coeffs)=%v \n",ms.deg, len(ms.x), len(ms.y), len(ms.coeffs))
@@ -1355,42 +1408,51 @@ func (ms my_spline) Derive() my_spline {
 func (ms my_spline) D (x float64) float64 {
 	//find ix s.t. ms.x[ix] just under x
 	ix:=0;for ms.x[ix]<x {ix++};ix--;
+	//Test Print
+	//fmt.Println("my_spline D() test: out of ",ms.x, "the one that is just under ",x, " is ",ix)
+
+	//extract relevant coeffs
 	var coeffs []float64
 	for i := 0 ; i < ms.deg+1 ; i++ {
 		coeffs = append(coeffs, ms.coeffs[ix*(ms.deg+1)+i])
 	}
 
 	result := 0.0
-	for i,c := range coeffs[0:len(coeffs)-2] {
-		result += c*math.Pow(x,float64(ms.deg-i)-1)
+	for i,c := range coeffs[0:len(coeffs)-1] {
+		result += c*(float64(ms.deg-i))*math.Pow(x,float64(ms.deg-i)-1)
 	}
 	return result
 }
 
 func (ms my_spline) NewtonRoot(x0 float64, y float64, tol float64) float64 {
 	xn := x0
-	for math.Abs(ms.At(xn))>tol{
-		xn = xn+(ms.At(xn)-y)/ms.D(xn)
+	for math.Abs(y-ms.At(xn))>tol{
+		//fmt.Println("old xn: ",xn," , old yn: ", ms.At(xn), " , D(xn)=",ms.D(xn))
+		xn = math.Min(max(ms.x),math.Max(min(ms.x),		xn+(y-ms.At(xn))/ms.D(xn)		))
+		//fmt.Println(xn,":",ms.At(xn) , " , difference to ",y," is ",ms.At(xn)-y)
+		time.Sleep(1)
 	}
 	return xn
 }
 
 //implement Newton-method first
-func (ms my_spline) FindSigmas() []float64 {
-	/*
+func (ms my_spline) FindSigmas(levels []float64) []float64 {
+
+
 	l := min(ms.x)
 	r := max(ms.x)
 	m := (l+r)/2
+
+	/*
 	ml := (m+l)/2
 	mr := (m+r)/2
 	x0s := []float64{l,r,m,ml,mr}
 	 */
-	levels := []float64{0,0.125,0.25,0.5,0.75,0.875,1}
 	tol := 0.0001
 	var intersections []float64
 	cumSpline := ms.Integrate()
 	for _,l := range levels {
-		intersections = append(intersections, cumSpline.NewtonRoot(0,l,tol))
+		intersections = append(intersections, cumSpline.NewtonRoot(m,l,tol))
 	}
 	return intersections
 }
@@ -1620,7 +1682,7 @@ func ZeroIntersectionVolume (options []opt.Option) []float64 {
 	}
 	var interListVol []float64
 	for i,call := range callList {
-		for v:=0;v<volumes[i];v++ {
+		for v := 0;v < volumes[i] ; v++ {
 			interListVol = append(interListVol,call.ZeroIntersection())
 		}
 	}
