@@ -641,6 +641,10 @@ func main(){
 				fmt.Println("expected return at ", levels[i]*100, "% : ", bestcall.At(s))
 			}
 
+			/*
+			for risk metric, use %(0-100) where the investment is breakeven. For that, implement my_spline Multiply() to
+			multiply pdist and call and use NewtonRoot()
+			 */
 
 
 
