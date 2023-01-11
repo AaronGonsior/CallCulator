@@ -182,8 +182,6 @@ func main(){
 			sigmasMap[d] = pdistSplines[d].FindSigmas(levels)
 		}
 
-
-
 		//Test Print
 		for _,d := range pdistDates {
 			fmt.Println(d+" : ")
@@ -497,47 +495,52 @@ func main(){
 			}
 		}
 
-		//add long
-
-		/*
-		callList = append(callList,long)
-		fmt.Println(callList)
-		 */
-
-		// var shift float64 = +0
 
 		/*
 		//25Q1
 		x := []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
 		y := []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     }
-		 */
+
 
 		//24Q2
 		x := []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
 		y := []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
 
+
 		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
 		s := NewSpline(splinetype,x,y)
 		ns := NewNormedSpline(s)
 		pdist := ns
-
-		//fmt.Println(s.Integral(min(x),max(x),dx))
-
-		/*
-		fmt.Println("New Spline Integral Test:")
-		fmt.Println("Old normed spline Integral:")
-		fmt.Println(ns.Integral(ns.x[0],ns.x[len(ns.x)-1],dx))
-		fmt.Println("New Spline Full Integral:")
-		fmt.Println(ns.FullIntegralSpline())
-		//bugged
-		fmt.Println("New Spline Integral in bound but max bounds:")
-		fmt.Println(ns.IntegralSpline(ns.x[0],ns.x[len(ns.x)-1]))
-		fmt.Println("New Spline Integral in bound with bounds 0 and 300:")
-		fmt.Println(ns.IntegralSpline(0,300))
-
 		 */
 
-		var mathCode string
+		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
+		var pdistX map[string][]float64 = make(map[string][]float64,0)
+		var pdistY map[string][]float64 = make(map[string][]float64,0)
+		var pdistDates []string
+
+		pdistDates = append(pdistDates,"2024-06-01")
+		pdistX["2024-06-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
+		pdistY["2024-06-01"] = []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
+
+
+		pdistDates = append(pdistDates,"2025-01-01")
+		pdistX["2025-01-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
+		pdistY["2025-01-01"] = []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     }
+
+		var pdistSplines map[string]my_spline
+		pdistSplines = make(map[string]my_spline,0)
+
+		for _,d := range pdistDates {
+			//fmt.Println(pdistX[d],pdistY[d])
+			s := NewSpline(splinetype,pdistX[d],pdistY[d])
+			ns := NewNormedSpline(s)
+			pdistSplines[d] = ns
+		}
+
+
+
+		mathCode := "SetDirectory[NotebookDirectory[]]\n"
+		mathCodeSigma := "SetDirectory[NotebookDirectory[]]\n"
 		dx := 0.01
 
 		path, err := os.Getwd()
@@ -553,6 +556,9 @@ func main(){
 		var costs []float64
 
 		for _,d := range optionsDates {
+
+			pdist := pdistSplines[pdistDates[0]] //careful: date should eventually be optimal transported.
+
 			folderName := ticker+d+"(live data from "+live+")"
 			err = os.Mkdir(path+folderName, 0755)
 			check(err)
@@ -573,11 +579,11 @@ func main(){
 			mathCode = bestcall.PrintMathematicaCode()
 			fmt.Println(mathCode)
 
-			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(ns, dx))
+			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(pdist, dx))
 			content += mathCode
 			content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",id) +", Show[call,long]}, \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
-			fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(ns, dx))
+			fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(pdist, dx))
 
 			fmt.Println("\nPrint all calls:\n")
 			mathCode = PrintMathematicaCode(callList, share_price)
@@ -603,7 +609,7 @@ func main(){
 			content += "Export[\"" + folderName + "\\CallZeroVolumesIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
 			fmt.Println("\nExpected returns for each strike:")
-			mathCode = MathematicaPrintExpectedReturns(pdist, callList, dx)
+			mathCode = MathematicaPrintExpectedReturns(pdistSplines[pdistDates[0]], callList, dx) //careful: date should eventually be optimal transported.
 			fmt.Println(mathCode)
 			content += mathCode
 			content += "Export[\"" + folderName + "\\expected_returns_strike.png\", Show[xy], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
@@ -620,7 +626,31 @@ func main(){
 			content += mathCode
 			content += "Export[\"" + folderName + "\\strike_price.png\", Show[xy], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
 
+
+
+			//FindSigmas
+			levels := []float64{0,0.125,0.25,0.5,0.75,0.875,1}
+
+			cumSpline := pdist.Integrate()
+			tmp, id = cumSpline.PrintMathematicaCode()
+			mathCodeSigma += tmp+"\n"
+			mathCodeSigma += fmt.Sprintf("s%v\n",id)
+			sigmas := pdist.FindSigmas(levels)
+
+			for i,s := range sigmas {
+				fmt.Println("expected return at ", levels[i]*100, "% : ", bestcall.At(s))
+			}
+
+
+
+
 		}
+
+
+
+		WriteFile("sigmas.nb",mathCodeSigma,"/")
+
+
 
 
 		WriteFile("output.nb",content,"/tmp/"+live+"/")
