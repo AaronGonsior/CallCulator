@@ -568,7 +568,7 @@ func main(){
 
 			fmt.Println(optionsList)
 
-			tmp,id := pdist.PrintMathematicaCode()
+			tmp,id := pdist.PrintMathematicaCodeAllDeg()
 			mathCode = tmp
 			fmt.Println(mathCode)
 			content += mathCode
@@ -624,7 +624,44 @@ func main(){
 			fmt.Println("\nPlot strike vs cost:\n")
 			fmt.Println(mathCode)
 			content += mathCode
-			content += "Export[\"" + folderName + "\\strike_price.png\", Show[xy], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			content += "Export[\"" + folderName + "\\strike_price.png\", Show[xy], \"CompressionLevel\" -> .25, ImageResolution -> 300];\n"
+
+			//still causes some indexing bug
+
+
+			bestCallSpline := bestcall.ToSpline(min(pdist.x),max(pdist.x))
+			tmp,id = bestCallSpline.PrintMathematicaCodeAllDeg()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			content += mathCode
+
+
+			/*
+			bestCallSpline, pdist = UnionXYCC(bestCallSpline,pdist)
+
+			tmp,id = bestCallSpline.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			content += mathCode
+			
+			 */
+
+
+			/*
+			probReturn := pdist.SplineMultiply(bestCallSpline)
+			tmp,id = probReturn.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\probReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			content += mathCode
+			 */
+
+			/*
+			integralProbReturn := probReturn.Integrate()
+			tmp,id = integralProbReturn.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\IntegralProbReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			content += mathCode
+			 */
 
 
 
@@ -1056,7 +1093,76 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	return M,nil
 }
 
+func (ms my_spline) PrintMathematicaCodeAllDeg() (string,string){
+
+
+	id := fmt.Sprint(rand.Intn(999))
+
+	result := ""
+	//result += fmt.Sprintln("Mathematica Code to visualize:\n\n")
+
+	//x={x[0],...,x[n]};
+	result += fmt.Sprintf("x%v={",id)
+	result += fmt.Sprint(ms.x[0])
+	for i := 1 ; i < len(ms.x) ; i++ {
+		result += fmt.Sprint(",",ms.x[i])
+	}
+	result += fmt.Sprintln("};")
+
+	//y={y[0],...,y[n]};
+	result += fmt.Sprintf("y%v={",id)
+	result += fmt.Sprint(ms.y[0])
+	for i := 1 ; i < len(ms.y) ; i++ {
+		result += fmt.Sprint(",",ms.y[i])
+	}
+	result += fmt.Sprintln("};")
+
+	//xyPlot
+	result += fmt.Sprintf("xy%v:=ListPlot[Transpose[{x%v, y%v}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic];\n",id,id,id)
+
+	//piecewisePlot
+	result += fmt.Sprintf("fct%v[x_]:=Piecewise[{",id)
+	for i := 0 ; i < (ms.deg+1)*(len(ms.x)-1) ; i += ms.deg+1 {
+		result += fmt.Sprint("{")
+		for d := ms.deg ; d >= 0 ; d-- {
+			if ms.coeffs[i+(ms.deg-d)] >= 0{
+				result += fmt.Sprint("+")
+			}
+			result += fmt.Sprintf("%.20fx^%v",ms.coeffs[i+(ms.deg-d)],d)
+		}
+		result += fmt.Sprint(",")
+		result += fmt.Sprintf("%.3f",ms.x[i/(ms.deg+1)])
+		result += fmt.Sprint("<=x<=")
+		result += fmt.Sprintf("%.3f",ms.x[i/(ms.deg+1)+1])
+		result += fmt.Sprint("}")
+		if i<(ms.deg+1)*(len(ms.x)-1)-(ms.deg+1)-1 {
+			result += fmt.Sprint(",")
+		}
+	}
+	result += fmt.Sprint("}];\n")
+
+
+
+	result += fmt.Sprintf("fctplot%v := Plot[fct%v[x]",id,id)
+	result += ",{x,"
+	result += fmt.Sprintf("%.3f",ms.x[0])
+	result += fmt.Sprint(",")
+	result += fmt.Sprintf("%.3f",ms.x[len(ms.x)-1])
+	result += fmt.Sprint("},ImageSize->Large, PlotRange -> Automatic];\n")
+
+	//Show
+	result += fmt.Sprintf("s%v:=Show[fctplot%v, xy%v];\n\n",id,id,id)
+
+	return result,id
+
+
+}
+
 func (ms my_spline) PrintMathematicaCode() (string,string) {
+
+	if ms.deg != 3 {
+		fmt.Println("my_spline.PrintMathematicaCode: for this print ms.deg has to be 3 atm. Degree here is ",ms.deg," still going to try.")
+	}
 
 	id := fmt.Sprint(rand.Intn(999))
 
@@ -1145,7 +1251,7 @@ func (ms my_spline) At (x float64) float64{
 		}
 	}
 	coeffs := ms.coeffs
-	if (ms.deg+1)*(splineNr+1)+1 < len(coeffs){
+	if (ms.deg+1)*(splineNr+1)+1 < len(coeffs) {
 		coeffs = coeffs[(ms.deg+1)*(splineNr):(ms.deg+1)*(splineNr+1)+1]
 	} else {
 		coeffs = coeffs[(ms.deg+1)*(splineNr):]
@@ -1226,11 +1332,16 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 
 }
 
-
+//might have some bug about lengths
 func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
+
+	debug := true
+
 	if isUnionized(ms1,ms2){
 		return ms1,ms2
 	}
+
+
 	newX := ms1.x
 	for _, x := range ms2.x {
 		if !containsFloat(newX,x) {
@@ -1238,17 +1349,40 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 		}
 	}
 
+	if debug {
+		fmt.Println("len(newX): ",len(newX))
+	}
+
+	degMax := int(math.Max( float64(ms1.deg) , float64(ms2.deg) ))
+
+	if debug{
+		fmt.Println("degMax: ", degMax)
+	}
 
 	var newY1, newY2, newC1, newC2 []float64
-	for i,nx := range newX {
+	for _,nx := range newX {
 		i1 := 0
 		i2 := 0
 
 		//increase i1,i2 s.t. ms1.x and ms2.x are just under nx
 		for ms1.x[i1] < nx {i1++};i1--
 		for ms2.x[i2] < nx {i2++};i2--
+		if i1<0{i1=0}
+		if i2<0{i2=0}
 
 		//ms1 update
+		//add new Y
+		newY1 = append(newY1,ms1.At(nx))
+
+		//add new C
+		for j := i1 * degMax ; j < i1 * (degMax+1) ; j++ {
+			if degMax > ms1.deg+j{
+				newC1 = append(newC1,0.0)
+			}
+			newC1 = append(newC1,ms1.coeffs[i1])
+			i1++
+		}
+		/*
 		if !containsFloat(ms1.x,nx){
 			//add new Y
 			newY1 = append(newY1,ms1.At(nx))
@@ -1262,12 +1396,24 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 			//add old Y
 			newY1 = append(newY1,ms1.y[i])
 			//add old C
-			for j := ms1.deg*i ; j < i + ms1.deg+1 ; j++ {
+			for j := i * ms1.deg ; j < i * (ms1.deg+1) ; j++ {
 				newC1 = append(newC1,ms1.coeffs[j])
 			}
 		}
+		 */
 
 		//ms2 update
+		//add new Y
+		newY2 = append(newY2,ms2.At(nx))
+		//add new C
+		for j := i2 * degMax ; j < i2 * (degMax+1) ; j++ {
+			if degMax > ms2.deg+j{
+				newC2 = append(newC2,0.0)
+			}
+			newC2 = append(newC2,ms2.coeffs[i2])
+			i2++
+		}
+		/*
 		if !containsFloat(ms2.x,nx){
 			//add new Y
 			newY2 = append(newY2,ms2.At(nx))
@@ -1285,6 +1431,7 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 				newC2 = append(newC2,ms2.coeffs[j])
 			}
 		}
+		 */
 	}
 
 	newms1 := my_spline{
@@ -1303,23 +1450,72 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 		coeffs:     newC2,
 		unique:     false,
 	}
-	return newms1,newms2
 
+	//check
+	if !isUnionized(newms1,newms2){
+		fmt.Errorf("bug in UnionXYCC! Not unionized at the end.")
+		fmt.Println("bug in UnionXYCC! Not unionized at the end.")
+		os.Exit(1)
+	}
+
+	return newms1,newms2
 
 }
 
 func isUnionized (ms1, ms2 my_spline) bool {
 	if len(ms1.x) != len(ms2.x){return false}
 	for i := range ms1.x {
-		if ms1.x[i] != ms2.x[i]{return false}
+		if ms1.x[i] != ms2.x[i]{
+			fmt.Println("isUnionized check: len(ms1.x), len(ms2.x): ",len(ms1.x),len(ms2.x))
+			return false
+		}
 	}
-	if len(ms1.coeffs) != len(ms2.coeffs){return false}
+	if len(ms1.coeffs) != len(ms2.coeffs){
+		fmt.Println("isUnionized check: len(ms1.coeffs), len(ms2.coeffs): ",len(ms1.coeffs),len(ms2.coeffs))
+		return false
+	}
 	return true
 }
 
-//need UnionXYC first
+// multiplies two splines into the product spline
 func (ms1 my_spline) SplineMultiply(ms2 my_spline) my_spline {
-	return my_spline{}
+	ms1, ms2 = UnionXYCC(ms1, ms2)
+	degSum := ms1.deg+ms2.deg
+	newC := []float64{}
+
+	for iSp := 0 ; iSp < len(ms1.x)-2 ; iSp++ {
+		//if iSp == len(ms1.x)-1{break}
+
+		//for each segment (between x's)
+		for d := degSum; d >= 0; d-- {
+			tmp := 0.0
+			for d1 := 0; d1 <= ms1.deg && d1 <= d; d1++ {
+				d2 := d - d1
+				if d2 > ms2.deg {
+					continue
+				}
+				//if d2 < 0 {break}
+				tmp += ms1.coeffs[iSp*(ms1.deg+1)+d1] * ms2.coeffs[iSp*(ms2.deg+1)+d2]
+			}
+			newC = append(newC, tmp)
+		}
+	}
+
+	msMult := my_spline{
+		deg:        degSum,
+		splineType: ms1.splineType,
+		x:          ms1.x,
+		y:          []float64{},
+		coeffs:     newC,
+		unique:     false,
+	}
+
+	newY := []float64{}
+	for _,x := range msMult.x {
+		newY = append(newY,msMult.At(x))
+	}
+
+	return msMult
 }
 
 func (ms my_spline) Factor (factor float64) my_spline {
@@ -1458,6 +1654,7 @@ func (ms my_spline) D (x float64) float64 {
 	return result
 }
 
+//finds roots (y=0) of ms, starting at xo with a tolerance of 0<tol. For other y's it doesn't find roots but where ms is y.
 func (ms my_spline) NewtonRoot(x0 float64, y float64, tol float64) float64 {
 	xn := x0
 	for math.Abs(y-ms.At(xn))>tol{
@@ -1650,10 +1847,10 @@ func (call callfunc) ExpectedReturn(pdist my_spline,dx float64) float64{
 func (call callfunc) ToSpline(a,b float64) my_spline {
 	return my_spline{
 		deg:        1,
-		splineType: nil,
+		splineType: []string{"3","2","=Sl","=Cv","EQSl"},
 		x:          []float64{a,call.base,b},
-		y:          []float64{0,0,call.At(b)},
-		coeffs:     []float64{0,0,call.factor/call.cost},
+		y:          []float64{-100,-100,call.At(b)},
+		coeffs:     []float64{0,-100,call.factor/call.cost*100,-100-100*call.base*call.factor/call.cost},
 		unique:     false,
 	}
 }
