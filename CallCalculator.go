@@ -332,13 +332,51 @@ func main(){
 
 	if apitesting {
 
+		/* User Inputs */
+		update := false
+		ticker := "TSLA"
 
-		content := "SetDirectory[NotebookDirectory[]]\n"
+		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
+		var pdistX map[string][]float64 = make(map[string][]float64,0)
+		var pdistY map[string][]float64 = make(map[string][]float64,0)
+		var pdistDates []string
+
+		pdistDates = append(pdistDates,"2024-06-01")
+		pdistX["2024-06-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
+		pdistY["2024-06-01"] = []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
 
 
-		update := true
+		pdistDates = append(pdistDates,"2025-01-01")
+		pdistX["2025-01-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
+		pdistY["2025-01-01"] = []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     }
+
+		var pdistSplines map[string]my_spline
+		pdistSplines = make(map[string]my_spline,0)
+
+		for _,d := range pdistDates {
+			//fmt.Println(pdistX[d],pdistY[d])
+			s := NewSpline(splinetype,pdistX[d],pdistY[d])
+			ns := NewNormedSpline(s)
+			pdistSplines[d] = ns
+		}
 
 		apiKey := opt.LoadJson("apiKey.json")
+
+		var optreq opt.OptionURLReq
+		var options []opt.Option
+
+		optreq = opt.OptionURLReq{
+			Ticker:      ticker,
+			ApiKey:      apiKey,
+			StrikeRange: []int{0,1000},
+			DateRange:   /*[]string{"2024-06-01","2024-07-01"}*/[]string{"2023-06-01","2027-01-01"},
+			Contract_type: "call",
+		}
+
+
+		/* End User Inputs */
+
+		content := "SetDirectory[NotebookDirectory[]]\n"
 
 		url := "https://api.polygon.io/v2/aggs/ticker/C:USDEUR/prev?adjusted=true&apiKey="+apiKey
 		fmt.Println("url: ",url)
@@ -352,7 +390,6 @@ func main(){
 		check(err)
 		eurtousd = 1/usdtoeur
 
-		ticker := "TSLA"
 
 		var share_price float64
 		url = "https://api.polygon.io/v2/aggs/ticker/"+ticker+"/prev?adjusted=true&apiKey="+apiKey
@@ -367,18 +404,8 @@ func main(){
 		fmt.Println("share_price(",ticker,"): ",share_price)
 
 
+		//how many successive requests at most; -1 is Inf
 		nMax := -1
-
-		var optreq opt.OptionURLReq
-		var options []opt.Option
-
-		optreq = opt.OptionURLReq{
-			Ticker:      ticker,
-			ApiKey:      apiKey,
-			StrikeRange: []int{0,1000},
-			DateRange:   /*[]string{"2024-06-01","2024-07-01"}*/[]string{"2023-06-01","2027-01-01"},
-			Contract_type: "call",
-		}
 
 		if update {
 
@@ -397,7 +424,6 @@ func main(){
 
 		}
 
-
 		if !update{
 
 			readStr := opt.LoadJson("options.json")
@@ -410,7 +436,7 @@ func main(){
 			fmt.Println("loaded options: \n",options)
 		}
 
-		debug := true
+
 
 
 		long := callfunc{
@@ -479,6 +505,7 @@ func main(){
 		 */
 
 
+		debug := true
 
 		if debug {
 			fmt.Println("len of optionsDates2: ", len(optionsMap), " aka. for how many different dates call options got loaded.\n These are all the dates:")
@@ -513,29 +540,6 @@ func main(){
 		pdist := ns
 		 */
 
-		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
-		var pdistX map[string][]float64 = make(map[string][]float64,0)
-		var pdistY map[string][]float64 = make(map[string][]float64,0)
-		var pdistDates []string
-
-		pdistDates = append(pdistDates,"2024-06-01")
-		pdistX["2024-06-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
-		pdistY["2024-06-01"] = []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
-
-
-		pdistDates = append(pdistDates,"2025-01-01")
-		pdistX["2025-01-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
-		pdistY["2025-01-01"] = []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     }
-
-		var pdistSplines map[string]my_spline
-		pdistSplines = make(map[string]my_spline,0)
-
-		for _,d := range pdistDates {
-			//fmt.Println(pdistX[d],pdistY[d])
-			s := NewSpline(splinetype,pdistX[d],pdistY[d])
-			ns := NewNormedSpline(s)
-			pdistSplines[d] = ns
-		}
 
 
 
@@ -568,7 +572,7 @@ func main(){
 
 			fmt.Println(optionsList)
 
-			tmp,id := pdist.PrintMathematicaCodeAllDeg()
+			tmp,id := pdist.PrintMathematicaCode()
 			mathCode = tmp
 			fmt.Println(mathCode)
 			content += mathCode
@@ -630,23 +634,43 @@ func main(){
 
 
 			bestCallSpline := bestcall.ToSpline(min(pdist.x),max(pdist.x))
-			tmp,id = bestCallSpline.PrintMathematicaCodeAllDeg()
+			tmp,id = bestCallSpline.PrintMathematicaCode()
 			mathCode += tmp+"\n"
 			mathCode += "Export[\"" + folderName + "\\TEST_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
 			content += mathCode
 
-
+			//only testing
 			/*
-			bestCallSpline, pdist = UnionXYCC(bestCallSpline,pdist)
+			pdistTEST1, pdistTEST2 := UnionXYCC(pdist,pdist)
+
+			tmp,id = pdistTEST1.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_pdistTEST1.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			content += mathCode
+
+			tmp,id = pdistTEST2.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_pdistTEST2.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			content += mathCode
+			 */
+
+
+
+
+			//bestCallSpline, pdist = UnionXYCC(bestCallSpline,pdist)
+			pdist,bestCallSpline = UnionXYCC(pdist,bestCallSpline)
 
 			tmp,id = bestCallSpline.PrintMathematicaCode()
 			mathCode += tmp+"\n"
 			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
 			content += mathCode
+
+			tmp,id = pdist.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_pdist.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			content += mathCode
+
 			
-			 */
-
-
 			/*
 			probReturn := pdist.SplineMultiply(bestCallSpline)
 			tmp,id = probReturn.PrintMathematicaCode()
@@ -666,6 +690,7 @@ func main(){
 
 
 			//FindSigmas
+			/*
 			levels := []float64{0,0.125,0.25,0.5,0.75,0.875,1}
 
 			cumSpline := pdist.Integrate()
@@ -677,6 +702,8 @@ func main(){
 			for i,s := range sigmas {
 				fmt.Println("expected return at ", levels[i]*100, "% : ", bestcall.At(s))
 			}
+
+			 */
 
 			/*
 			for risk metric, use %(0-100) where the investment is breakeven. For that, implement my_spline Multiply() to
@@ -1093,7 +1120,7 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	return M,nil
 }
 
-func (ms my_spline) PrintMathematicaCodeAllDeg() (string,string){
+func (ms my_spline) PrintMathematicaCode() (string,string){
 
 
 	id := fmt.Sprint(rand.Intn(999))
@@ -1125,7 +1152,7 @@ func (ms my_spline) PrintMathematicaCodeAllDeg() (string,string){
 	for i := 0 ; i < (ms.deg+1)*(len(ms.x)-1) ; i += ms.deg+1 {
 		result += fmt.Sprint("{")
 		for d := ms.deg ; d >= 0 ; d-- {
-			if ms.coeffs[i+(ms.deg-d)] >= 0{
+			if ms.coeffs[i+(ms.deg-d)] >= 0 {
 				result += fmt.Sprint("+")
 			}
 			result += fmt.Sprintf("%.20fx^%v",ms.coeffs[i+(ms.deg-d)],d)
@@ -1158,6 +1185,7 @@ func (ms my_spline) PrintMathematicaCodeAllDeg() (string,string){
 
 }
 
+/*
 func (ms my_spline) PrintMathematicaCode() (string,string) {
 
 	if ms.deg != 3 {
@@ -1233,6 +1261,7 @@ func (ms my_spline) PrintMathematicaCode() (string,string) {
 
 	return result,id
 }
+ */
 
 func (ms my_spline) At (x float64) float64{
 	splineNr := 0
@@ -1332,7 +1361,7 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 
 }
 
-//might have some bug about lengths
+//has some bug especially regarding coeffs
 func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 
 	debug := true
@@ -1360,28 +1389,46 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 	}
 
 	var newY1, newY2, newC1, newC2 []float64
-	for _,nx := range newX {
+	for i,nx := range newX {
 		i1 := 0
 		i2 := 0
 
 		//increase i1,i2 s.t. ms1.x and ms2.x are just under nx
-		for ms1.x[i1] < nx {i1++};i1--
-		for ms2.x[i2] < nx {i2++};i2--
+		for ms1.x[i1] <= nx && i1<len(ms1.x)-1 {i1++};i1--
+		for ms2.x[i2] <= nx && i2<len(ms2.x)-1 {i2++};i2--
 		if i1<0{i1=0}
 		if i2<0{i2=0}
+
+		if debug {
+			fmt.Println("For the first spline, index ", i1, "is just small enough s.t. ms1.x[i1]<nx: ( ",ms1.x[i1],"<",nx," ; ms1.x[i1+1]=",ms1.x[i1+1],")")
+			fmt.Println("For the second spline, index ", i2, "is just small enough s.t. ms2.x[i2]<nx: ( ",ms2.x[i2],"<",nx," ; ms2.x[i2+1]=",ms2.x[i2+1],")")
+		}
 
 		//ms1 update
 		//add new Y
 		newY1 = append(newY1,ms1.At(nx))
-
 		//add new C
-		for j := i1 * degMax ; j < i1 * (degMax+1) ; j++ {
-			if degMax > ms1.deg+j{
+		if i != len(newX)-1 {
+			for j := 0 ; j < degMax-ms1.deg ;  j++ {
 				newC1 = append(newC1,0.0)
 			}
-			newC1 = append(newC1,ms1.coeffs[i1])
-			i1++
+			for j := 0 ; j <= ms1.deg ; j++ {
+				newC1 = append(newC1,ms1.coeffs[i1*(ms1.deg+1)+j])
+			}
 		}
+
+
+		/*
+		for j := i1 * (degMax+1) ; j < (i1+1) * (degMax+1) ; j++ {
+			if degMax > ms1.deg + j {
+				newC1 = append(newC1,0.0)
+			} else {
+				newC1 = append(newC1,ms1.coeffs[i1-degMax+ms1.deg])
+			}
+		}
+		 */
+
+
 		/*
 		if !containsFloat(ms1.x,nx){
 			//add new Y
@@ -1406,13 +1453,26 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 		//add new Y
 		newY2 = append(newY2,ms2.At(nx))
 		//add new C
-		for j := i2 * degMax ; j < i2 * (degMax+1) ; j++ {
-			if degMax > ms2.deg+j{
+		if i != len(newX)-1 {
+			for j := 0 ; j < degMax-ms2.deg ;  j++ {
 				newC2 = append(newC2,0.0)
 			}
-			newC2 = append(newC2,ms2.coeffs[i2])
-			i2++
+			for j := 0 ; j <= ms2.deg ; j++ {
+				newC2 = append(newC2,ms2.coeffs[i2*(ms2.deg+1)+j])
+			}
 		}
+
+		/*
+		for j := i2 * (degMax+1) ; j < (i2+1) * (degMax+1) ; j++ {
+			if degMax > ms2.deg + j {
+				newC2 = append(newC2,0.0)
+			} else {
+				newC2 = append(newC2,ms2.coeffs[j-degMax+ms2.deg])
+			}
+		}
+		 */
+
+
 		/*
 		if !containsFloat(ms2.x,nx){
 			//add new Y
@@ -1435,7 +1495,7 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 	}
 
 	newms1 := my_spline{
-		deg:        ms1.deg,
+		deg:        degMax,
 		splineType: ms1.splineType,
 		x:          newX,
 		y:          newY1,
@@ -1443,7 +1503,7 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 		unique:     false,
 	}
 	newms2 := my_spline{
-		deg:        ms2.deg,
+		deg:        degMax,
 		splineType: ms2.splineType,
 		x:          newX,
 		y:          newY2,
@@ -1457,6 +1517,11 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 		fmt.Println("bug in UnionXYCC! Not unionized at the end.")
 		os.Exit(1)
 	}
+
+	if debug {
+		fmt.Println("len(newX)=",len(newX)," , len(newC1)=",len(newC1)," , len(newC2)=",len(newC2))
+	}
+
 
 	return newms1,newms2
 
