@@ -670,14 +670,14 @@ func main(){
 			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_pdist.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
 			content += mathCode
 
-			
-			/*
+
+
 			probReturn := pdist.SplineMultiply(bestCallSpline)
 			tmp,id = probReturn.PrintMathematicaCode()
 			mathCode += tmp+"\n"
 			mathCode += "Export[\"" + folderName + "\\probReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
 			content += mathCode
-			 */
+			 
 
 			/*
 			integralProbReturn := probReturn.Integrate()
@@ -1371,11 +1371,44 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 	}
 
 
-	newX := ms1.x
-	for _, x := range ms2.x {
+	newX := []float64{}
+
+	i1 := 0
+	i2 := 0
+	for i := 0 ; i < len(ms1.x)+len(ms2.x) ; i++ {
+
+		if i1 == len(ms1.x)-1 {
+			for i2<len(ms2.x) {
+				newX = append(newX,ms2.x[i2])
+				i2++
+				i++
+			}
+			break
+		}
+		if i2 == len(ms2.x)-1 {
+			for i1<len(ms1.x) {
+				newX = append(newX,ms1.x[i1])
+				i1++
+				i++
+			}
+			break
+		}
+
+		if ms1.x[i1] < ms2.x[i2] {
+			newX = append(newX,ms1.x[i1])
+			i1++
+		} else {
+			newX = append(newX,ms2.x[i2])
+			i2++
+		}
+
+
+		/*
 		if !containsFloat(newX,x) {
 			newX = append(newX,x)
 		}
+
+		 */
 	}
 
 	if debug {
