@@ -559,6 +559,9 @@ func main(){
 		var strikes []float64
 		var costs []float64
 
+		mathematicaCompressionLevel := ".75"
+		mathematicaImageResolution := "100"
+
 		for _,d := range optionsDates {
 
 			pdist := pdistSplines[pdistDates[0]] //careful: date should eventually be optimal transported.
@@ -576,7 +579,7 @@ func main(){
 			mathCode = tmp
 			fmt.Println(mathCode)
 			content += mathCode
-			content += "Export[\"" + folderName + "\\pdist.png\", " + fmt.Sprintf("Show[fctplot%v]",id) + ", \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			content += "Export[\"" + folderName + "\\pdist.png\", " + fmt.Sprintf("Show[fctplot%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
 			bestcall, bestE := findBestCall(pdist, callList, dx)
 			fmt.Println("Best Call:", bestcall, "\nwith expected return:", bestE)
@@ -585,7 +588,7 @@ func main(){
 
 			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(pdist, dx))
 			content += mathCode
-			content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",id) +", Show[call,long]}, \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",id) +", Show[call,long]}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
 			fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(pdist, dx))
 
@@ -593,30 +596,30 @@ func main(){
 			mathCode = PrintMathematicaCode(callList, share_price)
 			fmt.Println(mathCode)
 			content += mathCode
-			content += "Export[\"" + folderName + "\\allCalls.png\", Show[s], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			content += "Export[\"" + folderName + "\\allCalls.png\", Show[s], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
 			fmt.Println("\nDistribution Chart for Call-Long intersections:\n")
 			mathCode = MathematicaCodeLongIntersection(callList, share_price)
 			fmt.Println(mathCode)
 			content += mathCode
-			content += "Export[\"" + folderName + "\\CallLongIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			content += "Export[\"" + folderName + "\\CallLongIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
 			fmt.Println("\nDistribution Chart for Call-Zero intersections:\n")
 			mathCode = MathematicaCodeZeroIntersection(callList)
 			fmt.Println(mathCode)
 			content += mathCode
-			content += "Export[\"" + folderName + "\\CallZeroIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			content += "Export[\"" + folderName + "\\CallZeroIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
 			fmt.Println("\nDistribution Chart for Call-Zero-Volumes intersections:\n")
 			mathCode = MathematicaCodeZeroIntersectionVolumes(optionsList)
 			content += mathCode
-			content += "Export[\"" + folderName + "\\CallZeroVolumesIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			content += "Export[\"" + folderName + "\\CallZeroVolumesIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
 			fmt.Println("\nExpected returns for each strike:")
 			mathCode = MathematicaPrintExpectedReturns(pdistSplines[pdistDates[0]], callList, dx) //careful: date should eventually be optimal transported.
 			fmt.Println(mathCode)
 			content += mathCode
-			content += "Export[\"" + folderName + "\\expected_returns_strike.png\", Show[xy], \"CompressionLevel\" -> .25, \n ImageResolution -> 300];\n"
+			content += "Export[\"" + folderName + "\\expected_returns_strike.png\", Show[xy], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
 			strikes = make([]float64,0)
 			costs = make([]float64,0)
@@ -628,7 +631,7 @@ func main(){
 			fmt.Println("\nPlot strike vs cost:\n")
 			fmt.Println(mathCode)
 			content += mathCode
-			content += "Export[\"" + folderName + "\\strike_price.png\", Show[xy], \"CompressionLevel\" -> .25, ImageResolution -> 300];\n"
+			content += "Export[\"" + folderName + "\\strike_price.png\", Show[xy], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
 			//still causes some indexing bug
 
@@ -636,23 +639,69 @@ func main(){
 			bestCallSpline := bestcall.ToSpline(min(pdist.x),max(pdist.x))
 			tmp,id = bestCallSpline.PrintMathematicaCode()
 			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			mathCode += "Export[\"" + folderName + "\\TEST_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
 
 			//only testing
 			/*
-			pdistTEST1, pdistTEST2 := UnionXYCC(pdist,pdist)
+			call1, call2 := UnionXYCC(callList[1].ToSpline(min(pdist.x),max(pdist.x)),callList[0].ToSpline(min(pdist.x),max(pdist.x)))
 
-			tmp,id = pdistTEST1.PrintMathematicaCode()
+			tmp,id = call1.PrintMathematicaCode()
 			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_pdistTEST1.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_call1.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
 
-			tmp,id = pdistTEST2.PrintMathematicaCode()
+			tmp,id = call2.PrintMathematicaCode()
 			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_pdistTEST2.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_call2.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+			callmult := call1.SplineMultiply(call2)
+			tmp, id = callmult.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_callMult.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
 			 */
+
+			//more testing with constants
+			const1 := my_spline{
+				deg:        0,
+				splineType: splinetype,
+				x:          []float64{0,100,200},
+				y:          []float64{1,1,1},
+				coeffs:     []float64{1,1},
+				unique:     false,
+			}
+			const2 := my_spline{
+				deg:        0,
+				splineType: splinetype,
+				x:          []float64{0,100,300},
+				y:          []float64{2,2,2},
+				coeffs:     []float64{2,2},
+				unique:     false,
+			}
+			fmt.Println("constant splines before UnionXYCC():")
+			fmt.Println("len(const1.x)=",len(const1.x)," ; len(const2.x)=",len(const2.x))
+			fmt.Println("len(const1.coeffs)=",len(const1.coeffs)," ; len(const2.coeffs)=",len(const2.coeffs))
+			const1, const2 = UnionXYCC(const1, const2)
+
+			tmp,id = const1.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_const1.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+			tmp,id = const2.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_const2.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+			callmult := const1.SplineMultiply(const2)
+			tmp, id = callmult.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_constMult.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+
 
 
 
@@ -662,12 +711,12 @@ func main(){
 
 			tmp,id = bestCallSpline.PrintMathematicaCode()
 			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
 
 			tmp,id = pdist.PrintMathematicaCode()
 			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_pdist.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_pdist.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
 
 
@@ -675,15 +724,15 @@ func main(){
 			probReturn := pdist.SplineMultiply(bestCallSpline)
 			tmp,id = probReturn.PrintMathematicaCode()
 			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\probReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			mathCode += "Export[\"" + folderName + "\\probReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
-			 
+
 
 			/*
 			integralProbReturn := probReturn.Integrate()
 			tmp,id = integralProbReturn.PrintMathematicaCode()
 			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\IntegralProbReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> .25, ImageResolution -> 300]; \n"
+			mathCode += "Export[\"" + folderName + "\\IntegralProbReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
 			 */
 
@@ -1162,7 +1211,7 @@ func (ms my_spline) PrintMathematicaCode() (string,string){
 		result += fmt.Sprint("<=x<=")
 		result += fmt.Sprintf("%.3f",ms.x[i/(ms.deg+1)+1])
 		result += fmt.Sprint("}")
-		if i<(ms.deg+1)*(len(ms.x)-1)-(ms.deg+1)-1 {
+		if i<(ms.deg+1)*(len(ms.x)-1)-(ms.deg+1) {
 			result += fmt.Sprint(",")
 		}
 	}
@@ -1264,6 +1313,8 @@ func (ms my_spline) PrintMathematicaCode() (string,string) {
  */
 
 func (ms my_spline) At (x float64) float64{
+	//debug := true
+
 	splineNr := 0
 	if x > max(ms.x) || x < min(ms.x) {
 		fmt.Errorf("x not in range")
@@ -1284,6 +1335,10 @@ func (ms my_spline) At (x float64) float64{
 		coeffs = coeffs[(ms.deg+1)*(splineNr):(ms.deg+1)*(splineNr+1)+1]
 	} else {
 		coeffs = coeffs[(ms.deg+1)*(splineNr):]
+	}
+
+	if len(coeffs) == 0 {
+		return 0
 	}
 
 	result := 0.0
@@ -1364,7 +1419,7 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 //has some bug especially regarding coeffs
 func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 
-	debug := true
+	debug := false
 
 	if isUnionized(ms1,ms2){
 		return ms1,ms2
@@ -1375,30 +1430,40 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 
 	i1 := 0
 	i2 := 0
-	for i := 0 ; i < len(ms1.x)+len(ms2.x) ; i++ {
+	for i := 0 ; i <= len(ms1.x)+len(ms2.x)+1 ; i++ {
 
-		if i1 == len(ms1.x)-1 {
+		//if x1's are at the end, add all x2's that are not already in there
+		if i1 >= len(ms1.x)-1 {
 			for i2<len(ms2.x) {
-				newX = append(newX,ms2.x[i2])
+				if !containsFloat(newX,ms2.x[i2]){
+					newX = append(newX,ms2.x[i2])
+				}
 				i2++
-				i++
+				//i++
 			}
 			break
 		}
-		if i2 == len(ms2.x)-1 {
+		//if x2's are at the end, add all x1's that are not already in there
+		if i2 >= len(ms2.x)-1 {
 			for i1<len(ms1.x) {
-				newX = append(newX,ms1.x[i1])
+				if !containsFloat(newX,ms1.x[i1]){
+					newX = append(newX,ms1.x[i1])
+				}
 				i1++
-				i++
+				//i++
 			}
 			break
 		}
 
 		if ms1.x[i1] < ms2.x[i2] {
-			newX = append(newX,ms1.x[i1])
+			if !containsFloat(newX,ms1.x[i1]){
+				newX = append(newX,ms1.x[i1])
+			}
 			i1++
 		} else {
-			newX = append(newX,ms2.x[i2])
+			if !containsFloat(newX,ms2.x[i2]){
+				newX = append(newX,ms2.x[i2])
+			}
 			i2++
 		}
 
@@ -1577,17 +1642,20 @@ func isUnionized (ms1, ms2 my_spline) bool {
 
 // multiplies two splines into the product spline
 func (ms1 my_spline) SplineMultiply(ms2 my_spline) my_spline {
+
+	debug := true
+
 	ms1, ms2 = UnionXYCC(ms1, ms2)
 	degSum := ms1.deg+ms2.deg
 	newC := []float64{}
 
-	for iSp := 0 ; iSp < len(ms1.x)-2 ; iSp++ {
+	for iSp := 0 ; iSp < len(ms1.x)-1 ; iSp++ {
 		//if iSp == len(ms1.x)-1{break}
 
 		//for each segment (between x's)
-		for d := degSum; d >= 0; d-- {
+		for d := degSum ; d >= 0 ; d-- {
 			tmp := 0.0
-			for d1 := 0; d1 <= ms1.deg && d1 <= d; d1++ {
+			for d1 := 0 ; d1 <= ms1.deg && d1 <= d ; d1++ {
 				d2 := d - d1
 				if d2 > ms2.deg {
 					continue
@@ -1596,6 +1664,9 @@ func (ms1 my_spline) SplineMultiply(ms2 my_spline) my_spline {
 				tmp += ms1.coeffs[iSp*(ms1.deg+1)+d1] * ms2.coeffs[iSp*(ms2.deg+1)+d2]
 			}
 			newC = append(newC, tmp)
+			if debug {
+				fmt.Println("SplineMultiply(): addded in newC: ",tmp)
+			}
 		}
 	}
 
@@ -1611,6 +1682,19 @@ func (ms1 my_spline) SplineMultiply(ms2 my_spline) my_spline {
 	newY := []float64{}
 	for _,x := range msMult.x {
 		newY = append(newY,msMult.At(x))
+	}
+
+	msMult = my_spline{
+		deg:        degSum,
+		splineType: ms1.splineType,
+		x:          ms1.x,
+		y:          newY,
+		coeffs:     newC,
+		unique:     false,
+	}
+
+	if debug {
+		fmt.Println("SplineMultiply(): len(msMult.x)=",len(msMult.x)," ; len(msMult.y)=",len(msMult.y)," ; len(msMult.coeffs)=",len(msMult.coeffs), " ; msMult.deg=",msMult.deg)
 	}
 
 	return msMult
