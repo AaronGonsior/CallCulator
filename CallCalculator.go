@@ -59,6 +59,11 @@ type callfunc struct{
 	date []int
 }
 
+type spread struct{
+	num int
+	calls []callfunc
+	weights []float64
+}
 
 type spline_old struct {
 	spline gospline.Spline
@@ -382,7 +387,7 @@ func main(){
 		fmt.Println("url: ",url)
 		_,body,err := opt.APIRequest(url,1)
 		check(err)
-		body = strings.Split(body,"\"vw\":")[1]
+		body = strings.Split(body,"\"c\":")[1]
 		body = strings.Split(body,",")[0]
 		fmt.Println(body)
 
@@ -396,7 +401,7 @@ func main(){
 		fmt.Println("url: ",url)
 		_,body,err = opt.APIRequest(url,1)
 		check(err)
-		body = strings.Split(body,"\"vw\":")[1]
+		body = strings.Split(body,"\"c\":")[1]
 		body = strings.Split(body,",")[0]
 
 		share_price,err = strconv.ParseFloat(body,64)
@@ -560,7 +565,7 @@ func main(){
 		var costs []float64
 
 		mathematicaCompressionLevel := ".75"
-		mathematicaImageResolution := "100"
+		mathematicaImageResolution := "250"
 
 		for _,d := range optionsDates {
 
@@ -575,11 +580,11 @@ func main(){
 
 			fmt.Println(optionsList)
 
-			tmp,id := pdist.PrintMathematicaCode()
+			tmp,idPdist := pdist.PrintMathematicaCode()
 			mathCode = tmp
 			fmt.Println(mathCode)
 			content += mathCode
-			content += "Export[\"" + folderName + "\\pdist.png\", " + fmt.Sprintf("Show[fctplot%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += "Export[\"" + folderName + "\\pdist.png\", " + fmt.Sprintf("Show[fctplot%v]",idPdist) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
 			bestcall, bestE := findBestCall(pdist, callList, dx)
 			fmt.Println("Best Call:", bestcall, "\nwith expected return:", bestE)
@@ -588,7 +593,7 @@ func main(){
 
 			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(pdist, dx))
 			content += mathCode
-			content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",id) +", Show[call,long]}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",idPdist) +", Show[call,long]}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
 			fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(pdist, dx))
 
@@ -625,7 +630,7 @@ func main(){
 			costs = make([]float64,0)
 			for _, opt := range optionsMap[d] {
 				strikes = append(strikes, float64(opt.Strike_price))
-				costs = append(costs, (opt.Vw))
+				costs = append(costs, (opt.Close))
 			}
 			mathCode = MathematicaXYPlot(strikes, costs)
 			fmt.Println("\nPlot strike vs cost:\n")
@@ -637,7 +642,7 @@ func main(){
 
 
 			bestCallSpline := bestcall.ToSpline(min(pdist.x),max(pdist.x))
-			tmp,id = bestCallSpline.PrintMathematicaCode()
+			tmp,id := bestCallSpline.PrintMathematicaCode()
 			mathCode += tmp+"\n"
 			mathCode += "Export[\"" + folderName + "\\TEST_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
@@ -664,6 +669,7 @@ func main(){
 			 */
 
 			//more testing with constants
+
 			const1 := my_spline{
 				deg:        0,
 				splineType: splinetype,
@@ -707,6 +713,7 @@ func main(){
 
 
 			//bestCallSpline, pdist = UnionXYCC(bestCallSpline,pdist)
+			/*
 			pdist,bestCallSpline = UnionXYCC(pdist,bestCallSpline)
 
 			tmp,id = bestCallSpline.PrintMathematicaCode()
@@ -718,14 +725,96 @@ func main(){
 			mathCode += tmp+"\n"
 			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_pdist.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
+			 */
 
 
-
+			/*
 			probReturn := pdist.SplineMultiply(bestCallSpline)
 			tmp,id = probReturn.PrintMathematicaCode()
 			mathCode += tmp+"\n"
 			mathCode += "Export[\"" + folderName + "\\probReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
+			 */
+
+			//error: out of memory
+
+			var spreads []spread
+			//only neigboring calls
+			/*
+			for i := 0 ; i < len(callList)-1 ; i++ {
+				spreads = append(spreads,spread{
+					num:     2,
+					calls:   []callfunc{callList[i],callList[i+1]},
+					weights: []float64{0.5,-0.5},
+				})
+				spreads = append(spreads,spread{
+					num:     2,
+					calls:   []callfunc{callList[i],callList[i+1]},
+					weights: []float64{-0.5,0.5},
+				})
+			}
+			 */
+
+			// all 2-combinations of calls and 50-50% weighing in both directions (buy&sell)
+			for i := 0 ; i < len(callList)-1 ; i++ {
+				for j := 0 ; j < len(callList)-1 ; j++{
+					spreads = append(spreads,spread{
+						num:     2,
+						calls:   []callfunc{callList[i],callList[j]},
+						weights: []float64{0.5,-0.5},
+					})
+				}
+			}
+
+
+			bestSpread,bestSpreadExp := FindBestSpread(pdist,spreads)
+			/*
+			// Expected returns of all spreads
+			dx = 0.1
+			var SpreadsExpReturns []float64
+			for i := range spreads {
+				SpreadsExpReturns = append(SpreadsExpReturns,spreads[i].ExpectedReturn(pdist,dx))
+			}
+
+			// Find spread with highest Exp Return* (Later include risk)
+			var bestSpread spread = spreads[0]
+			var bestSpreadExp float64 = SpreadsExpReturns[0]
+			for i,spExp := range SpreadsExpReturns[1:] {
+				if spExp > bestSpreadExp {
+					bestSpread = spreads[i]
+					bestSpreadExp = spExp
+				}
+			}
+			 */
+
+			// make all spreads to splines
+			var spreadSplines []my_spline
+			for _,s := range spreads {
+				spreadSplines = append(spreadSplines,s.ToSpline(0,max(pdist.x)))
+			}
+
+			// make best spread to spline
+			bestSpreadSpline := bestSpread.ToSpline(0,max(pdist.x))
+
+			// make a .png for every spread
+			/*
+			err = os.Mkdir(path+folderName+"/spreads", 0755)
+			for i,s := range spreadSplines {
+				tmp,id = s.PrintMathematicaCode()
+				mathCode += tmp+"\n"
+				mathCode += "Export[\"" + folderName+"\\spreads" + "\\"+strconv.Itoa(i)+".png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+				content += mathCode
+			}
+			 */
+
+			//make a .png for bestSpread
+			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the spread %v has the highest expected return out of all spreads (2-50/50) available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, fmt.Sprint(bestSpread), bestSpreadExp, ticker, long.ExpectedReturn(pdist, dx))
+			tmp,id = bestSpreadSpline.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName+"\\-bestSpread.png\",{msg1,"+fmt.Sprintf("Show[fctplot%v]",idPdist)+"," + fmt.Sprintf("Show[{s%v,long}]",id) + "}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+			fmt.Sprintf("Show[fctplot%v]",idPdist)
 
 
 			/*
@@ -967,9 +1056,41 @@ func main(){
 
 
 
+// ------------------------------- spread specific functions -------------------------------
 
+func (sp spread) ToSpline(a,b float64) my_spline {
+	result := sp.calls[0].ToSpline(a,b).Factor(sp.weights[0])
+	for s := 1 ; s < len(sp.calls) ; s++ {
+		result = result.Add(sp.calls[s].ToSpline(a,b).Factor(sp.weights[s]))
+	}
+	return result
+}
 
+func (sp spread) ExpectedReturn(pdist my_spline, dx float64) float64 {
+	var expReturns float64
+	for i,c := range sp.calls {
+		expReturns += sp.weights[i]*c.ExpectedReturn(pdist,dx)
+	}
+	return expReturns
+}
 
+func FindBestSpread(pdist my_spline, spreads []spread) (spread,float64) {
+	// Expected returns of all spreads
+	dx := 0.1
+	var SpreadsExpReturns []float64
+	for i := range spreads {
+		SpreadsExpReturns = append(SpreadsExpReturns,spreads[i].ExpectedReturn(pdist,dx))
+	}
+	var bestSpread spread = spreads[0]
+	var bestSpreadExp float64 = SpreadsExpReturns[0]
+	for i,spExp := range SpreadsExpReturns[1:] {
+		if spExp > bestSpreadExp {
+			bestSpread = spreads[i]
+			bestSpreadExp = spExp
+		}
+	}
+	return bestSpread,bestSpreadExp
+}
 
 
 // ------------------------------- my spline specific functions -------------------------------
@@ -1430,11 +1551,19 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 
 	i1 := 0
 	i2 := 0
-	for i := 0 ; i <= len(ms1.x)+len(ms2.x)+1 ; i++ {
+	//min := math.Max(min(ms1.x),min(ms2.x))
+	//max := math.Min(max(ms1.x),max(ms2.x))
+	for i := 0 ; i < len(ms1.x)+len(ms2.x) ; i++ {
+
+		//if outside of shared definition space, stop
+		/*
+		if i1 < len(ms1.x) && (ms1.x[i1] < min || ms1.x[i1] > max) {i++;continue}
+		if i2 < len(ms2.x) && (ms2.x[i2] < min || ms2.x[i2] > max) {i++;continue}
+		 */
 
 		//if x1's are at the end, add all x2's that are not already in there
-		if i1 >= len(ms1.x)-1 {
-			for i2<len(ms2.x) {
+		if i1 >= len(ms1.x) {
+			for i2 < len(ms2.x) {
 				if !containsFloat(newX,ms2.x[i2]){
 					newX = append(newX,ms2.x[i2])
 				}
@@ -1443,9 +1572,10 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 			}
 			break
 		}
+
 		//if x2's are at the end, add all x1's that are not already in there
-		if i2 >= len(ms2.x)-1 {
-			for i1<len(ms1.x) {
+		if i2 >= len(ms2.x) {
+			for i1 < len(ms1.x) {
 				if !containsFloat(newX,ms1.x[i1]){
 					newX = append(newX,ms1.x[i1])
 				}
@@ -1486,7 +1616,14 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 		fmt.Println("degMax: ", degMax)
 	}
 
-	var newY1, newY2, newC1, newC2 []float64
+	//add new Y's
+	var newY1, newY2 []float64
+	for _,nx := range newX {
+		newY1 = append(newY1,ms1.At(nx))
+		newY2 = append(newY2,ms2.At(nx))
+	}
+
+	var newC1, newC2 []float64
 	for i,nx := range newX {
 		i1 := 0
 		i2 := 0
@@ -1503,8 +1640,6 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 		}
 
 		//ms1 update
-		//add new Y
-		newY1 = append(newY1,ms1.At(nx))
 		//add new C
 		if i != len(newX)-1 {
 			for j := 0 ; j < degMax-ms1.deg ;  j++ {
@@ -1548,8 +1683,6 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 		 */
 
 		//ms2 update
-		//add new Y
-		newY2 = append(newY2,ms2.At(nx))
 		//add new C
 		if i != len(newX)-1 {
 			for j := 0 ; j < degMax-ms2.deg ;  j++ {
@@ -1629,18 +1762,18 @@ func isUnionized (ms1, ms2 my_spline) bool {
 	if len(ms1.x) != len(ms2.x){return false}
 	for i := range ms1.x {
 		if ms1.x[i] != ms2.x[i]{
-			fmt.Println("isUnionized check: len(ms1.x), len(ms2.x): ",len(ms1.x),len(ms2.x))
+			//fmt.Println("isUnionized check: len(ms1.x), len(ms2.x): ",len(ms1.x),len(ms2.x))
 			return false
 		}
 	}
 	if len(ms1.coeffs) != len(ms2.coeffs){
-		fmt.Println("isUnionized check: len(ms1.coeffs), len(ms2.coeffs): ",len(ms1.coeffs),len(ms2.coeffs))
+		//fmt.Println("isUnionized check: len(ms1.coeffs), len(ms2.coeffs): ",len(ms1.coeffs),len(ms2.coeffs))
 		return false
 	}
 	return true
 }
 
-// multiplies two splines into the product spline
+// multiplies two splines into the product spline - bugged
 func (ms1 my_spline) SplineMultiply(ms2 my_spline) my_spline {
 
 	debug := true
@@ -1722,11 +1855,13 @@ func (ms my_spline) Factor (factor float64) my_spline {
 func (ms1 my_spline) Add (ms2 my_spline) my_spline {
 	ms1,ms2 = UnionXYCC(ms1,ms2)
 
+	/*
 	//careful at different degrees!
 	if ms1.deg != ms2.deg {
 		fmt.Println("unequal degrees in myspline.Add() not supported yet")
 		return my_spline{}
 	}
+	 */
 
 	/*
 	degSmall,degBig := 0,0
@@ -1753,7 +1888,7 @@ func (ms1 my_spline) Add (ms2 my_spline) my_spline {
 	newC,err := addFloat(ms1.coeffs,ms2.coeffs)
 	check(err)
 	return my_spline{
-		deg:        0,
+		deg:        int(math.Max(float64(ms1.deg),float64(ms2.deg))),
 		splineType: ms1.splineType,
 		x:          ms1.x,
 		y:          newY,
@@ -2087,7 +2222,7 @@ func ZeroIntersectionVolume (options []opt.Option) []float64 {
 	for _,optt := range options {
 		callList = append(callList, callfunc{
 			base:   float64(optt.Strike_price),
-			cost:   optt.Vw,
+			cost:   optt.Close,
 			factor: 1,
 			date:   dateInt,
 		})
@@ -2181,7 +2316,7 @@ func OptionsToOptionsDates (options []opt.Option, addToAll []callfunc) ([]string
 			optionsMap[optt.Expiration_date] = append(optionsMap[optt.Expiration_date],optt)
 			callListMap[optt.Expiration_date] = append(callListMap[optt.Expiration_date],callfunc{
 				base:   float64(optt.Strike_price),
-				cost:   optt.Vw,
+				cost:   optt.Close,
 				factor: 1,
 				date:   dateInt,
 			})
@@ -2196,7 +2331,7 @@ func OptionsToOptionsDates (options []opt.Option, addToAll []callfunc) ([]string
 			}
 			tmpp = append(tmpp,callfunc{
 				base:   float64(optt.Strike_price),
-				cost:   optt.Vw,
+				cost:   optt.Close,
 				factor: 1,
 				date:   dateInt,
 			})
