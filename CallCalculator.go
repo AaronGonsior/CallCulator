@@ -671,35 +671,37 @@ func main(){
 			//more testing with constants
 
 			const1 := my_spline{
-				deg:        0,
+				deg:        1,
 				splineType: splinetype,
 				x:          []float64{0,100,200},
-				y:          []float64{1,1,1},
-				coeffs:     []float64{1,1},
+				y:          []float64{2,2,1},
+				coeffs:     []float64{0,2,0.01,1},
 				unique:     false,
 			}
 			const2 := my_spline{
 				deg:        0,
 				splineType: splinetype,
 				x:          []float64{0,100,300},
-				y:          []float64{2,2,2},
-				coeffs:     []float64{2,2},
+				y:          []float64{3,3,4},
+				coeffs:     []float64{3,4},
 				unique:     false,
 			}
 			fmt.Println("constant splines before UnionXYCC():")
 			fmt.Println("len(const1.x)=",len(const1.x)," ; len(const2.x)=",len(const2.x))
 			fmt.Println("len(const1.coeffs)=",len(const1.coeffs)," ; len(const2.coeffs)=",len(const2.coeffs))
-			const1, const2 = UnionXYCC(const1, const2)
+
 
 			tmp,id = const1.PrintMathematicaCode()
 			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_const1.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_const1.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
 
 			tmp,id = const2.PrintMathematicaCode()
 			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_const2.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_const2.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
+
+			const1, const2 = UnionXYCC(const1, const2)
 
 			callmult := const1.SplineMultiply(const2)
 			tmp, id = callmult.PrintMathematicaCode()
@@ -728,16 +730,13 @@ func main(){
 			 */
 
 
-			/*
-			probReturn := pdist.SplineMultiply(bestCallSpline)
+			probReturn := pdist.SplineMultiply(long.ToSpline(0,max(pdist.x)))
 			tmp,id = probReturn.PrintMathematicaCode()
 			mathCode += tmp+"\n"
 			mathCode += "Export[\"" + folderName + "\\probReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
-			 */
 
-			//error: out of memory
-
+			//careful: sometimes out of memory
 			var spreads []spread
 			//only neigboring calls
 			/*
@@ -1290,6 +1289,7 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	return M,nil
 }
 
+//probably bugged: something wrong with degrees
 func (ms my_spline) PrintMathematicaCode() (string,string){
 
 
@@ -1779,7 +1779,7 @@ func (ms1 my_spline) SplineMultiply(ms2 my_spline) my_spline {
 	debug := true
 
 	ms1, ms2 = UnionXYCC(ms1, ms2)
-	degSum := ms1.deg+ms2.deg
+	degSum := ms1.deg + ms2.deg
 	newC := []float64{}
 
 	for iSp := 0 ; iSp < len(ms1.x)-1 ; iSp++ {
@@ -1794,7 +1794,10 @@ func (ms1 my_spline) SplineMultiply(ms2 my_spline) my_spline {
 					continue
 				}
 				//if d2 < 0 {break}
-				tmp += ms1.coeffs[iSp*(ms1.deg+1)+d1] * ms2.coeffs[iSp*(ms2.deg+1)+d2]
+				tmp += ms1.coeffs[iSp*(ms1.deg+1)+ms1.deg-d1] * ms2.coeffs[iSp*(ms2.deg+1)+ms2.deg-d2]
+				if debug{
+					fmt.Println("SplineMultiply(): For degree ",d," with degree ",d1," from ms1 and degree ",d2," from ms2, use coeffs ",ms1.coeffs[iSp*(ms1.deg+1)+d1], " and ", ms2.coeffs[iSp*(ms2.deg+1)+d2], "to add ",ms1.coeffs[iSp*(ms1.deg+1)+d1] * ms2.coeffs[iSp*(ms2.deg+1)+d2]," to make the coeff for degree ",d," ",tmp)
+				}
 			}
 			newC = append(newC, tmp)
 			if debug {
