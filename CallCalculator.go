@@ -19,6 +19,7 @@ import (
 	"time"
 
 	opt "github.com/AaronGonsior/optionsscheine2"
+	//opt "github.com/AaronGonsior/polygonioClient"
 )
 
 func check(err error){
@@ -95,54 +96,11 @@ var usdtoeur float64
 var eurtousd float64
 
 
-
-func WriteFile(filename string, content string, pathExt string) {
-
-	/*
-	d1 := []byte("hello\ngo\n")
-	err := os.WriteFile("/tmp/dat1", d1, 0644)
-	check(err)
-	 */
-
-	path, err := os.Getwd()
-
-	fmt.Println(path)
-
-	f, err := os.Create(path+pathExt+filename)
-	check(err)
-
-	defer f.Close()
-	/*
-	d2 := []byte{115, 111, 109, 101, 10}
-	n2, err := f.Write(content)
-	check(err)
-	fmt.Printf("wrote %d bytes\n", n2)
-	 */
-
-	/*
-	n3, err := f.WriteString("writes\n")
-	check(err)
-	fmt.Printf("wrote %d bytes\n", n3)
-
-	 */
-
-	f.Sync()
-
-	w := bufio.NewWriter(f)
-	n4, err := w.WriteString(content)
-	check(err)
-	fmt.Printf("wrote %d bytes\n", n4)
-
-	w.Flush()
-
-}
-
 //goland:noinspection ALL
 func main(){
 
-	riskAndTimePlottesting := true
+	riskAndTimePlottesting := false
 	optimalTransporttesting := false
-	newIntegraltesting := false
 	apitesting := true
 	calltesting := false
 	splinetesting := false
@@ -180,7 +138,7 @@ func main(){
 		sigmasMap = make(map[string][]float64,0)
 		levels := []float64{0,0.125,0.25,0.5,0.75,0.875,1}
 		for _,d := range pdistDates {
-			cumSpline := pdistSplines[d].Integrate()
+			cumSpline := pdistSplines[d].IntegrateDUMB()
 			tmp,id := cumSpline.PrintMathematicaCode()
 			mathCode += tmp+"\n"
 			mathCode += fmt.Sprintf("s%v\n",id)
@@ -295,46 +253,6 @@ func main(){
 
 	}
 
-	if newIntegraltesting {
-
-		x := []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
-		y := []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
-
-		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
-		s := NewSpline(splinetype,x,y)
-
-		dx := 0.001
-
-		fmt.Println(s.Integral(min(x),max(x),dx))
-
-		tmp,_ := s.PrintMathematicaCode()
-		mathCode := tmp
-		fmt.Println(mathCode)
-
-
-		ns := NewNormedSpline(s)
-
-		fmt.Println("New Spline Integral Test:")
-		fmt.Println("Old normed spline Integral:")
-		fmt.Println(ns.Integral(ns.x[0],ns.x[len(ns.x)-1],dx))
-		fmt.Println("New Spline Full Integral:")
-		fmt.Println(ns.FullIntegralSpline())
-		//bugged
-		fmt.Println("New Spline Integral in bound but max bounds:")
-		fmt.Println(ns.IntegralSpline(ns.x[0],ns.x[len(ns.x)-1]))
-		a:=120.0
-		b:=325.0
-		fmt.Printf("New Spline Integral in bound with bounds %v and %v:\n",a,b)
-		fmt.Println(ns.IntegralSpline(a,b))
-		fmt.Println("Old Integral for same range:")
-		fmt.Println(ns.Integral(a,b,dx))
-
-		tmp,_ = ns.PrintMathematicaCode()
-		mathCode = tmp
-		fmt.Println(mathCode)
-
-	}
-
 	if apitesting {
 
 		/* User Inputs */
@@ -347,13 +265,13 @@ func main(){
 		var pdistDates []string
 
 		pdistDates = append(pdistDates,"2024-06-01")
-		pdistX["2024-06-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
-		pdistY["2024-06-01"] = []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
+		pdistX["2024-06-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  , 600,1000}
+		pdistY["2024-06-01"] = []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1    , 0.2  ,0}
 
 
 		pdistDates = append(pdistDates,"2025-01-01")
-		pdistX["2025-01-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
-		pdistY["2025-01-01"] = []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     }
+		pdistX["2025-01-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  , 600,1000}
+		pdistY["2025-01-01"] = []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     , 1  ,0}
 
 		var pdistSplines map[string]my_spline
 		pdistSplines = make(map[string]my_spline,0)
@@ -550,7 +468,7 @@ func main(){
 
 		mathCode := "SetDirectory[NotebookDirectory[]]\n"
 		mathCodeSigma := "SetDirectory[NotebookDirectory[]]\n"
-		dx := 0.01
+		//dx := 0.01
 
 		path, err := os.Getwd()
 		check(err)
@@ -586,16 +504,16 @@ func main(){
 			content += mathCode
 			content += "Export[\"" + folderName + "\\pdist.png\", " + fmt.Sprintf("Show[fctplot%v]",idPdist) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
-			bestcall, bestE := findBestCall(pdist, callList, dx)
+			bestcall, bestE := findBestCall(pdist, callList)
 			fmt.Println("Best Call:", bestcall, "\nwith expected return:", bestE)
 			mathCode = bestcall.PrintMathematicaCode()
 			fmt.Println(mathCode)
 
-			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(pdist, dx))
+			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(pdist))
 			content += mathCode
 			content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",idPdist) +", Show[call,long]}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
-			fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(pdist, dx))
+			fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(pdist))
 
 			fmt.Println("\nPrint all calls:\n")
 			mathCode = PrintMathematicaCode(callList, share_price)
@@ -621,7 +539,7 @@ func main(){
 			content += "Export[\"" + folderName + "\\CallZeroVolumesIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
 			fmt.Println("\nExpected returns for each strike:")
-			mathCode = MathematicaPrintExpectedReturns(pdistSplines[pdistDates[0]], callList, dx) //careful: date should eventually be optimal transported.
+			mathCode = MathematicaPrintExpectedReturns(pdistSplines[pdistDates[0]], callList) //careful: date should eventually be optimal transported.
 			fmt.Println(mathCode)
 			content += mathCode
 			content += "Export[\"" + folderName + "\\expected_returns_strike.png\", Show[xy], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
@@ -669,7 +587,6 @@ func main(){
 			 */
 
 			//more testing with constants
-
 			const1 := my_spline{
 				deg:        1,
 				splineType: splinetype,
@@ -709,6 +626,15 @@ func main(){
 			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_constMult.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
 
+			const1Integrate := const1.Integrate()
+			tmp, id = const1Integrate.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_const1Integrate.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+			fmt.Println("constMult.FullIntegralSpline()=",callmult.FullIntegralSpline())
+
+
 
 
 
@@ -736,10 +662,17 @@ func main(){
 			mathCode += "Export[\"" + folderName + "\\probReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
 
+			probReturnIntegral := probReturn.Integrate()
+			tmp,id = probReturnIntegral.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\probReturnIntegral.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+
 			//careful: sometimes out of memory
 			var spreads []spread
 			//only neigboring calls
-			/*
+			
 			for i := 0 ; i < len(callList)-1 ; i++ {
 				spreads = append(spreads,spread{
 					num:     2,
@@ -752,18 +685,33 @@ func main(){
 					weights: []float64{-0.5,0.5},
 				})
 			}
-			 */
 
+
+			/*
 			// all 2-combinations of calls and 50-50% weighing in both directions (buy&sell)
+			ws := []float64{0.5,0.75,0.25}
 			for i := 0 ; i < len(callList)-1 ; i++ {
-				for j := 0 ; j < len(callList)-1 ; j++{
-					spreads = append(spreads,spread{
-						num:     2,
-						calls:   []callfunc{callList[i],callList[j]},
-						weights: []float64{0.5,-0.5},
-					})
+				for j := i ; j < len(callList)-1 ; j++{
+					for _,w := range ws {
+						spreads = append(spreads,spread{
+							num:     2,
+							calls:   []callfunc{callList[i],callList[j]},
+							weights: []float64{w,-(1.0-w)},
+						})
+						spreads = append(spreads,spread{
+							num:     2,
+							calls:   []callfunc{callList[i],callList[j]},
+							weights: []float64{w,1.0-w},
+						})
+						spreads = append(spreads,spread{
+							num:     2,
+							calls:   []callfunc{callList[i],callList[j]},
+							weights: []float64{-w,(1.0-w)},
+						})
+					}
 				}
 			}
+			 */
 
 
 			bestSpread,bestSpreadExp := FindBestSpread(pdist,spreads)
@@ -807,7 +755,7 @@ func main(){
 			 */
 
 			//make a .png for bestSpread
-			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the spread %v has the highest expected return out of all spreads (2-50/50) available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, fmt.Sprint(bestSpread), bestSpreadExp, ticker, long.ExpectedReturn(pdist, dx))
+			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the spread %v has the highest expected return out of all spreads (2-50/50) available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, fmt.Sprint(bestSpread), bestSpreadExp, ticker, long.ExpectedReturn(pdist))
 			tmp,id = bestSpreadSpline.PrintMathematicaCode()
 			mathCode += tmp+"\n"
 			mathCode += "Export[\"" + folderName+"\\-bestSpread.png\",{msg1,"+fmt.Sprintf("Show[fctplot%v]",idPdist)+"," + fmt.Sprintf("Show[{s%v,long}]",id) + "}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
@@ -817,7 +765,7 @@ func main(){
 
 
 			/*
-			integralProbReturn := probReturn.Integrate()
+			integralProbReturn := probReturn.IntegrateDUMB()
 			tmp,id = integralProbReturn.PrintMathematicaCode()
 			mathCode += tmp+"\n"
 			mathCode += "Export[\"" + folderName + "\\IntegralProbReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
@@ -830,7 +778,7 @@ func main(){
 			/*
 			levels := []float64{0,0.125,0.25,0.5,0.75,0.875,1}
 
-			cumSpline := pdist.Integrate()
+			cumSpline := pdist.IntegrateDUMB()
 			tmp, id = cumSpline.PrintMathematicaCode()
 			mathCodeSigma += tmp+"\n"
 			mathCodeSigma += fmt.Sprintf("s%v\n",id)
@@ -848,6 +796,8 @@ func main(){
 			 */
 
 
+			a:=0.0;b:=1000.0;
+			fmt.Println(fmt.Sprintf("pdist.IntegralSpline(%v,%v)=",a,b),pdist.IntegralSpline(a,b))
 
 		}
 
@@ -961,9 +911,9 @@ func main(){
 		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
 		s := NewSpline(splinetype,x,y)
 
-		dx := 0.0001
+		//dx := 0.0001
 
-		fmt.Println(s.Integral(min(x),max(x),dx))
+		//fmt.Println(s.Integral(min(x),max(x),dx))
 
 		tmp, _ := s.PrintMathematicaCode()
 		mathCode := tmp
@@ -990,7 +940,7 @@ func main(){
 
 
 		pdist := ns
-		bestcall, bestE := findBestCall(pdist, callList, dx)
+		bestcall, bestE := findBestCall(pdist, callList)
 		fmt.Println("Best Call:",bestcall,"\nwith expected return:", bestE)
 		mathCode = bestcall.PrintMathematicaCode()
 		fmt.Println(mathCode)
@@ -1030,6 +980,7 @@ func main(){
 
 
 
+		/*
 		dx := 0.0001
 		area := s.Integral(min(x),max(x),dx)
 
@@ -1044,6 +995,7 @@ func main(){
 		tmp,_ = ns.PrintMathematicaCode()
 		mathCode = tmp
 		fmt.Println(mathCode)
+		 */
 
 
 	}
@@ -1065,20 +1017,20 @@ func (sp spread) ToSpline(a,b float64) my_spline {
 	return result
 }
 
-func (sp spread) ExpectedReturn(pdist my_spline, dx float64) float64 {
+func (sp spread) ExpectedReturn(pdist my_spline) float64 {
 	var expReturns float64
 	for i,c := range sp.calls {
-		expReturns += sp.weights[i]*c.ExpectedReturn(pdist,dx)
+		expReturns += sp.weights[i]*c.ExpectedReturn(pdist)
 	}
 	return expReturns
 }
 
 func FindBestSpread(pdist my_spline, spreads []spread) (spread,float64) {
 	// Expected returns of all spreads
-	dx := 0.1
+	//dx := 0.1
 	var SpreadsExpReturns []float64
 	for i := range spreads {
-		SpreadsExpReturns = append(SpreadsExpReturns,spreads[i].ExpectedReturn(pdist,dx))
+		SpreadsExpReturns = append(SpreadsExpReturns,spreads[i].ExpectedReturn(pdist))
 	}
 	var bestSpread spread = spreads[0]
 	var bestSpreadExp float64 = SpreadsExpReturns[0]
@@ -1289,7 +1241,6 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	return M,nil
 }
 
-//probably bugged: something wrong with degrees
 func (ms my_spline) PrintMathematicaCode() (string,string){
 
 
@@ -1469,6 +1420,7 @@ func (ms my_spline) At (x float64) float64{
 	return result
 }
 
+/*
 func (ms my_spline) Integral(a float64, b float64, dx float64) float64{
 	var err error
 	f := make([]float64,int((b-a)/dx))
@@ -1478,8 +1430,9 @@ func (ms my_spline) Integral(a float64, b float64, dx float64) float64{
 	}
 	return Integral(f, dx)
 }
+ */
 
-func (ms my_spline) IntegralSpline(a,b float64) float64 {
+func (ms my_spline) IntegralSplineOld(a,b float64) float64 {
 	debug := false
 
 	if debug {
@@ -1505,13 +1458,13 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 		j++
 	}
 	for d := 0 ; d < ms.deg+1 ; d++ {
-		newCoeffs = append(newCoeffs,ms.coeffs[4*j+d])
+		newCoeffs = append(newCoeffs,ms.coeffs[(ms.deg+1)*j+d])
 	}
 	for i := j ; ms.x[i] < b && i < len(ms.x)-1 ; i++ {
 		newX = append(newX, ms.x[i])
 		newY = append(newY, ms.At(ms.x[i]))
 		for d := 0 ; d < ms.deg+1 ; d++ {
-			newCoeffs = append(newCoeffs,ms.coeffs[4*i+d])
+			newCoeffs = append(newCoeffs,ms.coeffs[(ms.deg+1)*i+d])
 		}
 	}
 	if b <= ms.x[len(ms.x)-1] {
@@ -1535,6 +1488,38 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 
 	return newSpline.FullIntegralSpline()
 
+}
+
+func (ms my_spline) IntegralSpline(a,b float64) float64 {
+	integral := 0.0
+	i1 := 0
+	i2 := len(ms.x)-1
+	for ms.x[i1] < a {i1++};
+	for ms.x[i2] > b {i2--};
+	if i1 < 1 {i1=1}
+	if i2 > len(ms.x)-2 {i2=len(ms.x)-2}
+
+
+	//a-ms.x[i1]
+	for d := 0 ; d <= ms.deg ; d++ {
+		integral += (ms.coeffs[(ms.deg+1)*(i1-1)+d]/(float64(ms.deg-d)+1)) * math.Pow(ms.x[i1],float64(ms.deg-d)+1)
+		integral -= (ms.coeffs[(ms.deg+1)*(i1-1)+d]/(float64(ms.deg-d)+1)) * math.Pow(a,float64(ms.deg-d)+1)
+	}
+
+	//ms.x[i2]-b
+	for d := 0 ; d <= ms.deg ; d++ {
+		integral += (ms.coeffs[(ms.deg+1)*i2+d]/(float64(ms.deg-d)+1)) * math.Pow(b,float64(ms.deg-d)+1)
+		integral -= (ms.coeffs[(ms.deg+1)*i2+d]/(float64(ms.deg-d)+1)) * math.Pow(ms.x[i2],float64(ms.deg-d)+1)
+	}
+
+
+	for i := i1 ; i <= i2 ; i++ {
+		for d := 0 ; d <= ms.deg ; d++ {
+			integral += (ms.coeffs[(ms.deg+1)*i+d]/(float64(ms.deg-d)+1)) * math.Pow(ms.x[i+1],float64(ms.deg-d)+1)
+			integral -= (ms.coeffs[(ms.deg+1)*i+d]/(float64(ms.deg-d)+1)) * math.Pow(ms.x[i],float64(ms.deg-d)+1)
+		}
+	}
+	return integral
 }
 
 //has some bug especially regarding coeffs
@@ -1773,10 +1758,10 @@ func isUnionized (ms1, ms2 my_spline) bool {
 	return true
 }
 
-// multiplies two splines into the product spline - bugged
+// multiplies two splines into the product spline
 func (ms1 my_spline) SplineMultiply(ms2 my_spline) my_spline {
 
-	debug := true
+	debug := false
 
 	ms1, ms2 = UnionXYCC(ms1, ms2)
 	degSum := ms1.deg + ms2.deg
@@ -1909,8 +1894,9 @@ func (ms1 my_spline) Subtract (ms2 my_spline) my_spline {
 func (ms my_spline) FullIntegralSpline() float64 {
 	integral := 0.0
 	for i := 0 ; i < len(ms.x)-1 ; i++ {
-		for d := 0 ; d < ms.deg+1 ; d++ {
-			integral += (ms.coeffs[4*i+d]/(float64(ms.deg-d)+1))*math.Pow(ms.x[i+1],float64(ms.deg-d)+1) - (ms.coeffs[4*i+d]/(float64(ms.deg-d)+1))*math.Pow(ms.x[i],float64(ms.deg-d)+1)
+		for d := 0 ; d <= ms.deg ; d++ {
+			integral += (ms.coeffs[(ms.deg+1)*i+d]/(float64(ms.deg-d)+1)) * math.Pow(ms.x[i+1],float64(ms.deg-d)+1)
+			integral -= (ms.coeffs[(ms.deg+1)*i+d]/(float64(ms.deg-d)+1)) * math.Pow(ms.x[i],float64(ms.deg-d)+1)
 		}
 	}
 	return integral
@@ -1937,9 +1923,53 @@ func NewNormedSpline(ms my_spline) my_spline{
 	}
 }
 
+//bugged
 //return Integrated spline, one dim higher
-//still to be tested
 func (ms my_spline) Integrate() my_spline {
+	var newC []float64
+	for i,_ := range ms.x[:len(ms.x)-1] {
+		for d := ms.deg ; d >= 0 ; d-- {
+			newC = append(newC,1.0/(float64(d+1))*ms.coeffs[(ms.deg+1)*i+ms.deg-d])
+		}
+		newC = append(newC,0.0)
+	}
+	integral := my_spline{
+		deg:        ms.deg+1,
+		splineType: ms.splineType,
+		x:          ms.x,
+		y:          []float64{},
+		coeffs:     newC,
+		unique:     false,
+	}
+	newC = integral.coeffs
+	for i,_ := range ms.x[:len(ms.x)-1] {
+		newC[(i+1)*(integral.deg+1)-1] = ms.IntegralSpline(0,ms.x[i]) - integral.At(ms.x[i+1])
+	}
+	integral = my_spline{
+		deg:        integral.deg,
+		splineType: integral.splineType,
+		x:          integral.x,
+		y:          integral.y,
+		coeffs:     newC,
+		unique:     false,
+	}
+	var newY []float64
+	for _,x := range integral.x {
+		newY = append(newY,integral.At(x))
+	}
+	integral = my_spline{
+		deg:        ms.deg+1,
+		splineType: ms.splineType,
+		x:          ms.x,
+		y:          newY,
+		coeffs:     newC,
+		unique:     false,
+	}
+	return integral
+}
+
+//still to be tested
+func (ms my_spline) IntegrateDUMB() my_spline {
 	cumX := []float64{}
 	fmt.Println("Test: FullIntegral: ",ms.FullIntegralSpline())
 	for _,x := range ms.x {
@@ -1974,6 +2004,7 @@ func (ms my_spline) D (x float64) float64 {
 	return result
 }
 
+
 //finds roots (y=0) of ms, starting at xo with a tolerance of 0<tol. For other y's it doesn't find roots but where ms is y.
 func (ms my_spline) NewtonRoot(x0 float64, y float64, tol float64) float64 {
 	xn := x0
@@ -2001,7 +2032,7 @@ func (ms my_spline) FindSigmas(levels []float64) []float64 {
 	 */
 	tol := 0.0001
 	var intersections []float64
-	cumSpline := ms.Integrate()
+	cumSpline := ms.IntegrateDUMB()
 	for _,l := range levels {
 		intersections = append(intersections, cumSpline.NewtonRoot(m,l,tol))
 	}
@@ -2011,13 +2042,14 @@ func (ms my_spline) FindSigmas(levels []float64) []float64 {
 
 
 
+
 // ------------------------------- call specific functions -------------------------------
 
-func findBestCall(pdist my_spline, calllist []callfunc, dx float64) (callfunc, float64){
+func findBestCall(pdist my_spline, calllist []callfunc) (callfunc, float64){
 	best := calllist[0]
-	bestE := best.ExpectedReturn(pdist, dx)
+	bestE := best.ExpectedReturn(pdist)
 	for _,c := range calllist {
-		cE := c.ExpectedReturn(pdist, dx)
+		cE := c.ExpectedReturn(pdist)
 		if cE > bestE{
 			best = c
 			bestE = cE
@@ -2026,18 +2058,18 @@ func findBestCall(pdist my_spline, calllist []callfunc, dx float64) (callfunc, f
 	return best, bestE
 }
 
-func ExpectedReturns(pdist my_spline, calllist []callfunc, dx float64) ([]callfunc,[]float64) {
+func ExpectedReturns(pdist my_spline, calllist []callfunc) ([]callfunc,[]float64) {
 	var expReturns []float64
 	var calls []callfunc
 	for _,c := range calllist {
-		expReturns = append(expReturns , c.ExpectedReturn(pdist,dx) )
+		expReturns = append(expReturns , c.ExpectedReturn(pdist) )
 		calls = append(calls,c)
 	}
 	return calls,expReturns
 }
 
-func MathematicaPrintExpectedReturns(pdist my_spline, calllist []callfunc, dx float64) string {
-	calls, expReturns := ExpectedReturns(pdist,calllist,dx)
+func MathematicaPrintExpectedReturns(pdist my_spline, calllist []callfunc) string {
+	calls, expReturns := ExpectedReturns(pdist,calllist)
 	code := "x={"
 	for i,c := range calls {
 		if i==0{
@@ -2155,7 +2187,27 @@ func ExpectedReturn (call callfunc, pdist normalized_spline_old) float64 {
 }
  */
 
-func (call callfunc) ExpectedReturn(pdist my_spline,dx float64) float64{
+//still not the same - possibly error in FullIntegralSpline()!!
+func (call callfunc) ExpectedReturn (pdist my_spline) float64{
+	debug := false
+	var ref float64
+	var dx float64
+	if debug{
+		dx = 0.1
+		ref = call.ExpectedReturnDX(pdist,dx)
+	}
+	//result := pdist.SplineMultiply(call.ToSpline(min(pdist.x),max(pdist.x))).Integral(min(pdist.x),max(pdist.x),dx)
+	result := pdist.SplineMultiply(call.ToSpline(min(pdist.x),max(pdist.x))).FullIntegralSpline()
+	if debug{
+		if math.Abs(ref - result) > 0.5*math.Abs(ref) {
+			fmt.Println("ExpectedReturn(): error: ref not close enough. Ref is ",ref," and the new result is ",result)
+			os.Exit(1)
+		}
+	}
+	return result
+}
+
+func (call callfunc) ExpectedReturnDX (pdist my_spline,dx float64) float64{
 	var E float64
 	for x := min(pdist.x) ; x < max(pdist.x) ; x+=dx {
 		E += call.At(x)*pdist.At(x)
@@ -2274,6 +2326,46 @@ func MathematicaCodeZeroIntersection(callList []callfunc) string {
 // ------------------------------- general functions -------------------------------
 
 
+func WriteFile(filename string, content string, pathExt string) {
+
+	/*
+		d1 := []byte("hello\ngo\n")
+		err := os.WriteFile("/tmp/dat1", d1, 0644)
+		check(err)
+	*/
+
+	path, err := os.Getwd()
+
+	fmt.Println(path)
+
+	f, err := os.Create(path+pathExt+filename)
+	check(err)
+
+	defer f.Close()
+	/*
+		d2 := []byte{115, 111, 109, 101, 10}
+		n2, err := f.Write(content)
+		check(err)
+		fmt.Printf("wrote %d bytes\n", n2)
+	*/
+
+	/*
+		n3, err := f.WriteString("writes\n")
+		check(err)
+		fmt.Printf("wrote %d bytes\n", n3)
+
+	*/
+
+	f.Sync()
+
+	w := bufio.NewWriter(f)
+	n4, err := w.WriteString(content)
+	check(err)
+	fmt.Printf("wrote %d bytes\n", n4)
+
+	w.Flush()
+
+}
 
 func containsFloat(list []float64, item float64) bool {
 	eps := 0.01
@@ -2388,6 +2480,7 @@ func Integral(f []float64, dx float64) float64{
 	}
 	return area
 }
+
 
 func MVProduct(M [][]float64, V []float64) []float64{
 	if len(M)<1{
