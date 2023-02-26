@@ -3,6 +3,7 @@ package main
 import (
 	"math/rand"
 	"os"
+	"sort"
 
 	"bufio"
 	//"encoding/json"
@@ -608,6 +609,7 @@ func main(){
 			fmt.Println("len(const1.coeffs)=",len(const1.coeffs)," ; len(const2.coeffs)=",len(const2.coeffs))
 
 
+			/*
 			tmp,id = const1.PrintMathematicaCode()
 			mathCode += tmp+"\n"
 			mathCode += "Export[\"" + folderName + "\\TEST_const1.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
@@ -633,6 +635,7 @@ func main(){
 			content += mathCode
 
 			fmt.Println("constMult.FullIntegralSpline()=",callmult.FullIntegralSpline())
+			 */
 
 
 
@@ -656,17 +659,50 @@ func main(){
 			 */
 
 
+			fmt.Print("probReturn...")
 			probReturn := pdist.SplineMultiply(long.ToSpline(0,max(pdist.x)))
 			tmp,id = probReturn.PrintMathematicaCode()
 			mathCode += tmp+"\n"
 			mathCode += "Export[\"" + folderName + "\\probReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
+			fmt.Println(" done.")
 
+			fmt.Print("probReturnIntegral...")
 			probReturnIntegral := probReturn.Integrate()
 			tmp,id = probReturnIntegral.PrintMathematicaCode()
 			mathCode += tmp+"\n"
 			mathCode += "Export[\"" + folderName + "\\probReturnIntegral.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
+			fmt.Println(" done.")
+
+			fmt.Print("pdistIntegral...")
+			pdistIntegrate := pdist.Integrate()
+			tmp,id = pdistIntegrate.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\pdistIntegrate.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+			fmt.Println(" done.")
+
+			//risk evaluation
+			fmt.Print("riskSpline...")
+			eps := 0.1
+			yMin := min(probReturnIntegral.y) +eps
+			yMax := max(probReturnIntegral.y) -eps
+			dy := 10.0
+			var ys,probs []float64
+			for y := yMin ; y <= yMax ; y += dy {
+				fmt.Print(y," ")
+				ys = append(ys,y)
+				probs = append(probs, pdist.SplineMultiply(probReturnIntegral.OneBelow(y)).FullIntegralSpline() )
+			}
+			fmt.Print(" ... ")
+			riskSpline := NewSpline(splinetype,probs,ys)
+			tmp,id = riskSpline.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\riskSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+			fmt.Println(" done.")
+
 
 
 			//careful: sometimes out of memory
@@ -1547,9 +1583,10 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 		 */
 
 		//if x1's are at the end, add all x2's that are not already in there
+		eps := 0.01
 		if i1 >= len(ms1.x) {
 			for i2 < len(ms2.x) {
-				if !containsFloat(newX,ms2.x[i2]){
+				if !containsFloat(newX,ms2.x[i2],eps){
 					newX = append(newX,ms2.x[i2])
 				}
 				i2++
@@ -1561,7 +1598,7 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 		//if x2's are at the end, add all x1's that are not already in there
 		if i2 >= len(ms2.x) {
 			for i1 < len(ms1.x) {
-				if !containsFloat(newX,ms1.x[i1]){
+				if !containsFloat(newX,ms1.x[i1],eps){
 					newX = append(newX,ms1.x[i1])
 				}
 				i1++
@@ -1571,12 +1608,12 @@ func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 		}
 
 		if ms1.x[i1] < ms2.x[i2] {
-			if !containsFloat(newX,ms1.x[i1]){
+			if !containsFloat(newX,ms1.x[i1],eps){
 				newX = append(newX,ms1.x[i1])
 			}
 			i1++
 		} else {
-			if !containsFloat(newX,ms2.x[i2]){
+			if !containsFloat(newX,ms2.x[i2],eps){
 				newX = append(newX,ms2.x[i2])
 			}
 			i2++
@@ -1941,6 +1978,7 @@ func (ms my_spline) Integrate() my_spline {
 		coeffs:     newC,
 		unique:     false,
 	}
+	//find suitable C/constant s.t. integral is continuous
 	newC = integral.coeffs
 	for i,_ := range ms.x[:len(ms.x)-1] {
 		newC[(i+1)*(integral.deg+1)-1] = ms.IntegralSpline(0,ms.x[i]) - integral.At(ms.x[i+1])
@@ -1980,14 +2018,42 @@ func (ms my_spline) IntegrateDUMB() my_spline {
 }
 
 //return derivated spline, one dim lower
+//not done.
 func (ms my_spline) Derive() my_spline {
-	return my_spline{}
+	var newC []float64
+	for i,_ := range ms.x[:len(ms.x)-1] {
+		for d := ms.deg ; d > 0 ; d-- {
+			newC = append(newC,float64(d)*ms.coeffs[(ms.deg+1)*i+ms.deg-d])
+		}
+	}
+	derivative := my_spline{
+		deg:        ms.deg-1,
+		splineType: ms.splineType,
+		x:          ms.x,
+		y:          []float64{},
+		coeffs:     newC,
+		unique:     false,
+	}
+	var newY []float64
+	for _,x := range derivative.x {
+		newY = append(newY,derivative.At(x))
+	}
+	derivative = my_spline{
+		deg:        ms.deg-1,
+		splineType: ms.splineType,
+		x:          ms.x,
+		y:          newY,
+		coeffs:     newC,
+		unique:     false,
+	}
+	return derivative
 }
 
 //returns the value of the derivative of ms at x
 func (ms my_spline) D (x float64) float64 {
 	//find ix s.t. ms.x[ix] just under x
 	ix:=0;for ms.x[ix]<x {ix++};ix--;
+	if ix<0{ix=0}
 	//Test Print
 	//fmt.Println("my_spline D() test: out of ",ms.x, "the one that is just under ",x, " is ",ix)
 
@@ -2004,17 +2070,140 @@ func (ms my_spline) D (x float64) float64 {
 	return result
 }
 
+//returns 1_{ms<=y} as my_spline
+func (ms my_spline) OneBelow (y float64) my_spline {
+	debug := true
+	intersections := ms.Intersections(y)
+	if debug {
+		fmt.Println(intersections)
+	}
+	newX := ms.x
+	for _,ix := range intersections {
+		if !containsFloat(newX,ix,1){
+			newX = append(newX, ix)
+		}
+	}
+	sort.Float64s(newX)
+	newY := []float64{}
+	newC := []float64{}
+	for _,x := range newX {
+		if ms.At(x) <= y {
+			newY = append(newY,1.0)
+			newC = append(newC, 1.0)
+		} else {
+			newY = append(newY,0.0)
+			newC = append(newC, 0.0)
+		}
+	}
+	result := my_spline{
+		deg:        0,
+		splineType: []string{""},
+		x:          newX,
+		y:          newY,
+		coeffs:     newC,
+		unique:     false,
+	}
+	return result
+}
 
+
+//not completed!
+//still to be tested
+func (ms my_spline) Intersections(y float64) []float64 {
+	if ms.deg > 2 { //when cubic implemented >3
+		//use NewtonRoots here
+		return ms.NewtonRoots(y,0.01,10)
+	}
+
+	var intersections []float64
+
+	if ms.deg == 1 {
+		for i,_ := range ms.x[:len(ms.x)-1] {
+			if (ms.x[i] > y && ms.x[i+1] < y) || ((ms.x[i] < y && ms.x[i+1] > y)) {
+				//linear
+				intersections = append(intersections,(y-ms.y[i])*(ms.x[i+1]-ms.x[i])/(ms.y[i+1]-ms.y[i]))
+			}
+		}
+	}
+
+	if ms.deg == 2 {
+		for i,_ := range ms.x[:len(ms.x)-1] {
+			if (ms.x[i] > y && ms.x[i+1] < y) || ((ms.x[i] < y && ms.x[i+1] > y)) {
+				//squadratic
+				coeffs := ms.coeffs[i*(ms.deg+1):i*(ms.deg+2)-1]
+				if len(coeffs) != 3 {fmt.Println("Error: coeffs in my_spline.Intersections(float64) should be length 3 for squadratic!");os.Exit(2)}
+				p := coeffs[1]/coeffs[0]
+				q := coeffs[2]/coeffs[0]
+				intersectionCandidates := []float64{p/2.0-math.Sqrt(math.Pow(p/2.0,2))-q ,p/2.0+math.Sqrt(math.Pow(p/2.0,2))-q }
+				if intersectionCandidates[0] < ms.x[i+1] && intersectionCandidates[0] > ms.x[i] {
+					intersections = append(intersections,  intersectionCandidates[0] )
+				} else if intersectionCandidates[1] < ms.x[i+1] && intersectionCandidates[1] > ms.x[i] {
+					intersections = append(intersections,  intersectionCandidates[1] )
+				}
+
+
+				//check which one (of the two) is in range [ms.x[i],ms.x[i+1]]
+			}
+		}
+	}
+
+	if ms.deg == 3 {
+		for i,_ := range ms.x[:len(ms.x)-1] {
+			if (ms.x[i] > y && ms.x[i+1] < y) || ((ms.x[i] < y && ms.x[i+1] > y)) {
+				//cubic
+
+				//check which one (of the three) is in range [ms.x[i],ms.x[i+1]]
+
+			}
+		}
+	}
+
+	return intersections
+
+}
+
+
+func (ms my_spline) NewtonRoots (y float64, tol float64, n int) []float64 {
+	debug := true
+	span := ms.x[0]-ms.x[len(ms.x)-1]
+	dx := span / float64(n)
+	var intersections []float64
+	for x := ms.x[0] ; x < ms.x[len(ms.x)-1] ; x += dx {
+		root,err := ms.NewtonRoot(x,y,tol)
+		if err != nil {continue}
+		if debug {
+			fmt.Println("NewtonRoots: root:",root)
+		}
+		if !containsFloat(intersections,root,tol){
+			intersections = append(intersections,root)
+		}
+	}
+	return intersections
+}
+
+//For degrees <=3, should be replaced by pq or cubic root formula
+//also do for result []float64
 //finds roots (y=0) of ms, starting at xo with a tolerance of 0<tol. For other y's it doesn't find roots but where ms is y.
-func (ms my_spline) NewtonRoot(x0 float64, y float64, tol float64) float64 {
+//implement Derive() and calculate it once instead of using D() multiple times
+func (ms my_spline) NewtonRoot(x0 float64, y float64, tol float64) (float64,error) {
+	debug := true
+	derivative := ms.Derive()
+	if debug{
+		fmt.Println("calculated derivative.")
+	}
 	xn := x0
-	for math.Abs(y-ms.At(xn))>tol{
+	skip := 100
+	for math.Abs(y-ms.At(xn)) > tol{
+		skip--
+		if skip < 0 {return 0,fmt.Errorf("newton couldn't find root")}
 		//fmt.Println("old xn: ",xn," , old yn: ", ms.At(xn), " , D(xn)=",ms.D(xn))
-		xn = math.Min(max(ms.x),math.Max(min(ms.x),		xn+(y-ms.At(xn))/ms.D(xn)		))
-		//fmt.Println(xn,":",ms.At(xn) , " , difference to ",y," is ",ms.At(xn)-y)
+		xn = math.Min(max(ms.x),math.Max(min(ms.x),		xn+(y-ms.At(xn))/derivative.At(xn)		))
+		if debug{
+			fmt.Println(xn,":",ms.At(xn) , " , difference to ",y," is ",ms.At(xn)-y)
+		}
 		time.Sleep(1)
 	}
-	return xn
+	return xn,nil
 }
 
 //implement Newton-method first
@@ -2034,7 +2223,9 @@ func (ms my_spline) FindSigmas(levels []float64) []float64 {
 	var intersections []float64
 	cumSpline := ms.IntegrateDUMB()
 	for _,l := range levels {
-		intersections = append(intersections, cumSpline.NewtonRoot(m,l,tol))
+		root,err := cumSpline.NewtonRoot(m,l,tol)
+		if err != nil {continue}
+		intersections = append(intersections,root)
 	}
 	return intersections
 }
@@ -2367,8 +2558,8 @@ func WriteFile(filename string, content string, pathExt string) {
 
 }
 
-func containsFloat(list []float64, item float64) bool {
-	eps := 0.01
+func containsFloat(list []float64, item float64, eps float64) bool {
+	//eps := 0.01
 	for _,l := range list {
 		if math.Abs(l-item)<eps {
 			return true
