@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"sort"
@@ -28,31 +30,6 @@ func check(err error){
 		fmt.Println(err)
 	}
 }
-
-/*
-func loadJson(path string) string{
-
-	// Open the file for reading
-	file, err := os.Open(path)
-	if err != nil {
-		fmt.Println(err)
-		return ""
-	}
-	defer file.Close()
-
-	// Decode the JSON data from the file
-	var readStr string
-	if err := json.NewDecoder(file).Decode(&readStr); err != nil {
-		fmt.Println(err)
-		return ""
-	}
-
-	// Return the decoded string
-	return fmt.Sprint(readStr)
-
-}
- */
-
 
 type callfunc struct{
 	base float64
@@ -102,7 +79,7 @@ func main(){
 
 	riskAndTimePlottesting := false
 	optimalTransporttesting := false
-	apitesting := true
+	apitesting := false
 	calltesting := false
 	splinetesting := false
 
@@ -256,595 +233,6 @@ func main(){
 
 	if apitesting {
 
-		/* User Inputs */
-		update := false
-		ticker := "TSLA"
-
-		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
-		var pdistX map[string][]float64 = make(map[string][]float64,0)
-		var pdistY map[string][]float64 = make(map[string][]float64,0)
-		var pdistDates []string
-
-		pdistDates = append(pdistDates,"2024-06-01")
-		pdistX["2024-06-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  , 600,1000}
-		pdistY["2024-06-01"] = []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1    , 0.2  ,0}
-
-
-		pdistDates = append(pdistDates,"2025-01-01")
-		pdistX["2025-01-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  , 600,1000}
-		pdistY["2025-01-01"] = []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     , 1  ,0}
-
-		var pdistSplines map[string]my_spline
-		pdistSplines = make(map[string]my_spline,0)
-
-		for _,d := range pdistDates {
-			//fmt.Println(pdistX[d],pdistY[d])
-			s := NewSpline(splinetype,pdistX[d],pdistY[d])
-			ns := NewNormedSpline(s)
-			pdistSplines[d] = ns
-		}
-
-		apiKey := opt.LoadJson("apiKey.json")
-
-		var optreq opt.OptionURLReq
-		var options []opt.Option
-
-		optreq = opt.OptionURLReq{
-			Ticker:      ticker,
-			ApiKey:      apiKey,
-			StrikeRange: []int{0,1000},
-			DateRange:   /*[]string{"2024-06-01","2024-07-01"}*/[]string{"2023-06-01","2027-01-01"},
-			Contract_type: "call",
-		}
-
-
-		/* End User Inputs */
-
-		content := "SetDirectory[NotebookDirectory[]]\n"
-
-		url := "https://api.polygon.io/v2/aggs/ticker/C:USDEUR/prev?adjusted=true&apiKey="+apiKey
-		fmt.Println("url: ",url)
-		_,body,err := opt.APIRequest(url,1)
-		check(err)
-		body = strings.Split(body,"\"c\":")[1]
-		body = strings.Split(body,",")[0]
-		fmt.Println(body)
-
-		usdtoeur,err = strconv.ParseFloat(body,64)
-		check(err)
-		eurtousd = 1/usdtoeur
-
-
-		var share_price float64
-		url = "https://api.polygon.io/v2/aggs/ticker/"+ticker+"/prev?adjusted=true&apiKey="+apiKey
-		fmt.Println("url: ",url)
-		_,body,err = opt.APIRequest(url,1)
-		check(err)
-		body = strings.Split(body,"\"c\":")[1]
-		body = strings.Split(body,",")[0]
-
-		share_price,err = strconv.ParseFloat(body,64)
-		check(err)
-		fmt.Println("share_price(",ticker,"): ",share_price)
-
-
-		//how many successive requests at most; -1 is Inf
-		nMax := -1
-
-		if update {
-
-			log := ""
-			var msg string
-
-			options, msg = opt.GetOptions(optreq,nMax)
-			log += msg
-
-			for _,opt := range options {
-				fmt.Println(opt.Print())
-			}
-
-			opt.WriteJson("log.json",log)
-			opt.WriteJson("options.json",fmt.Sprint(options))
-
-		}
-
-		if !update{
-
-			readStr := opt.LoadJson("options.json")
-			readStr = strings.Replace(readStr,"} {","\n",-1)
-			readStr = strings.Replace(readStr,"}]","",-1)
-			readStr = strings.Replace(readStr,"[{","",-1)
-			fmt.Println(readStr)
-
-			options = opt.JsonToOptions("options.json")
-			fmt.Println("loaded options: \n",options)
-		}
-
-
-
-
-		long := callfunc{
-			base:   0,
-			cost:   share_price,
-			factor: 1,
-			date:   nil,
-		}
-		var addToAll []callfunc
-		addToAll = append(addToAll,long)
-
-
-
-		optionsDates, optionsMap, callListMap := OptionsToOptionsDates(options, addToAll)
-
-		/*
-		var optionsMap map[string][]opt.Option
-		optionsMap = make(map[string][]opt.Option)
-		var optionsDates []string
-		var callListMap map[string][]callfunc
-		callListMap = make(map[string][]callfunc)
-
-		callList := []callfunc{}
-		for _,optt := range options {
-
-			dateStr := strings.Split(optt.Expiration_date,"-")
-			dateInt := []int{}
-			for i:=0;i<3;i++ {
-				tmp,_ := strconv.Atoi(dateStr[i])
-				dateInt = append(dateInt,tmp)
-			}
-
-			if len(optionsMap[optt.Expiration_date])>0 {
-				optionsMap[optt.Expiration_date] = append(optionsMap[optt.Expiration_date],optt)
-				callListMap[optt.Expiration_date] = append(callListMap[optt.Expiration_date],callfunc{
-					base:   float64(optt.Strike_price),
-					cost:   optt.Vw,
-					factor: 1,
-					date:   dateInt,
-				})
-			} else {
-				optionsDates = append(optionsDates,optt.Expiration_date)
-				tmp := make([]opt.Option,1)
-				tmp[0] = optt
-				optionsMap[optt.Expiration_date] = tmp
-				tmpp := make([]callfunc,2)
-				tmpp[0] = callfunc{
-					base:   float64(optt.Strike_price),
-					cost:   optt.Vw,
-					factor: 1,
-					date:   dateInt,
-				}
-				tmpp[1] = long
-				callListMap[optt.Expiration_date] = tmpp
-			}
-
-
-			callList = append(callList,callfunc{
-				base:   float64(optt.Strike_price),
-				cost:   optt.Vw,
-				factor: 1,
-				date:  dateInt ,
-			})
-
-		}
-		 */
-
-
-		debug := true
-
-		if debug {
-			fmt.Println("len of optionsDates2: ", len(optionsMap), " aka. for how many different dates call options got loaded.\n These are all the dates:")
-			for _,d := range optionsDates {
-				fmt.Println(d,":")
-				fmt.Println("callListMap:")
-				for _,c := range callListMap[d] {
-					fmt.Println("   ",c)
-				}
-				fmt.Println("OptionsMap:")
-				for _,o := range optionsMap[d] {
-					fmt.Println("   ",o)
-				}
-			}
-		}
-
-
-		/*
-		//25Q1
-		x := []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
-		y := []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     }
-
-
-		//24Q2
-		x := []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
-		y := []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
-
-
-		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
-		s := NewSpline(splinetype,x,y)
-		ns := NewNormedSpline(s)
-		pdist := ns
-		 */
-
-
-
-
-		mathCode := "SetDirectory[NotebookDirectory[]]\n"
-		mathCodeSigma := "SetDirectory[NotebookDirectory[]]\n"
-		//dx := 0.01
-
-		path, err := os.Getwd()
-		check(err)
-		fmt.Println(path)
-		currentTime := time.Now()
-		live := currentTime.Format("2006-01-02")
-
-		err = os.Mkdir(path+"\\tmp\\"+live, 0755)
-		path = path+"\\tmp\\"+live+"\\"
-
-		var strikes []float64
-		var costs []float64
-
-		mathematicaCompressionLevel := ".75"
-		mathematicaImageResolution := "250"
-
-		for _,d := range optionsDates {
-
-			pdist := pdistSplines[pdistDates[0]] //careful: date should eventually be optimal transported.
-
-			folderName := ticker+d+"(live data from "+live+")"
-			err = os.Mkdir(path+folderName, 0755)
-			check(err)
-			optionsList := optionsMap[d]
-			callList := callListMap[d]
-			callList = callList[len(addToAll):len(callList)]
-
-			fmt.Println(optionsList)
-
-			tmp,idPdist := pdist.PrintMathematicaCode()
-			mathCode = tmp
-			fmt.Println(mathCode)
-			content += mathCode
-			content += "Export[\"" + folderName + "\\pdist.png\", " + fmt.Sprintf("Show[fctplot%v]",idPdist) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-
-			bestcall, bestE := findBestCall(pdist, callList)
-			fmt.Println("Best Call:", bestcall, "\nwith expected return:", bestE)
-			mathCode = bestcall.PrintMathematicaCode()
-			fmt.Println(mathCode)
-
-			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(pdist))
-			content += mathCode
-			content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",idPdist) +", Show[call,long]}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-
-			fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(pdist))
-
-			fmt.Println("\nPrint all calls:\n")
-			mathCode = PrintMathematicaCode(callList, share_price)
-			fmt.Println(mathCode)
-			content += mathCode
-			content += "Export[\"" + folderName + "\\allCalls.png\", Show[s], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-
-			fmt.Println("\nDistribution Chart for Call-Long intersections:\n")
-			mathCode = MathematicaCodeLongIntersection(callList, share_price)
-			fmt.Println(mathCode)
-			content += mathCode
-			content += "Export[\"" + folderName + "\\CallLongIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-
-			fmt.Println("\nDistribution Chart for Call-Zero intersections:\n")
-			mathCode = MathematicaCodeZeroIntersection(callList)
-			fmt.Println(mathCode)
-			content += mathCode
-			content += "Export[\"" + folderName + "\\CallZeroIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-
-			fmt.Println("\nDistribution Chart for Call-Zero-Volumes intersections:\n")
-			mathCode = MathematicaCodeZeroIntersectionVolumes(optionsList)
-			content += mathCode
-			content += "Export[\"" + folderName + "\\CallZeroVolumesIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-
-			fmt.Println("\nExpected returns for each strike:")
-			mathCode = MathematicaPrintExpectedReturns(pdistSplines[pdistDates[0]], callList) //careful: date should eventually be optimal transported.
-			fmt.Println(mathCode)
-			content += mathCode
-			content += "Export[\"" + folderName + "\\expected_returns_strike.png\", Show[xy], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-
-			strikes = make([]float64,0)
-			costs = make([]float64,0)
-			for _, opt := range optionsMap[d] {
-				strikes = append(strikes, float64(opt.Strike_price))
-				costs = append(costs, (opt.Close))
-			}
-			mathCode = MathematicaXYPlot(strikes, costs)
-			fmt.Println("\nPlot strike vs cost:\n")
-			fmt.Println(mathCode)
-			content += mathCode
-			content += "Export[\"" + folderName + "\\strike_price.png\", Show[xy], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-
-			//still causes some indexing bug
-
-
-			bestCallSpline := bestcall.ToSpline(min(pdist.x),max(pdist.x))
-			tmp,id := bestCallSpline.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-
-			//only testing
-			/*
-			call1, call2 := UnionXYCC(callList[1].ToSpline(min(pdist.x),max(pdist.x)),callList[0].ToSpline(min(pdist.x),max(pdist.x)))
-
-			tmp,id = call1.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_call1.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-
-			tmp,id = call2.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_call2.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-
-			callmult := call1.SplineMultiply(call2)
-			tmp, id = callmult.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_callMult.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-			 */
-
-			//more testing with constants
-			const1 := my_spline{
-				deg:        1,
-				splineType: splinetype,
-				x:          []float64{0,100,200},
-				y:          []float64{2,2,1},
-				coeffs:     []float64{0,2,0.01,1},
-				unique:     false,
-			}
-			const2 := my_spline{
-				deg:        0,
-				splineType: splinetype,
-				x:          []float64{0,100,300},
-				y:          []float64{3,3,4},
-				coeffs:     []float64{3,4},
-				unique:     false,
-			}
-			fmt.Println("constant splines before UnionXYCC():")
-			fmt.Println("len(const1.x)=",len(const1.x)," ; len(const2.x)=",len(const2.x))
-			fmt.Println("len(const1.coeffs)=",len(const1.coeffs)," ; len(const2.coeffs)=",len(const2.coeffs))
-
-
-			/*
-			tmp,id = const1.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_const1.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-
-			tmp,id = const2.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_const2.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-
-			const1, const2 = UnionXYCC(const1, const2)
-
-			callmult := const1.SplineMultiply(const2)
-			tmp, id = callmult.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_constMult.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-
-			const1Integrate := const1.Integrate()
-			tmp, id = const1Integrate.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_const1Integrate.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-
-			fmt.Println("constMult.FullIntegralSpline()=",callmult.FullIntegralSpline())
-			 */
-
-
-
-
-
-
-
-			//bestCallSpline, pdist = UnionXYCC(bestCallSpline,pdist)
-			/*
-			pdist,bestCallSpline = UnionXYCC(pdist,bestCallSpline)
-
-			tmp,id = bestCallSpline.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-
-			tmp,id = pdist.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_pdist.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-			 */
-
-
-			fmt.Print("probReturn...")
-			probReturn := pdist.SplineMultiply(long.ToSpline(0,max(pdist.x)))
-			tmp,id = probReturn.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\probReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-			fmt.Println(" done.")
-
-			fmt.Print("probReturnIntegral...")
-			probReturnIntegral := probReturn.Integrate()
-			tmp,id = probReturnIntegral.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\probReturnIntegral.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-			fmt.Println(" done.")
-
-			fmt.Print("pdistIntegral...")
-			pdistIntegrate := pdist.Integrate()
-			tmp,id = pdistIntegrate.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\pdistIntegrate.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-			fmt.Println(" done.")
-
-			//risk evaluation
-			fmt.Print("riskSpline...")
-			eps := 0.1
-			yMin := min(probReturnIntegral.y) +eps
-			yMax := max(probReturnIntegral.y) -eps
-			dy := 10.0
-			var ys,probs []float64
-			for y := yMin ; y <= yMax ; y += dy {
-				fmt.Print(y," ")
-				ys = append(ys,y)
-				probs = append(probs, pdist.SplineMultiply(probReturnIntegral.OneBelow(y)).FullIntegralSpline() )
-			}
-			fmt.Print(" ... ")
-			riskSpline := NewSpline(splinetype,probs,ys)
-			tmp,id = riskSpline.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\riskSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-			fmt.Println(" done.")
-
-
-
-			//careful: sometimes out of memory
-			var spreads []spread
-			//only neigboring calls
-			
-			for i := 0 ; i < len(callList)-1 ; i++ {
-				spreads = append(spreads,spread{
-					num:     2,
-					calls:   []callfunc{callList[i],callList[i+1]},
-					weights: []float64{0.5,-0.5},
-				})
-				spreads = append(spreads,spread{
-					num:     2,
-					calls:   []callfunc{callList[i],callList[i+1]},
-					weights: []float64{-0.5,0.5},
-				})
-			}
-
-
-			/*
-			// all 2-combinations of calls and 50-50% weighing in both directions (buy&sell)
-			ws := []float64{0.5,0.75,0.25}
-			for i := 0 ; i < len(callList)-1 ; i++ {
-				for j := i ; j < len(callList)-1 ; j++{
-					for _,w := range ws {
-						spreads = append(spreads,spread{
-							num:     2,
-							calls:   []callfunc{callList[i],callList[j]},
-							weights: []float64{w,-(1.0-w)},
-						})
-						spreads = append(spreads,spread{
-							num:     2,
-							calls:   []callfunc{callList[i],callList[j]},
-							weights: []float64{w,1.0-w},
-						})
-						spreads = append(spreads,spread{
-							num:     2,
-							calls:   []callfunc{callList[i],callList[j]},
-							weights: []float64{-w,(1.0-w)},
-						})
-					}
-				}
-			}
-			 */
-
-
-			bestSpread,bestSpreadExp := FindBestSpread(pdist,spreads)
-			/*
-			// Expected returns of all spreads
-			dx = 0.1
-			var SpreadsExpReturns []float64
-			for i := range spreads {
-				SpreadsExpReturns = append(SpreadsExpReturns,spreads[i].ExpectedReturn(pdist,dx))
-			}
-
-			// Find spread with highest Exp Return* (Later include risk)
-			var bestSpread spread = spreads[0]
-			var bestSpreadExp float64 = SpreadsExpReturns[0]
-			for i,spExp := range SpreadsExpReturns[1:] {
-				if spExp > bestSpreadExp {
-					bestSpread = spreads[i]
-					bestSpreadExp = spExp
-				}
-			}
-			 */
-
-			// make all spreads to splines
-			var spreadSplines []my_spline
-			for _,s := range spreads {
-				spreadSplines = append(spreadSplines,s.ToSpline(0,max(pdist.x)))
-			}
-
-			// make best spread to spline
-			bestSpreadSpline := bestSpread.ToSpline(0,max(pdist.x))
-
-			// make a .png for every spread
-			/*
-			err = os.Mkdir(path+folderName+"/spreads", 0755)
-			for i,s := range spreadSplines {
-				tmp,id = s.PrintMathematicaCode()
-				mathCode += tmp+"\n"
-				mathCode += "Export[\"" + folderName+"\\spreads" + "\\"+strconv.Itoa(i)+".png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-				content += mathCode
-			}
-			 */
-
-			//make a .png for bestSpread
-			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the spread %v has the highest expected return out of all spreads (2-50/50) available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, fmt.Sprint(bestSpread), bestSpreadExp, ticker, long.ExpectedReturn(pdist))
-			tmp,id = bestSpreadSpline.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName+"\\-bestSpread.png\",{msg1,"+fmt.Sprintf("Show[fctplot%v]",idPdist)+"," + fmt.Sprintf("Show[{s%v,long}]",id) + "}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-
-			fmt.Sprintf("Show[fctplot%v]",idPdist)
-
-
-			/*
-			integralProbReturn := probReturn.IntegrateDUMB()
-			tmp,id = integralProbReturn.PrintMathematicaCode()
-			mathCode += tmp+"\n"
-			mathCode += "Export[\"" + folderName + "\\IntegralProbReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-			content += mathCode
-			 */
-
-
-
-			//FindSigmas
-			/*
-			levels := []float64{0,0.125,0.25,0.5,0.75,0.875,1}
-
-			cumSpline := pdist.IntegrateDUMB()
-			tmp, id = cumSpline.PrintMathematicaCode()
-			mathCodeSigma += tmp+"\n"
-			mathCodeSigma += fmt.Sprintf("s%v\n",id)
-			sigmas := pdist.FindSigmas(levels)
-
-			for i,s := range sigmas {
-				fmt.Println("expected return at ", levels[i]*100, "% : ", bestcall.At(s))
-			}
-
-			 */
-
-			/*
-			for risk metric, use %(0-100) where the investment is breakeven. For that, implement my_spline Multiply() to
-			multiply pdist and call and use NewtonRoot()
-			 */
-
-
-			a:=0.0;b:=1000.0;
-			fmt.Println(fmt.Sprintf("pdist.IntegralSpline(%v,%v)=",a,b),pdist.IntegralSpline(a,b))
-
-		}
-
-
-
-		WriteFile("sigmas.nb",mathCodeSigma,"/")
-
-
-
-
-		WriteFile("output.nb",content,"/tmp/"+live+"/")
 
 	}
 
@@ -978,7 +366,7 @@ func main(){
 		pdist := ns
 		bestcall, bestE := findBestCall(pdist, callList)
 		fmt.Println("Best Call:",bestcall,"\nwith expected return:", bestE)
-		mathCode = bestcall.PrintMathematicaCode()
+		mathCode = bestcall.PrintMathematicaCode(max(pdist.x))
 		fmt.Println(mathCode)
 
 
@@ -1037,7 +425,630 @@ func main(){
 	}
 
 
+	path, err := os.Getwd()
+	check(err)
 
+	//allowSubDirs := false
+	files, err := ioutil.ReadDir(path+"/prompts/")
+	check(err)
+	for _, file := range files {
+		fmt.Println(file.Name(), file.IsDir())
+	}
+	for _, file := range files {
+		//if file.IsDir() && allowSubDirs {}
+		if !strings.Contains(file.Name(),"prompt_"){continue}
+		promptName := strings.Split(strings.Split(file.Name(),"prompt_")[1],".json")[0]
+		fmt.Println(promptName)
+		time.Sleep(5000)
+
+		run(promptName)
+
+
+	}
+	os.Exit(1)
+
+
+
+}
+
+func run(promptName string){
+	update := true
+
+	path, err := os.Getwd()
+	check(err)
+	currentTime := time.Now()
+	live := currentTime.Format("2006-01-02")
+
+	ticker,pdistDates,pdistX,pdistY,StrikeRange,DateRange,Contract_type := LoadPromptEasy(path+"\\prompts\\","prompt_"+promptName+".json")
+
+	splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
+	var pdistSplines map[string]my_spline
+	pdistSplines = make(map[string]my_spline,0)
+
+	for _,d := range pdistDates {
+		//fmt.Println(pdistX[d],pdistY[d])
+		s := NewSpline(splinetype,pdistX[d],pdistY[d])
+		ns := NewNormedSpline(s)
+		pdistSplines[d] = ns
+	}
+
+	apiKey := opt.LoadJson("apiKey.json")
+
+	var optreq opt.OptionURLReq
+	var options []opt.Option
+
+	optreq = opt.OptionURLReq{
+		Ticker:      ticker,
+		ApiKey:      apiKey,
+		StrikeRange: StrikeRange,
+		DateRange:   DateRange/*[]string{"2024-06-01","2024-07-01"}[]string{"2023-06-01","2027-01-01"}*/,
+		Contract_type: Contract_type,
+	}
+
+	//also puts
+
+	/*
+		SavePromptJson(ticker,pdistDates,pdistX,pdistY,optreq.StrikeRange,optreq.Contract_type)
+		SavePromptJsonEasy(ticker,pdistDates,pdistX,pdistY,optreq.StrikeRange,optreq.Contract_type)
+	*/
+
+
+	/* End User Inputs */
+
+	content := "SetDirectory[NotebookDirectory[]]\n"
+
+	url := "https://api.polygon.io/v2/aggs/ticker/C:USDEUR/prev?adjusted=true&apiKey="+apiKey
+	fmt.Println("url: ",url)
+	_,body,err := opt.APIRequest(url,1)
+	check(err)
+	body = strings.Split(body,"\"c\":")[1]
+	body = strings.Split(body,",")[0]
+	fmt.Println(body)
+
+	usdtoeur,err = strconv.ParseFloat(body,64)
+	check(err)
+	eurtousd = 1/usdtoeur
+
+
+	var share_price float64
+	url = "https://api.polygon.io/v2/aggs/ticker/"+ticker+"/prev?adjusted=true&apiKey="+apiKey
+	fmt.Println("url: ",url)
+	_,body,err = opt.APIRequest(url,1)
+	check(err)
+	body = strings.Split(body,"\"c\":")[1]
+	body = strings.Split(body,",")[0]
+
+	share_price,err = strconv.ParseFloat(body,64)
+	check(err)
+	fmt.Println("share_price(",ticker,"): ",share_price)
+
+
+	//how many successive requests at most; -1 is Inf
+	nMax := -1
+
+	if update {
+
+		log := ""
+		var msg string
+
+		options, msg = opt.GetOptions(optreq,nMax)
+		log += msg
+
+		for _,opt := range options {
+			fmt.Println(opt.Print())
+		}
+
+		opt.WriteJson("log.json",log)
+		currentTime := time.Now()
+		live := currentTime.Format("2006-01-02")
+
+		os.Mkdir("options",0755)
+		os.Mkdir("options"+"\\"+ticker,0755)
+		os.Mkdir("options"+"\\"+ticker+"\\"+live,0755)
+		//os.Mkdir("options"+"\\"+ticker+"\\"+live+"\\",0755)
+		opt.WriteJson("options"+"\\"+ticker+"\\"+live+"\\"+"options.json",fmt.Sprint(options))
+		opt.WriteJson("options"+"\\"+ticker+"\\"+"options_latest.json",fmt.Sprint(options))
+
+	}
+
+	if !update{
+
+		readStr := opt.LoadJson("options"+"\\"+ticker+"\\"+"options_latest.json")
+		readStr = strings.Replace(readStr,"} {","\n",-1)
+		readStr = strings.Replace(readStr,"}]","",-1)
+		readStr = strings.Replace(readStr,"[{","",-1)
+		fmt.Println(readStr)
+
+		options = opt.JsonToOptions("options.json")
+		fmt.Println("loaded options: \n",options)
+	}
+
+
+
+
+	long := callfunc{
+		base:   0,
+		cost:   share_price,
+		factor: 1,
+		date:   nil,
+	}
+	var addToAll []callfunc
+	addToAll = append(addToAll,long)
+
+
+
+	optionsDates, optionsMap, callListMap := OptionsToOptionsDates(options, addToAll)
+
+	/*
+		var optionsMap map[string][]opt.Option
+		optionsMap = make(map[string][]opt.Option)
+		var optionsDates []string
+		var callListMap map[string][]callfunc
+		callListMap = make(map[string][]callfunc)
+
+		callList := []callfunc{}
+		for _,optt := range options {
+
+			dateStr := strings.Split(optt.Expiration_date,"-")
+			dateInt := []int{}
+			for i:=0;i<3;i++ {
+				tmp,_ := strconv.Atoi(dateStr[i])
+				dateInt = append(dateInt,tmp)
+			}
+
+			if len(optionsMap[optt.Expiration_date])>0 {
+				optionsMap[optt.Expiration_date] = append(optionsMap[optt.Expiration_date],optt)
+				callListMap[optt.Expiration_date] = append(callListMap[optt.Expiration_date],callfunc{
+					base:   float64(optt.Strike_price),
+					cost:   optt.Vw,
+					factor: 1,
+					date:   dateInt,
+				})
+			} else {
+				optionsDates = append(optionsDates,optt.Expiration_date)
+				tmp := make([]opt.Option,1)
+				tmp[0] = optt
+				optionsMap[optt.Expiration_date] = tmp
+				tmpp := make([]callfunc,2)
+				tmpp[0] = callfunc{
+					base:   float64(optt.Strike_price),
+					cost:   optt.Vw,
+					factor: 1,
+					date:   dateInt,
+				}
+				tmpp[1] = long
+				callListMap[optt.Expiration_date] = tmpp
+			}
+
+
+			callList = append(callList,callfunc{
+				base:   float64(optt.Strike_price),
+				cost:   optt.Vw,
+				factor: 1,
+				date:  dateInt ,
+			})
+
+		}
+	*/
+
+
+	debug := true
+
+	if debug {
+		fmt.Println("len of optionsDates2: ", len(optionsMap), " aka. for how many different dates call options got loaded.\n These are all the dates:")
+		for _,d := range optionsDates {
+			fmt.Println(d,":")
+			fmt.Println("callListMap:")
+			for _,c := range callListMap[d] {
+				fmt.Println("   ",c)
+			}
+			fmt.Println("OptionsMap:")
+			for _,o := range optionsMap[d] {
+				fmt.Println("   ",o)
+			}
+		}
+	}
+
+
+	/*
+		//25Q1
+		x := []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
+		y := []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     }
+
+
+		//24Q2
+		x := []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
+		y := []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
+
+
+		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
+		s := NewSpline(splinetype,x,y)
+		ns := NewNormedSpline(s)
+		pdist := ns
+	*/
+
+
+
+
+	mathCode := "SetDirectory[NotebookDirectory[]]\n"
+	mathCodeSigma := "SetDirectory[NotebookDirectory[]]\n"
+	//dx := 0.01
+
+	err = os.Mkdir(path+"\\tmp\\"+live,0755)
+	err = os.Mkdir(path+"\\tmp\\"+live+"\\"+promptName, 0755)
+	path = path+"\\tmp\\"+live+"\\"+promptName+"\\"
+
+	var strikes []float64
+	var costs []float64
+
+	mathematicaCompressionLevel := ".75"
+	mathematicaImageResolution := "250"
+
+	for _,d := range optionsDates {
+
+		//careful: date should eventually be optimal transported.
+		// ------- currently always uses first date!!! -------------
+		pdist := pdistSplines[pdistDates[0]]
+
+
+		folderName := ticker+d+"(live data from "+live+")"
+		err = os.Mkdir(path+folderName, 0755)
+		check(err)
+		optionsList := optionsMap[d]
+		callList := callListMap[d]
+		callList = callList[len(addToAll):len(callList)]
+
+		fmt.Println(optionsList)
+
+		tmp,idPdist := pdist.PrintMathematicaCode()
+		mathCode = tmp
+		fmt.Println(mathCode)
+		content += mathCode
+		content += "Export[\"" + folderName + "\\pdist.png\", " + fmt.Sprintf("Show[fctplot%v]",idPdist) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+
+		bestcall, bestE := findBestCall(pdist, callList)
+		fmt.Println("Best Call:", bestcall, "\nwith expected return:", bestE)
+		mathCode = bestcall.PrintMathematicaCode(max(pdist.x))
+		fmt.Println(mathCode)
+
+		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(pdist))
+		content += mathCode
+		content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",idPdist) +", Show[call,long]}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+
+		fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(pdist))
+
+		fmt.Println("\nPrint all calls:\n")
+		mathCode = PrintMathematicaCode(callList, share_price)
+		fmt.Println(mathCode)
+		content += mathCode
+		content += "Export[\"" + folderName + "\\allCalls.png\", Show[s], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+
+		fmt.Println("\nDistribution Chart for Call-Long intersections:\n")
+		mathCode = MathematicaCodeLongIntersection(callList, share_price)
+		fmt.Println(mathCode)
+		content += mathCode
+		content += "Export[\"" + folderName + "\\CallLongIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+
+		fmt.Println("\nDistribution Chart for Call-Zero intersections:\n")
+		mathCode = MathematicaCodeZeroIntersection(callList)
+		fmt.Println(mathCode)
+		content += mathCode
+		content += "Export[\"" + folderName + "\\CallZeroIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+
+		fmt.Println("\nDistribution Chart for Call-Zero-Volumes intersections:\n")
+		mathCode = MathematicaCodeZeroIntersectionVolumes(optionsList)
+		content += mathCode
+		content += "Export[\"" + folderName + "\\CallZeroVolumesIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+
+		fmt.Println("\nExpected returns for each strike:")
+		mathCode = MathematicaPrintExpectedReturns(pdistSplines[pdistDates[0]], callList) //careful: date should eventually be optimal transported.
+		fmt.Println(mathCode)
+		content += mathCode
+		content += "Export[\"" + folderName + "\\expected_returns_strike.png\", Show[xy], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+
+		strikes = make([]float64,0)
+		costs = make([]float64,0)
+		for _, opt := range optionsMap[d] {
+			strikes = append(strikes, float64(opt.Strike_price))
+			costs = append(costs, (opt.Close))
+		}
+		mathCode = MathematicaXYPlot(strikes, costs)
+		fmt.Println("\nPlot strike vs cost:\n")
+		fmt.Println(mathCode)
+		content += mathCode
+		content += "Export[\"" + folderName + "\\strike_price.png\", Show[xy], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+
+		//still causes some indexing bug
+
+
+		bestCallSpline := bestcall.ToSpline(min(pdist.x),max(pdist.x))
+		tmp,id := bestCallSpline.PrintMathematicaCode()
+		mathCode += tmp+"\n"
+		mathCode += "Export[\"" + folderName + "\\TEST_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		content += mathCode
+
+		//only testing
+		/*
+			call1, call2 := UnionXYCC(callList[1].ToSpline(min(pdist.x),max(pdist.x)),callList[0].ToSpline(min(pdist.x),max(pdist.x)))
+
+			tmp,id = call1.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_call1.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+			tmp,id = call2.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_call2.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+			callmult := call1.SplineMultiply(call2)
+			tmp, id = callmult.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_callMult.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+		*/
+
+		//more testing with constants
+		const1 := my_spline{
+			deg:        1,
+			splineType: splinetype,
+			x:          []float64{0,100,200},
+			y:          []float64{2,2,1},
+			coeffs:     []float64{0,2,0.01,1},
+			unique:     false,
+		}
+		const2 := my_spline{
+			deg:        0,
+			splineType: splinetype,
+			x:          []float64{0,100,300},
+			y:          []float64{3,3,4},
+			coeffs:     []float64{3,4},
+			unique:     false,
+		}
+		fmt.Println("constant splines before UnionXYCC():")
+		fmt.Println("len(const1.x)=",len(const1.x)," ; len(const2.x)=",len(const2.x))
+		fmt.Println("len(const1.coeffs)=",len(const1.coeffs)," ; len(const2.coeffs)=",len(const2.coeffs))
+
+
+		/*
+			tmp,id = const1.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_const1.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+			tmp,id = const2.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_const2.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+			const1, const2 = UnionXYCC(const1, const2)
+
+			callmult := const1.SplineMultiply(const2)
+			tmp, id = callmult.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_constMult.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+			const1Integrate := const1.Integrate()
+			tmp, id = const1Integrate.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_const1Integrate.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+			fmt.Println("constMult.FullIntegralSpline()=",callmult.FullIntegralSpline())
+		*/
+
+
+		//bestCallSpline, pdist = UnionXYCC(bestCallSpline,pdist)
+		/*
+			pdist,bestCallSpline = UnionXYCC(pdist,bestCallSpline)
+
+			tmp,id = bestCallSpline.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+			tmp,id = pdist.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\TEST_Unionized_pdist.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+		*/
+
+
+		fmt.Print("probReturn...")
+		probReturn := pdist.SplineMultiply(long.ToSpline(0,max(pdist.x)))
+		tmp,id = probReturn.PrintMathematicaCode()
+		mathCode += tmp+"\n"
+		mathCode += "Export[\"" + folderName + "\\probReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		content += mathCode
+		fmt.Println(" done.")
+
+		fmt.Print("probReturnIntegral...")
+		probReturnIntegral := probReturn.Integrate()
+		tmp,id = probReturnIntegral.PrintMathematicaCode()
+		mathCode += tmp+"\n"
+		mathCode += "Export[\"" + folderName + "\\probReturnIntegral.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		content += mathCode
+		fmt.Println(" done.")
+
+		fmt.Print("pdistIntegral...")
+		pdistIntegrate := pdist.Integrate()
+		tmp,id = pdistIntegrate.PrintMathematicaCode()
+		mathCode += tmp+"\n"
+		mathCode += "Export[\"" + folderName + "\\pdistIntegrate.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		content += mathCode
+		fmt.Println(" done.")
+
+		//risk evaluation
+		/*
+			fmt.Print("riskSpline...")
+			eps := 0.1
+			yMin := min(probReturnIntegral.y) +eps
+			yMax := max(probReturnIntegral.y) -eps
+			dy := 10.0
+			var ys,probs []float64
+			for y := yMin ; y <= yMax ; y += dy {
+				fmt.Print(y," ")
+				ys = append(ys,y)
+				probs = append(probs, pdist.SplineMultiply(probReturnIntegral.OneBelow(y)).FullIntegralSpline() )
+			}
+			fmt.Print(" ... ")
+			riskSpline := NewSpline(splinetype,probs,ys)
+			tmp,id = riskSpline.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\riskSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+			fmt.Println(" done.")
+		*/
+
+
+
+		//careful: sometimes out of memory
+		/*
+			var spreads []spread
+			//only neigboring calls
+
+			for i := 0 ; i < len(callList)-1 ; i++ {
+				spreads = append(spreads,spread{
+					num:     2,
+					calls:   []callfunc{callList[i],callList[i+1]},
+					weights: []float64{0.5,-0.5},
+				})
+				spreads = append(spreads,spread{
+					num:     2,
+					calls:   []callfunc{callList[i],callList[i+1]},
+					weights: []float64{-0.5,0.5},
+				})
+			}
+		*/
+
+
+		/*
+			// all 2-combinations of calls and 50-50% weighing in both directions (buy&sell)
+			ws := []float64{0.5,0.75,0.25}
+			for i := 0 ; i < len(callList)-1 ; i++ {
+				for j := i ; j < len(callList)-1 ; j++{
+					for _,w := range ws {
+						spreads = append(spreads,spread{
+							num:     2,
+							calls:   []callfunc{callList[i],callList[j]},
+							weights: []float64{w,-(1.0-w)},
+						})
+						spreads = append(spreads,spread{
+							num:     2,
+							calls:   []callfunc{callList[i],callList[j]},
+							weights: []float64{w,1.0-w},
+						})
+						spreads = append(spreads,spread{
+							num:     2,
+							calls:   []callfunc{callList[i],callList[j]},
+							weights: []float64{-w,(1.0-w)},
+						})
+					}
+				}
+			}
+		*/
+
+
+		//bestSpread,bestSpreadExp := FindBestSpread(pdist,spreads)
+		/*
+			// Expected returns of all spreads
+			dx = 0.1
+			var SpreadsExpReturns []float64
+			for i := range spreads {
+				SpreadsExpReturns = append(SpreadsExpReturns,spreads[i].ExpectedReturn(pdist,dx))
+			}
+
+			// Find spread with highest Exp Return* (Later include risk)
+			var bestSpread spread = spreads[0]
+			var bestSpreadExp float64 = SpreadsExpReturns[0]
+			for i,spExp := range SpreadsExpReturns[1:] {
+				if spExp > bestSpreadExp {
+					bestSpread = spreads[i]
+					bestSpreadExp = spExp
+				}
+			}
+		*/
+
+		// make all spreads to splines
+		/*
+			var spreadSplines []my_spline
+			for _,s := range spreads {
+				spreadSplines = append(spreadSplines,s.ToSpline(0,max(pdist.x)))
+			}
+
+			// make best spread to spline
+			bestSpreadSpline := bestSpread.ToSpline(0,max(pdist.x))
+		*/
+
+		// make a .png for every spread
+		/*
+			err = os.Mkdir(path+folderName+"/spreads", 0755)
+			for i,s := range spreadSplines {
+				tmp,id = s.PrintMathematicaCode()
+				mathCode += tmp+"\n"
+				mathCode += "Export[\"" + folderName+"\\spreads" + "\\"+strconv.Itoa(i)+".png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+				content += mathCode
+			}
+		*/
+
+		/*
+			//make a .png for bestSpread
+			content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the spread %v has the highest expected return out of all spreads (2-50/50) available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, fmt.Sprint(bestSpread), bestSpreadExp, ticker, long.ExpectedReturn(pdist))
+			tmp,id = bestSpreadSpline.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName+"\\-bestSpread.png\",{msg1,"+fmt.Sprintf("Show[fctplot%v]",idPdist)+"," + fmt.Sprintf("Show[{s%v,long}]",id) + "}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+
+			fmt.Sprintf("Show[fctplot%v]",idPdist)
+		*/
+
+
+		/*
+			integralProbReturn := probReturn.IntegrateDUMB()
+			tmp,id = integralProbReturn.PrintMathematicaCode()
+			mathCode += tmp+"\n"
+			mathCode += "Export[\"" + folderName + "\\IntegralProbReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+			content += mathCode
+		*/
+
+
+
+		//FindSigmas
+		/*
+			levels := []float64{0,0.125,0.25,0.5,0.75,0.875,1}
+
+			cumSpline := pdist.IntegrateDUMB()
+			tmp, id = cumSpline.PrintMathematicaCode()
+			mathCodeSigma += tmp+"\n"
+			mathCodeSigma += fmt.Sprintf("s%v\n",id)
+			sigmas := pdist.FindSigmas(levels)
+
+			for i,s := range sigmas {
+				fmt.Println("expected return at ", levels[i]*100, "% : ", bestcall.At(s))
+			}
+
+		*/
+
+		/*
+			for risk metric, use %(0-100) where the investment is breakeven. For that, implement my_spline Multiply() to
+			multiply pdist and call and use NewtonRoot()
+		*/
+
+
+		a:=0.0;b:=1000.0;
+		fmt.Println(fmt.Sprintf("pdist.IntegralSpline(%v,%v)=",a,b),pdist.IntegralSpline(a,b))
+
+	}
+
+
+
+	WriteFile("sigmas.nb",mathCodeSigma,"/")
+
+
+
+
+	WriteFile("output.nb",content,"/tmp/"+live+"/"+promptName+"/")
 }
 
 
@@ -2308,10 +2319,10 @@ func call_v(x float64, call callfunc) float64{
 }
  */
 
-func (call callfunc) PrintMathematicaCode() string{
+func (call callfunc) PrintMathematicaCode(lr float64) string{
 	//fmt.Println("Mathematica Code to visualize call option value\n\n")
 	code := ""
-	code += fmt.Sprintln("call:=Plot[100*Max[-1,(x/(",call.cost/call.factor,")-",call.base/(call.cost/call.factor),"-1)],{x,0,500},ImageSize->Large, PlotRange->Automatic];")
+	code += fmt.Sprintln("call:=Plot[100*Max[-1,(x/(",call.cost/call.factor,")-",call.base/(call.cost/call.factor),"-1)],{x,0,",lr,"},ImageSize->Large, PlotRange->Automatic];")
 	code += fmt.Sprintln("Show[call]")
 	return code
 }
@@ -2516,6 +2527,263 @@ func MathematicaCodeZeroIntersection(callList []callfunc) string {
 
 // ------------------------------- general functions -------------------------------
 
+/*
+func LoadPromptJson(path string, filename string) (string, []string, map[string][]float64, map[string][]float64, []int, string){
+
+}
+ */
+
+func SavePromptJson(ticker string ,pdistDates []string, pdistX map[string][]float64, pdistY map[string][]float64, StrikeRange []int ,Contract_type string) {
+	data := map[string]interface{}{
+		"ticker":    ticker,
+		"pdistDates":   pdistDates,
+		"pdistX": pdistX,
+		"pdistY": pdistY,
+		"StrikeRange": StrikeRange,
+		"Contract_type": Contract_type,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		fmt.Printf("could not marshal json: %s\n", err)
+		return
+	}
+	jsonDataStr := fmt.Sprintf("%s\n",jsonData)
+	jsonDataStr = strings.Replace(jsonDataStr,",",",\n",-1)
+
+	currentTime := time.Now()
+	live := currentTime.Format("2006-01-02")
+	filename := "prompt2_"+ticker+" ("+live+").json"
+	path, err := os.Getwd()
+	check(err)
+	os.Mkdir(path+"\\prompts",0755)
+	pathExt := "\\prompts\\"
+
+	WriteFile(filename,jsonDataStr,pathExt)
+
+}
+
+func SavePromptJsonEasy(ticker string ,pdistDates []string, pdistX map[string][]float64, pdistY map[string][]float64, StrikeRange []int ,Contract_type string){
+
+	pdistDatesXY := make(map[string][][]float64,len(pdistDates))
+	for _,d := range pdistDates {
+		pdistDatesXY[d] = make([][]float64,len(pdistX[d]))
+		for i,_ := range pdistX[d] {
+			pdistDatesXY[d][i] = make([]float64,2)
+			pdistDatesXY[d][i][0] = pdistX[d][i]
+			pdistDatesXY[d][i][1] = pdistY[d][i]
+		}
+	}
+
+
+	data := map[string]interface{}{
+		"ticker":    ticker,
+		"pdistDatesXY":   pdistDatesXY,
+		"StrikeRange": StrikeRange,
+		"Contract_type": Contract_type,
+	}
+
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		fmt.Printf("could not marshal json: %s\n", err)
+		return
+	}
+	jsonDataStr := fmt.Sprintf("%s\n",jsonData)
+	jsonDataStr = strings.Replace(jsonDataStr,"],[","],\n[",-1)
+	jsonDataStr = strings.Replace(jsonDataStr,",[",",[\n",-1)
+	jsonDataStr = strings.Replace(jsonDataStr,"[[","[\n[",-1)
+	jsonDataStr = strings.Replace(jsonDataStr,"]]","]\n]",-1)
+	jsonDataStr = strings.Replace(jsonDataStr,",\"",",\n\"",-1)
+	jsonDataStr = strings.Replace(jsonDataStr,"{\"","{\n\"",-1)
+	jsonDataStr = strings.Replace(jsonDataStr,"}","\n}",-1)
+
+
+
+	currentTime := time.Now()
+	live := currentTime.Format("2006-01-02")
+	filename := "promptEasy_"+ticker+" ("+live+").json"
+	path, err := os.Getwd()
+	check(err)
+	os.Mkdir(path+"\\prompts",0755)
+	pathExt := "\\prompts\\"
+
+	WriteFile(filename,jsonDataStr,pathExt)
+
+}
+
+func SavePromptJsonOld(ticker string ,pdistDates []string, pdistX map[string][]float64, pdistY map[string][]float64, StrikeRange []int ,Contract_type string){
+
+	content := "ticker="+ticker+";\n"
+	/*
+	content += "[ticker={"+ticker+"};" + "pdistDates={"
+	for i,d := range pdistDates {
+		content += d
+		if i<len(pdistDates)-1{ content += ","}
+	}
+	content += ";"
+	 */
+
+	content += "pdistDatesXY={\n"
+	for _,d := range pdistDates {
+		content += "[\n" + d + ",\n{"
+		X := pdistX[d]
+		Y := pdistY[d]
+		for i,_ := range X {
+			content += fmt.Sprintf("(%.1f,%.1f)\n",X[i],Y[i])
+			if i<len(X)-1{content+=","}
+		}
+		content += "},\n"
+		content += "];\n"
+	}
+	content += "};\n"
+
+	content += "StrikeRange=["+fmt.Sprint(StrikeRange)+"];\n"
+	content += "ContractType=["+fmt.Sprintf(Contract_type)+"];\n"
+
+	/*
+	content += ";"
+
+	content += "pdistY={"
+	for i,d := range pdistDates {
+		content += "[" + d + ",{"
+		Y := pdistY[d]
+		for i,y := range Y {
+			content += fmt.Sprintf("%.2f",y)
+			if i<len(Y)-1{content+=","}
+		}
+		content += "}"
+		if i<len(pdistDates)-1{content+=","}
+	}
+	 */
+	 //tobecontinued
+
+	currentTime := time.Now()
+	live := currentTime.Format("2006-01-02")
+	filename := "prompt_"+ticker+" ("+live+").json"
+	path, err := os.Getwd()
+	check(err)
+	os.Mkdir(path+"\\prompts",0755)
+	pathExt := "\\prompts\\"
+
+	WriteFile(filename,content,pathExt)
+}
+
+func LoadPromptEasy(path string, filename string) (string, []string, map[string][]float64, map[string][]float64, []int, []string, string){
+
+	jsonFile, err := os.Open(path+filename)
+	check(err)
+
+	// read our opened jsonFile as a byte array.
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+
+	var result map[string]interface{}
+	json.Unmarshal(byteValue, &result)
+
+	ticker := result["ticker"].(string)
+
+	var DateRange []string
+	for _,d := range result["DateRange"].([]interface{}){
+		DateRange = append(DateRange,d.(string))
+	}
+
+
+	/* 		-- cast map[string][]interface to map[string][][]float64 --		 */
+	// Initialize an empty map with string keys and [][]float64 values
+	var pdistDatesXY = make(map[string][][]float64)
+	// Loop through data and cast each value to [][]float64
+	for k, v := range result["pdistDatesXY"].(map[string]interface{}) {
+		// Use type assertion to attempt to cast v to []interface{}
+		if outer, ok := v.([]interface{}); ok {
+			// Initialize a 2D float64 slice
+			twoD := make([][]float64, len(outer))
+			for i, inner := range outer {
+				// Use type assertion to attempt to cast inner to []interface{}
+				if innerCasted, ok := inner.([]interface{}); ok {
+					// Initialize a float64 slice
+					floats := make([]float64, len(innerCasted))
+					for j, val := range innerCasted {
+						// Use type assertion to cast val to float64
+						if floatVal, ok := val.(float64); ok {
+							floats[j] = floatVal
+						} else {
+							fmt.Printf("Inner value at index %d is not of type float64\n", j)
+						}
+					}
+					twoD[i] = floats
+				} else {
+					fmt.Printf("Value at index %d is not of type []interface{}\n", i)
+				}
+			}
+			pdistDatesXY[k] = twoD
+		} else {
+			fmt.Printf("Value for key '%s' is not of type []interface{}\n", k)
+		}
+	}
+	// Print resultMap
+	for k, v := range pdistDatesXY {
+		fmt.Printf("%s: %v\n", k, v)
+	}
+
+
+	/*
+	fmt.Printf("pdistDatesXY datatype: %T",result["pdistDatesXY"])
+	pdistDatesXYMap := result["pdistDatesXY"].(map[string]interface{})
+	var pdistDatesXY map[string][][]float64
+	for d,x := range pdistDatesXYMap {
+			for i, y := range x.([]interface{}){
+				pdistDatesXY[d] = make([][]float64,len(x.([]interface{})))
+				fmt.Printf("y type is %T\n",y)
+				fmt.Println("d=",d,"i=",i)
+				for j, z := range y.([]interface{}){
+					pdistDatesXY[d][i] = make([]float64,len(y.([]interface{})))
+					z = z.(float64)
+					fmt.Printf("z type is %T\n",z)
+					pdistDatesXY[d][i][j] = z.(float64)
+				}
+			}
+	}
+	//pdistDatesXY := pdistDatesXYMap.(map[string][][]float64)
+	 */
+
+	var StrikeRange = make([]int,2)
+	casted := result["StrikeRange"].([]interface{})
+	StrikeRange[0] = int(casted[0].(float64))
+	StrikeRange[1] = int(casted[1].(float64))
+
+	Contract_type := result["Contract_type"].(string)
+
+
+
+	fmt.Println(ticker)
+	fmt.Println(pdistDatesXY)
+	fmt.Println(StrikeRange)
+	fmt.Println(Contract_type)
+	fmt.Println(DateRange)
+
+	//Convert pdistDatesXY into pdistDates, pdistX, pdistY
+	var pdistDates = make ([]string,0)
+	var pdistX = make(map[string][]float64)
+	var pdistY = make(map[string][]float64)
+	for d, xy := range pdistDatesXY {
+		pdistDates = append(pdistDates,d)
+		pdistX[d] = make([]float64,0/*len(pdistDatesXY[d])*/)
+		pdistY[d] = make([]float64,0/*len(pdistDatesXY[d])*/)
+		for _, x := range xy {
+			pdistX[d] = append(pdistX[d],x[0])
+			pdistY[d] = append(pdistY[d],x[1])
+		}
+	}
+
+	fmt.Println("len(pdistDatesXY)=",len(pdistDatesXY))
+	fmt.Println("pdistDates: ",pdistDates, "len: ",len(pdistDates))
+	fmt.Println("pdistX: ",pdistX, "len[0]: ",len(pdistX[pdistDates[0]]))
+	fmt.Println("pdistY: ",pdistY, "len[0]: ",len(pdistY[pdistDates[0]]))
+
+	//os.Exit(1)
+
+	return ticker,pdistDates,pdistX,pdistY,StrikeRange,DateRange,Contract_type
+}
 
 func WriteFile(filename string, content string, pathExt string) {
 
@@ -2968,7 +3236,7 @@ func (A LGS) Print(){
 
 
 
-// ------------------------------- old spline specific functions -------------------------------
+// ------------------------------- old functions -------------------------------
 /*
 
 func (ns normalized_spline_old) Integral(a float64, b float64, precision float64) float64{
@@ -3043,6 +3311,29 @@ func (ns normalized_spline_old) ASCIIPlot(res []int){
 		fmt.Println(repeatstr("#", int(yi)+1 ))
 		//fmt.Println(xi,":",yi)
 	}
+}
+
+
+func loadJson(path string) string{
+
+	// Open the file for reading
+	file, err := os.Open(path)
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+	defer file.Close()
+
+	// Decode the JSON data from the file
+	var readStr string
+	if err := json.NewDecoder(file).Decode(&readStr); err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	// Return the decoded string
+	return fmt.Sprint(readStr)
+
 }
 
 */
