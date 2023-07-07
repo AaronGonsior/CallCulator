@@ -435,19 +435,14 @@ func main(){
 		fmt.Println(file.Name(), file.IsDir())
 	}
 	for _, file := range files {
-		//if file.IsDir() && allowSubDirs {}
+		//if file.IsDir() && allowSubDirs && file.Name != "inactive" {}
 		if !strings.Contains(file.Name(),"prompt_"){continue}
 		promptName := strings.Split(strings.Split(file.Name(),"prompt_")[1],".json")[0]
 		fmt.Println(promptName)
-		time.Sleep(5000)
 
 		run(promptName)
-
-
 	}
 	os.Exit(1)
-
-
 
 }
 
@@ -526,32 +521,20 @@ func run(promptName string){
 	//how many successive requests at most; -1 is Inf
 	nMax := -1
 
-	if update {
+	log := ""
+	var msg string
 
-		log := ""
-		var msg string
+	options, msg = opt.GetOptions(optreq,nMax)
+	log += msg
 
-		options, msg = opt.GetOptions(optreq,nMax)
-		log += msg
-
-		for _,opt := range options {
-			fmt.Println(opt.Print())
-		}
-
-		opt.WriteJson("log.json",log)
-		currentTime := time.Now()
-		live := currentTime.Format("2006-01-02")
-
-		os.Mkdir("options",0755)
-		os.Mkdir("options"+"\\"+ticker,0755)
-		os.Mkdir("options"+"\\"+ticker+"\\"+live,0755)
-		//os.Mkdir("options"+"\\"+ticker+"\\"+live+"\\",0755)
-		opt.WriteJson("options"+"\\"+ticker+"\\"+live+"\\"+"options.json",fmt.Sprint(options))
-		opt.WriteJson("options"+"\\"+ticker+"\\"+"options_latest.json",fmt.Sprint(options))
-
+	for _,opt := range options {
+		fmt.Println(opt.Print())
 	}
+	opt.WriteJson("log.json",log)
 
 	if !update{
+
+		//tbd: check how old options_latest.json is and decide whether to update or not
 
 		readStr := opt.LoadJson("options"+"\\"+ticker+"\\"+"options_latest.json")
 		readStr = strings.Replace(readStr,"} {","\n",-1)
@@ -561,6 +544,17 @@ func run(promptName string){
 
 		options = opt.JsonToOptions("options.json")
 		fmt.Println("loaded options: \n",options)
+	}
+
+	if update {
+
+		os.Mkdir("options",0755)
+		os.Mkdir("options"+"\\"+ticker,0755)
+		os.Mkdir("options"+"\\"+ticker+"\\"+live,0755)
+		//os.Mkdir("options"+"\\"+ticker+"\\"+live+"\\",0755)
+		opt.WriteJson("options"+"\\"+ticker+"\\"+live+"\\"+"options.json",fmt.Sprint(options))
+		opt.WriteJson("options"+"\\"+ticker+"\\"+"options_latest.json",fmt.Sprint(options))
+
 	}
 
 
@@ -574,6 +568,7 @@ func run(promptName string){
 	}
 	var addToAll []callfunc
 	addToAll = append(addToAll,long)
+	// together with put, also implement short including checking all functions if they can handle short-interested functions and data
 
 
 
@@ -651,16 +646,6 @@ func run(promptName string){
 
 
 	/*
-		//25Q1
-		x := []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
-		y := []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     }
-
-
-		//24Q2
-		x := []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
-		y := []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
-
-
 		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
 		s := NewSpline(splinetype,x,y)
 		ns := NewNormedSpline(s)
@@ -711,7 +696,7 @@ func run(promptName string){
 		mathCode = bestcall.PrintMathematicaCode(max(pdist.x))
 		fmt.Println(mathCode)
 
-		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all calls options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(pdist))
+		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all call options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(pdist))
 		content += mathCode
 		content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",idPdist) +", Show[call,long]}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
@@ -878,6 +863,30 @@ func run(promptName string){
 		mathCode += "Export[\"" + folderName + "\\pdistIntegrate.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 		content += mathCode
 		fmt.Println(" done.")
+
+		fmt.Print("pdistIntegralInverse...")
+		pdistIntegrateInverse := pdist.Integrate().Inversion()
+		tmp,id = pdistIntegrateInverse.PrintMathematicaCode()
+		mathCode += tmp+"\n"
+		mathCode += "Export[\"" + folderName + "\\pdistIntegrateInverse.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		content += mathCode
+		fmt.Println(" done.")
+
+		fmt.Print("Risk eval")
+		var riskY []float64
+		var ls []float64
+		dl := 0.1
+		for l:=0.0;l<=1.0;l+=dl {
+			ls = append(ls, l)
+			riskY = append(riskY, bestcall.At(pdistIntegrateInverse.At(l)) )
+		}
+		riskProfile := NewSpline(splinetype,ls,riskY)
+		tmp,id = riskProfile.PrintMathematicaCode()
+		mathCode += tmp+"\n"
+		mathCode += "Export[\"" + folderName + "\\riskProfileBestCall.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		content += mathCode
+		fmt.Println(" done.")
+
 
 		//risk evaluation
 		/*
@@ -2241,8 +2250,45 @@ func (ms my_spline) FindSigmas(levels []float64) []float64 {
 	return intersections
 }
 
+func getSplineCoeffsDegree (ms my_spline, splineNr int, deg int) float64 {
+	return ms.coeffs[(splineNr+1)*(ms.deg+1)-1-deg]
+}
 
-
+/*
+! only up to degree 4 currently but extendable (see pdf)
+ */
+func (ms my_spline) Inversion() my_spline {
+	var coeffs []float64
+	for i:=0; i < len(ms.x)-1 ; i++ {
+		for d := ms.deg ; d >= 0 ; d-- {
+			switch d {
+			//as in coeffs, the degree per polynomial is decreasing for increasing index, go one polynomial further and subtract d
+			case 0: coeffs = append(coeffs, //A_0=a_0
+				getSplineCoeffsDegree(ms,i,0))
+			case 1: coeffs = append(coeffs,//A_1=a_1^-1
+				math.Pow(getSplineCoeffsDegree(ms,i,1),-1)	)
+			case 2: coeffs = append(coeffs,//A_2=-a_1^-3a_2
+				-math.Pow(getSplineCoeffsDegree(ms,i,1),-3)*getSplineCoeffsDegree(ms,i,2))
+			case 3: coeffs = append(coeffs,//A_3=a_1^-5(2a_2^2-a_1a_3)
+				math.Pow(getSplineCoeffsDegree(ms,i,1),-5)*(2*math.Pow(getSplineCoeffsDegree(ms,i,2),2)-getSplineCoeffsDegree(ms,i,1)*getSplineCoeffsDegree(ms,i,3))	)
+			case 4: coeffs = append(coeffs,//A_4=a_1^-7(5a_1a_2a_3-a_1^2a_4-5a_2^3)
+				math.Pow(getSplineCoeffsDegree(ms,i,1),-7)*(
+					5*getSplineCoeffsDegree(ms,i,1)*getSplineCoeffsDegree(ms,i,2)*getSplineCoeffsDegree(ms,i,3)-
+					math.Pow(getSplineCoeffsDegree(ms,i,1),2)*getSplineCoeffsDegree(ms,i,4)-5*math.Pow(getSplineCoeffsDegree(ms,i,2),3))	)
+			}
+		}
+	}
+	inversion := my_spline{
+		deg:        ms.deg,
+		splineType: ms.splineType,
+		x:          ms.y,
+		y:          ms.x,
+		coeffs:     coeffs,
+		unique:     false,
+	}
+	fmt.Println("inversion: deg=",inversion.deg,", len(x)=",len(inversion.x),", len(y)=", len(inversion.y),", len(coeffs)=",len(coeffs))
+	return inversion
+}
 
 
 // ------------------------------- call specific functions -------------------------------
