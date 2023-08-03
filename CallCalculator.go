@@ -558,8 +558,6 @@ func run(promptName string){
 	}
 
 
-
-
 	long := callfunc{
 		base:   0,
 		cost:   share_price,
@@ -855,6 +853,16 @@ func run(promptName string){
 		mathCode += "Export[\"" + folderName + "\\probReturnIntegral.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 		content += mathCode
 		fmt.Println(" done.")
+
+		root := probReturnIntegral.NewtonRoots(0,0.005,10)
+		fmt.Println("probReturnIntrgral root: ",root)
+
+
+		negRange,posRange := probReturnIntegral.PosNegRange(0.0,0.005,10)
+		fmt.Println("probReturnIntrgral negRange: ",negRange)
+		fmt.Println("probReturnIntrgral posRange: ",posRange)
+		os.Exit(0)
+
 
 		fmt.Print("pdistIntegral...")
 		pdistIntegrate := pdist.Integrate()
@@ -1579,6 +1587,7 @@ func (ms my_spline) IntegralSpline(a,b float64) float64 {
 }
 
 //has some bug especially regarding coeffs
+//unionizes two splines to have the same x intervals, appropriately adjust y arrays as well as the coefficients in both splines and returns the two, now compatible splines, compatible for e.g. addition, multiplication, etc.
 func UnionXYCC (ms1, ms2 my_spline) (my_spline , my_spline) {
 
 	debug := false
@@ -2183,26 +2192,7 @@ func (ms my_spline) Intersections(y float64) []float64 {
 }
 
 
-func (ms my_spline) NewtonRoots (y float64, tol float64, n int) []float64 {
-	debug := true
-	span := ms.x[0]-ms.x[len(ms.x)-1]
-	dx := span / float64(n)
-	var intersections []float64
-	for x := ms.x[0] ; x < ms.x[len(ms.x)-1] ; x += dx {
-		root,err := ms.NewtonRoot(x,y,tol)
-		if err != nil {continue}
-		if debug {
-			fmt.Println("NewtonRoots: root:",root)
-		}
-		if !containsFloat(intersections,root,tol){
-			intersections = append(intersections,root)
-		}
-	}
-	return intersections
-}
-
 //For degrees <=3, should be replaced by pq or cubic root formula
-//also do for result []float64
 //finds roots (y=0) of ms, starting at xo with a tolerance of 0<tol. For other y's it doesn't find roots but where ms is y.
 //implement Derive() and calculate it once instead of using D() multiple times
 func (ms my_spline) NewtonRoot(x0 float64, y float64, tol float64) (float64,error) {
@@ -2210,21 +2200,75 @@ func (ms my_spline) NewtonRoot(x0 float64, y float64, tol float64) (float64,erro
 	derivative := ms.Derive()
 	if debug{
 		fmt.Println("calculated derivative.")
+		fmt.Println("at xn=",x0," the derivitive is ",derivative.At(x0))
 	}
 	xn := x0
 	skip := 100
 	for math.Abs(y-ms.At(xn)) > tol{
 		skip--
-		if skip < 0 {return 0,fmt.Errorf("newton couldn't find root")}
+		if skip < 0 || xn > max(ms.x) || xn < min (ms.x) {return 0,fmt.Errorf("newton couldn't find root")}
 		//fmt.Println("old xn: ",xn," , old yn: ", ms.At(xn), " , D(xn)=",ms.D(xn))
+
 		xn = math.Min(max(ms.x),math.Max(min(ms.x),		xn+(y-ms.At(xn))/derivative.At(xn)		))
+
 		if debug{
 			fmt.Println(xn,":",ms.At(xn) , " , difference to ",y," is ",ms.At(xn)-y)
 		}
-		time.Sleep(1)
+		//time.Sleep(1)
 	}
 	return xn,nil
 }
+
+// divide range into n pieces, start NewtonRoot on each and collect all roots, gathering with tolerance tol
+func (ms my_spline) NewtonRoots (y float64, tol float64, n int) []float64 {
+	tol2 := 0.01
+	debug := true
+	span := ms.x[len(ms.x)-1]-ms.x[0]
+	dx := span / float64(n)
+	var intersections []float64
+	for x := ms.x[0] ; x < ms.x[len(ms.x)-1] ; x += dx {
+		root,err := ms.NewtonRoot(x,y,tol)
+		if err != nil {
+			fmt.Println("error: ",err)
+			fmt.Println("continue with next starting point")
+			continue
+		}
+		if debug {
+			fmt.Println("NewtonRoots: root:",root)
+		}
+		if !containsFloat(intersections,root,tol2*span){
+			intersections = append(intersections,root)
+		}
+	}
+	return intersections
+}
+
+
+// returns regions where ms is less than y and where ms is greater than y
+func (ms my_spline) PosNegRange (y float64, tol float64, n int) ([][]float64 , [][]float64) {
+	roots := ms.NewtonRoots(y,tol,n)
+	var neg [][]float64
+	var pos [][]float64
+	if( ms.At((min(ms.x)+roots[0])/2) < y ) {
+		neg = append(neg, []float64{min(ms.x),roots[0]})
+	} else {
+		pos = append(pos, []float64{min(ms.x),roots[0]})
+	}
+	for i := range roots[0:len(roots)-2] {
+		if( ms.At((roots[i+1]-roots[i])/2) < y ) {
+			neg = append(neg, []float64{roots[i],roots[i+1]})
+		} else {
+			pos = append(pos, []float64{roots[i],roots[i+1]})
+		}
+	}
+	if( ms.At((max(ms.x)+roots[len(roots)-1])/2) < y ) {
+		neg = append(neg, []float64{min(ms.x),roots[0]})
+	} else {
+		pos = append(pos, []float64{min(ms.x),roots[0]})
+	}
+	return neg,pos
+}
+
 
 //implement Newton-method first
 func (ms my_spline) FindSigmas(levels []float64) []float64 {
@@ -2985,7 +3029,6 @@ func Integral(f []float64, dx float64) float64{
 	}
 	return area
 }
-
 
 func MVProduct(M [][]float64, V []float64) []float64{
 	if len(M)<1{
