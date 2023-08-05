@@ -443,6 +443,10 @@ func main(){
 		fmt.Println(testFunc.PrintMathematicaCode())
 		roots := testFunc.NewtonRoots(0,0.01*((max(ns.y)+min(ns.y))/2),10)
 		fmt.Println("roots: ",roots)
+
+		negRange,posRange := testFunc.PosNegRange(0,0.01,100)
+		fmt.Println("probReturn negRange: ",negRange)
+		fmt.Println("probReturn posRange: ",posRange)
 		os.Exit(1)
 	}
 
@@ -892,11 +896,13 @@ func run(promptName string){
 		root := probReturnIntegral.NewtonRoots(0,0.01,100)
 		fmt.Println("probReturnIntrgral root: ",root)
 
-
+		//testing only
+		/*
 		negRange,posRange := probReturn.PosNegRange(0.0,0.01,100)
 		fmt.Println("probReturn negRange: ",negRange)
 		fmt.Println("probReturn posRange: ",posRange)
 		os.Exit(0)
+		 */
 
 
 		fmt.Print("pdistIntegral...")
@@ -933,7 +939,6 @@ func run(promptName string){
 
 		//risk evaluation
 		/*
-			fmt.Print("riskSpline...")
 			eps := 0.1
 			yMin := min(probReturnIntegral.y) +eps
 			yMax := max(probReturnIntegral.y) -eps
@@ -952,6 +957,30 @@ func run(promptName string){
 			content += mathCode
 			fmt.Println(" done.")
 		*/
+
+		fmt.Print("riskSpline...")
+		var ys []float64
+		var probs []float64
+
+		n := 20
+		tolXPerc := 0.01
+		dy := (max(bestCallSpline.y)-min(bestCallSpline.y))/float64(n)
+		for y := min(bestCallSpline.y) ; y < max(bestCallSpline.y) ; y += dy{
+			ys = append(ys, y)
+			neg,_ := bestCallSpline.PosNegRange(y,tolXPerc,n)
+			prob_tmp := 0.0
+			for i := range neg {
+				prob_tmp += pdist.IntegralSpline(neg[i][0],neg[i][1])
+			}
+			probs = append(probs,prob_tmp)
+		}
+		splinetype = []string{"3","2","=Sl","=Cv","EQSl"}
+		riskSpline := NewSpline(splinetype,probs,ys)
+		tmp,id = riskSpline.PrintMathematicaCode()
+		mathCode += tmp+"\n"
+		mathCode += "Export[\"" + folderName + "\\riskSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		content += mathCode
+		fmt.Println(tmp)
 
 
 
@@ -2231,7 +2260,7 @@ func (ms my_spline) Intersections(y float64) []float64 {
 //finds roots (y=0) of ms, starting at xo with a tolerance of 0<tol. For other y's it doesn't find roots but where ms is y.
 //implement Derive() and calculate it once instead of using D() multiple times
 func (ms my_spline) NewtonRoot(x0 float64, y float64, tolYPerc float64) (float64,error) {
-	debug := true
+	debug := false
 	derivative := ms.Derive()
 	if debug{
 		fmt.Println("calculated derivative.")
@@ -2279,10 +2308,30 @@ func (ms my_spline) NewtonRoots (y float64, tolYPerc float64, n int) []float64 {
 	return intersections
 }
 
+func DoubleFloatUnionTol(ar [][]float64, tol float64) [][]float64 {
+	var result [][]float64
+	//result = make([][]float64,0)
+	for i := 0 ; i < len(ar)-1 ; i++{
+		for j := range result {
+			if ar[i][0]-result[j][0] < tol && ar[i][1]-result[j][1] < tol {
+				fmt.Println("ar[",i,"][0]=",ar[i][0], " , result [",j,"][0]=",result[j][0] , " (dif: ",math.Abs(ar[i][0]-result[j][0]),"<tol=",tol , " AND ar[",i,"][1]=",ar[i][1], " ,  result [",j,"][1]=",result[j][1]," , (dif: ",math.Abs(ar[i][0]-result[j][0]),"<tol=",tol,")")
+				i++
+				break
+			}
+		}
+		fmt.Println("adding in DoubleFloatUnionTol")
+		result = append(result, ar[i])
+	}
+	return result
+}
+
 
 // returns regions where ms is less than y and where ms is greater than y
 func (ms my_spline) PosNegRange (y float64, tolYPerc float64, n int) ([][]float64 , [][]float64) {
 	debug := true
+	//tolXPerc := 0.01
+	//span := max(ms.x)-min(ms.x)
+	//tolX := tolXPerc*span
 	roots := ms.NewtonRoots(y,tolYPerc,n)
 	var neg [][]float64
 	var pos [][]float64
@@ -2309,14 +2358,41 @@ func (ms my_spline) PosNegRange (y float64, tolYPerc float64, n int) ([][]float6
 	if( ms.At((max(ms.x)+roots[len(roots)-1])/2 ) < y ) {
 		if debug{ fmt.Println("ms.At((max(ms.x)+roots[len(roots)-1])/2)=",ms.At((max(ms.x)+roots[len(roots)-1])/2) ,"<",y,"." +
 			"Therefore [roots[len(roots)-1],max(ms.x)]=[",roots[len(roots)-1],",",max(ms.x),"] is added to neg.")}
-		neg = append(neg, []float64{min(ms.x),roots[0]})
+		neg = append(neg, []float64{roots[len(roots)-1],max(ms.x)})
 	} else {
 		if debug{ fmt.Println("ms.At((max(ms.x)+roots[len(roots)-1])/2)=",ms.At((max(ms.x)+roots[len(roots)-1])/2) ,">",y,"." +
 			"Therefore [roots[len(roots)-1],max(ms.x)]=[",roots[len(roots)-1],",",max(ms.x),"] is added to pos.")}
-		pos = append(pos, []float64{min(ms.x),roots[0]})
+		pos = append(pos, []float64{roots[len(roots)-1],max(ms.x)})
 	}
 
+	//var neg_tmp,pos_tmp [][]float64
+
+	//remove duplicates
+	/*
+	for i := 0 ; i < len(neg)-1 ; i++{
+		for j := 0 ; j < i ; j++ {
+			if neg[i][0]-neg[j][0]<tolX && neg[i][1]-neg[j][1]<tolX {
+				i++
+				break
+			} else {
+				neg_tmp = append(neg_tmp, neg[i])
+			}
+		}
+	}
+	neg = neg_tmp
+	 */
+
+	/*
+	fmt.Println("neg before union: ",neg)
+	fmt.Println("pos before union: ",pos)
+	neg = DoubleFloatUnionTol(neg,tolX)
+	pos = DoubleFloatUnionTol(pos,tolX)
+	fmt.Println("neg after union: ",neg)
+	fmt.Println("pos after union: ",pos)
+	 */
+
 	//remove small interval
+	/*
 	tolX := 0.01*(max(ms.x)+min(ms.x))/2
 	var neg_tmp,pos_tmp [][]float64
 	for i := range neg {
@@ -2333,6 +2409,7 @@ func (ms my_spline) PosNegRange (y float64, tolYPerc float64, n int) ([][]float6
 	}
 	neg = neg_tmp
 	pos = pos_tmp
+	 */
 
 	//merge intervals with tolerance
 	/*
