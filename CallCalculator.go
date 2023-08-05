@@ -82,6 +82,7 @@ func main(){
 	apitesting := false
 	calltesting := false
 	splinetesting := false
+	newtontesting := false
 
 	if riskAndTimePlottesting {
 
@@ -424,6 +425,27 @@ func main(){
 
 	}
 
+	if newtontesting{
+		path, err := os.Getwd()
+		check(err)
+		promptName := "newtontesting"
+		_,pdistDates,pdistX,pdistY,_,_,_ := LoadPromptEasy(path+"\\prompts\\","prompt_"+promptName+".json")
+
+		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
+		var pdistSplines map[string]my_spline
+		pdistSplines = make(map[string]my_spline,0)
+		d:=pdistDates[0]
+		s := NewSpline(splinetype,pdistX[d],pdistY[d])
+		ns := NewNormedSpline(s)
+		pdistSplines[d] = ns
+		constMinus := constSpline((max(ns.y)+min(ns.y))/2,[]float64{min(ns.x),max(ns.x)})
+		testFunc := pdistSplines[d].Subtract(constMinus)
+		fmt.Println(testFunc.PrintMathematicaCode())
+		roots := testFunc.NewtonRoots(0,0.01*((max(ns.y)+min(ns.y))/2),10)
+		fmt.Println("roots: ",roots)
+		os.Exit(1)
+	}
+
 
 	path, err := os.Getwd()
 	check(err)
@@ -446,8 +468,19 @@ func main(){
 
 }
 
+func constSpline(c float64, xrange []float64) my_spline{
+	return my_spline{
+		deg:        0,
+		splineType: nil,
+		x:          []float64{xrange[0],xrange[1]},
+		y:          []float64{c,c},
+		coeffs:     []float64{c},
+		unique:     false,
+	}
+}
+
 func run(promptName string){
-	update := true
+	update := false
 
 	path, err := os.Getwd()
 	check(err)
@@ -518,19 +551,7 @@ func run(promptName string){
 	fmt.Println("share_price(",ticker,"): ",share_price)
 
 
-	//how many successive requests at most; -1 is Inf
-	nMax := -1
 
-	log := ""
-	var msg string
-
-	options, msg = opt.GetOptions(optreq,nMax)
-	log += msg
-
-	for _,opt := range options {
-		fmt.Println(opt.Print())
-	}
-	opt.WriteJson("log.json",log)
 
 	if !update{
 
@@ -547,6 +568,20 @@ func run(promptName string){
 	}
 
 	if update {
+
+		//how many successive requests at most; -1 is Inf
+		nMax := -1
+
+		log := ""
+		var msg string
+
+		options, msg = opt.GetOptions(optreq,nMax)
+		log += msg
+
+		for _,opt := range options {
+			fmt.Println(opt.Print())
+		}
+		opt.WriteJson("log.json",log)
 
 		os.Mkdir("options",0755)
 		os.Mkdir("options"+"\\"+ticker,0755)
@@ -854,13 +889,13 @@ func run(promptName string){
 		content += mathCode
 		fmt.Println(" done.")
 
-		root := probReturnIntegral.NewtonRoots(0,0.005,10)
+		root := probReturnIntegral.NewtonRoots(0,0.01,100)
 		fmt.Println("probReturnIntrgral root: ",root)
 
 
-		negRange,posRange := probReturnIntegral.PosNegRange(0.0,0.005,10)
-		fmt.Println("probReturnIntrgral negRange: ",negRange)
-		fmt.Println("probReturnIntrgral posRange: ",posRange)
+		negRange,posRange := probReturn.PosNegRange(0.0,0.01,100)
+		fmt.Println("probReturn negRange: ",negRange)
+		fmt.Println("probReturn posRange: ",posRange)
 		os.Exit(0)
 
 
@@ -2195,7 +2230,7 @@ func (ms my_spline) Intersections(y float64) []float64 {
 //For degrees <=3, should be replaced by pq or cubic root formula
 //finds roots (y=0) of ms, starting at xo with a tolerance of 0<tol. For other y's it doesn't find roots but where ms is y.
 //implement Derive() and calculate it once instead of using D() multiple times
-func (ms my_spline) NewtonRoot(x0 float64, y float64, tol float64) (float64,error) {
+func (ms my_spline) NewtonRoot(x0 float64, y float64, tolYPerc float64) (float64,error) {
 	debug := true
 	derivative := ms.Derive()
 	if debug{
@@ -2203,13 +2238,13 @@ func (ms my_spline) NewtonRoot(x0 float64, y float64, tol float64) (float64,erro
 		fmt.Println("at xn=",x0," the derivitive is ",derivative.At(x0))
 	}
 	xn := x0
-	skip := 100
-	for math.Abs(y-ms.At(xn)) > tol{
+	skip := 1000
+	for math.Abs(y-ms.At(xn)) > tolYPerc*(max(ms.y)-min(ms.y)){
 		skip--
-		if skip < 0 || xn > max(ms.x) || xn < min (ms.x) {return 0,fmt.Errorf("newton couldn't find root")}
+		if skip == 0 || xn > max(ms.x) || xn < min (ms.x) {return 0,fmt.Errorf("newton couldn't find root")}
 		//fmt.Println("old xn: ",xn," , old yn: ", ms.At(xn), " , D(xn)=",ms.D(xn))
 
-		xn = math.Min(max(ms.x),math.Max(min(ms.x),		xn+(y-ms.At(xn))/derivative.At(xn)		))
+		xn = math.Min(max(ms.x),math.Max(min(ms.x),  xn+(y-ms.At(xn))/derivative.At(xn)  ))
 
 		if debug{
 			fmt.Println(xn,":",ms.At(xn) , " , difference to ",y," is ",ms.At(xn)-y)
@@ -2220,23 +2255,24 @@ func (ms my_spline) NewtonRoot(x0 float64, y float64, tol float64) (float64,erro
 }
 
 // divide range into n pieces, start NewtonRoot on each and collect all roots, gathering with tolerance tol
-func (ms my_spline) NewtonRoots (y float64, tol float64, n int) []float64 {
-	tol2 := 0.01
+func (ms my_spline) NewtonRoots (y float64, tolYPerc float64, n int) []float64 {
 	debug := true
+	tolX := 0.01
 	span := ms.x[len(ms.x)-1]-ms.x[0]
 	dx := span / float64(n)
 	var intersections []float64
 	for x := ms.x[0] ; x < ms.x[len(ms.x)-1] ; x += dx {
-		root,err := ms.NewtonRoot(x,y,tol)
+		root,err := ms.NewtonRoot(x,y,tolYPerc)
 		if err != nil {
 			fmt.Println("error: ",err)
 			fmt.Println("continue with next starting point")
 			continue
 		}
-		if debug {
-			fmt.Println("NewtonRoots: root:",root)
-		}
-		if !containsFloat(intersections,root,tol2*span){
+		if !containsFloat(intersections,root,tolX*span){
+			if debug {
+				fmt.Println("NewtonRoots: root:",root," since ms.At(root) = ",ms.At(root)," ~= y = ",y, "." +
+					"\nThe abs. val. of the difference is ",math.Abs(ms.At(root)-y)," < ",tolYPerc*(max(ms.y)-min(ms.y)))
+			}
 			intersections = append(intersections,root)
 		}
 	}
@@ -2245,27 +2281,66 @@ func (ms my_spline) NewtonRoots (y float64, tol float64, n int) []float64 {
 
 
 // returns regions where ms is less than y and where ms is greater than y
-func (ms my_spline) PosNegRange (y float64, tol float64, n int) ([][]float64 , [][]float64) {
-	roots := ms.NewtonRoots(y,tol,n)
+func (ms my_spline) PosNegRange (y float64, tolYPerc float64, n int) ([][]float64 , [][]float64) {
+	debug := true
+	roots := ms.NewtonRoots(y,tolYPerc,n)
 	var neg [][]float64
 	var pos [][]float64
 	if( ms.At((min(ms.x)+roots[0])/2) < y ) {
+		if debug{ fmt.Println("ms.At((min(ms.x)+roots[0])/2)=",ms.At((min(ms.x)+roots[0])/2) ,"<y=",y,"." +
+			"Therefore [min(ms.x),roots[0]]=[",min(ms.x),",",roots[0],"] is added to neg.")}
 		neg = append(neg, []float64{min(ms.x),roots[0]})
 	} else {
+		if debug{ fmt.Println("ms.At((min(ms.x)+roots[0])/2)=",ms.At((min(ms.x)+roots[0])/2) ,">y=",y,"." +
+			"Therefore [min(ms.x),roots[0]]=[",min(ms.x),",",roots[0],"] is added to pos.")}
 		pos = append(pos, []float64{min(ms.x),roots[0]})
 	}
-	for i := range roots[0:len(roots)-2] {
-		if( ms.At((roots[i+1]-roots[i])/2) < y ) {
+	for i := range roots[0:len(roots)-1] {
+		if ms.At((roots[i+1]+roots[i])/2 ) < y  {
+			if debug{ fmt.Println("For i=",i," ms.At((roots[i+1]+roots[i])/2)=",ms.At((roots[i+1]+roots[i])/2) ,"<",y,"." +
+				"Therefore [roots[i+1],roots[i]]=[",roots[i],",",roots[i+1],"] is added to neg.")}
 			neg = append(neg, []float64{roots[i],roots[i+1]})
 		} else {
+			if debug{ fmt.Println("For i=",i," ms.At((roots[i+1]+roots[i])/2)=",ms.At((roots[i+1]+roots[i])/2) ,">",y,"." +
+				"Therefore [roots[i+1],roots[i]]=[",roots[i],",",roots[i+1],"] is added to pos.")}
 			pos = append(pos, []float64{roots[i],roots[i+1]})
 		}
 	}
-	if( ms.At((max(ms.x)+roots[len(roots)-1])/2) < y ) {
+	if( ms.At((max(ms.x)+roots[len(roots)-1])/2 ) < y ) {
+		if debug{ fmt.Println("ms.At((max(ms.x)+roots[len(roots)-1])/2)=",ms.At((max(ms.x)+roots[len(roots)-1])/2) ,"<",y,"." +
+			"Therefore [roots[len(roots)-1],max(ms.x)]=[",roots[len(roots)-1],",",max(ms.x),"] is added to neg.")}
 		neg = append(neg, []float64{min(ms.x),roots[0]})
 	} else {
+		if debug{ fmt.Println("ms.At((max(ms.x)+roots[len(roots)-1])/2)=",ms.At((max(ms.x)+roots[len(roots)-1])/2) ,">",y,"." +
+			"Therefore [roots[len(roots)-1],max(ms.x)]=[",roots[len(roots)-1],",",max(ms.x),"] is added to pos.")}
 		pos = append(pos, []float64{min(ms.x),roots[0]})
 	}
+
+	//remove small interval
+	tolX := 0.01*(max(ms.x)+min(ms.x))/2
+	var neg_tmp,pos_tmp [][]float64
+	for i := range neg {
+		if math.Abs(neg[i][0]-neg[i][1]) < tolX{
+			continue
+		}
+		neg_tmp = append(neg_tmp,neg[i])
+	}
+	for i := range pos {
+		if math.Abs(pos[i][0]-pos[i][1]) < tolX{
+			continue
+		}
+		pos_tmp = append(neg_tmp,pos[i])
+	}
+	neg = neg_tmp
+	pos = pos_tmp
+
+	//merge intervals with tolerance
+	/*
+	for i := range neg {
+
+	}
+	 */
+
 	return neg,pos
 }
 
