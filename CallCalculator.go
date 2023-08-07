@@ -913,6 +913,7 @@ func run(promptName string){
 		content += mathCode
 		fmt.Println(" done.")
 
+		/*
 		fmt.Print("pdistIntegralInverse...")
 		pdistIntegrateInverse := pdist.Integrate().Inversion()
 		tmp,id = pdistIntegrateInverse.PrintMathematicaCode()
@@ -920,7 +921,9 @@ func run(promptName string){
 		mathCode += "Export[\"" + folderName + "\\pdistIntegrateInverse.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 		content += mathCode
 		fmt.Println(" done.")
+		 */
 
+		/*
 		fmt.Print("Risk eval")
 		var riskY []float64
 		var ls []float64
@@ -935,7 +938,7 @@ func run(promptName string){
 		mathCode += "Export[\"" + folderName + "\\riskProfileBestCall.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 		content += mathCode
 		fmt.Println(" done.")
-
+		 */
 
 		//risk evaluation
 		/*
@@ -958,27 +961,57 @@ func run(promptName string){
 			fmt.Println(" done.")
 		*/
 
-		fmt.Print("riskSpline...")
+		fmt.Println("riskSpline...")
 		var ys []float64
 		var probs []float64
 
-		n := 20
-		tolXPerc := 0.01
+		n := 10
+		tolYPerc := 0.0001
+		var probsMap map[float64]float64
+		probsMap = make(map[float64]float64)
 		dy := (max(bestCallSpline.y)-min(bestCallSpline.y))/float64(n)
-		for y := min(bestCallSpline.y) ; y < max(bestCallSpline.y) ; y += dy{
+		for y := min(bestCallSpline.y) ; y <= max(bestCallSpline.y) ; y += dy{
 			ys = append(ys, y)
-			neg,_ := bestCallSpline.PosNegRange(y,tolXPerc,n)
+			neg,_ := bestCallSpline.PosNegRange(y,tolYPerc,2*n)
 			prob_tmp := 0.0
 			for i := range neg {
 				prob_tmp += pdist.IntegralSpline(neg[i][0],neg[i][1])
 			}
 			probs = append(probs,prob_tmp)
+			probsMap[y] = prob_tmp
 		}
-		splinetype = []string{"3","2","=Sl","=Cv","EQSl"}
-		riskSpline := NewSpline(splinetype,probs,ys)
+
+		//sort probs and accordingly change ys
+		//ideally probs should already be sorted
+		/*
+		idx := sortAndReturnIdxsFloat64(probs)
+		var ys_tmp []float64
+		for i := range ys {
+			ys_tmp = append(ys_tmp,ys[idx[i]])
+		}
+		ys = ys_tmp
+		 */
+
+		sortAndReturnIdxsFloat64(ys)
+
+
+		fmt.Println("(probs,ys):")
+		var probs2 []float64
+		probs2 = make([]float64,len(ys))
+		for i := range probs {
+			fmt.Println("(",probsMap[ys[i]],",",ys[i],")")
+			probs2[i] = probsMap[ys[i]]
+		}
+
+		//fmt.Println("probs: ",probs)
+		//fmt.Println("ys: ",ys)
+
+		//splinetype = []string{"3","2","=Sl","=Cv","E0Sl"}
+		splinetype = []string{"1","2"}
+		riskSpline := NewSpline(splinetype,probs2,ys)
 		tmp,id = riskSpline.PrintMathematicaCode()
 		mathCode += tmp+"\n"
-		mathCode += "Export[\"" + folderName + "\\riskSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		mathCode += "Export[\"" + folderName + "\\riskSplineBestCall.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 		content += mathCode
 		fmt.Println(tmp)
 
@@ -1250,12 +1283,14 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	}
 
 	//set curvature vectors
+	//where is the 3 coming from? it cannot be deg bc it's deg-3, right?! Use var oldthree and check.
+	oldthree := deg-1
 	x_curv := make([][]float64,len(x))
 	for i:=0 ; i < len(x_curv) ; i++ {
 		x_curv[i] = make([]float64,deg)
 		for j:=0 ; j < len(x_curv[0])-2 ; j++ {
 			//fmt.Println(factorial(3-j)/factorial(deg-3-j),"xi^",deg-3-j)
-			x_curv[i][j] = float64(factorial(3-j)/factorial(deg-3-j))*math.Pow(x[i],float64(deg-3-j))
+			x_curv[i][j] = float64(factorial(oldthree-j)/factorial(deg-oldthree-j))*math.Pow(x[i],float64(deg-oldthree-j))
 		}
 		x_curv[i][len(x_curv[0])-1] = 0
 	}
@@ -1279,14 +1314,14 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	//x_var left
 	for i := 0 ; i < len(x_var)-1 ; i++ {
 		//fmt.Println("fct val cond. left")
-		M.SetRow(cur,x_var[i],4*i,y[i])
+		M.SetRow(cur,x_var[i],deg*i,y[i])
 		cur++
 	}
 
 	//x_var right
 	for i := 0 ; i < len(x_var)-1 ; i++ {
 		//fmt.Println("fct val cond. right")
-		M.SetRow(cur,x_var[i+1],4*i,y[i+1])
+		M.SetRow(cur,x_var[i+1],deg*i,y[i+1])
 		cur++
 	}
 
@@ -1296,7 +1331,7 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 			//fmt.Println("=Sl")
 			row := floatlist_cat(x_slope[i+1],floatlist_negation_compwise(x_slope[i+1]))
 			//fmt.Println(row)
-			M.SetRow(cur,row,4*i,0)
+			M.SetRow(cur,row,deg*i,0)
 			cur++
 		}
 	}
@@ -1305,7 +1340,7 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	if contains(constraints,"0Sl"){
 		for i := 0 ; i < len(x_slope)-2 ; i++ {
 			//fmt.Println("0Sl")
-			M.SetRow(cur,x_slope[i],4*i,0)
+			M.SetRow(cur,x_slope[i],deg*i,0)
 			cur++
 		}
 	}
@@ -1316,7 +1351,7 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 			//fmt.Println("=Cv")
 			row := floatlist_cat(x_curv[i],floatlist_negation_compwise(x_curv[i]))
 			//fmt.Println(row)
-			M.SetRow(cur,row,4*(i-1),0)
+			M.SetRow(cur,row,deg*(i-1),0)
 			cur++
 		}
 	}
@@ -1327,7 +1362,7 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 			//fmt.Println("0Cv")
 			//row := floatlist_cat(x_curv[i],floatlist_negation_compwise(x_curv[i]))
 			//M.AddRow(cur,row,4*(i-1),0)
-			M.SetRow(cur,x_curv[i],4*(i-1),0)
+			M.SetRow(cur,x_curv[i],deg*(i-1),0)
 			cur++
 		}
 	}
@@ -1336,10 +1371,10 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	if contains(constraints,"E0Sl") {
 		//fmt.Println("E0Sl")
 		//first
-		M.SetRow(cur,x_slope[0],4*0,0)
+		M.SetRow(cur,x_slope[0],deg*0,0)
 		cur++
 		//last
-		M.SetRow(cur,x_slope[len(x_slope)-1],4*(len(x_slope)-2),0)
+		M.SetRow(cur,x_slope[len(x_slope)-1],deg*(len(x_slope)-2),0)
 		cur++
 	}
 
@@ -1347,10 +1382,10 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	if contains(constraints,"E0Cv"){
 		//fmt.Println("E0Cv")
 		//first
-		M.SetRow(cur,x_curv[0],4*(len(x_curv)-2),0)
+		M.SetRow(cur,x_curv[0],deg*(len(x_curv)-2),0)
 		cur++
 		//last
-		M.SetRow(cur,x_curv[len(x_curv)-1],4*(len(x_curv)-2),0)
+		M.SetRow(cur,x_curv[len(x_curv)-1],deg*(len(x_curv)-2),0)
 		cur++
 	}
 
@@ -1358,10 +1393,10 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	if contains(constraints,"EQSl") {
 		//fmt.Println("EQSl")
 		//first
-		M.SetRow(cur,x_slope[0],4*0,(y[1]-y[0])/(x[1]-x[0]))
+		M.SetRow(cur,x_slope[0],deg*0,(y[1]-y[0])/(x[1]-x[0]))
 		cur++
 		//last
-		M.SetRow(cur,x_slope[len(x_slope)-1],4*(len(x_slope)-2),(y[len(y)-1]-y[len(y)-2])/(x[len(y)-1]-x[len(y)-2]))
+		M.SetRow(cur,x_slope[len(x_slope)-1],deg*(len(x_slope)-2),(y[len(y)-1]-y[len(y)-2])/(x[len(y)-1]-x[len(y)-2]))
 		cur++
 	}
 
@@ -1371,6 +1406,11 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 
 func (ms my_spline) PrintMathematicaCode() (string,string){
 
+	//either input or make dependent on ranges (ms.x,ms.y)
+	xAccu := 4
+	yAccu := 10
+	xAccuStr := "%."+string(xAccu)+"f"
+	yAccuStr := "%."+string(yAccu)+"f"
 
 	id := fmt.Sprint(rand.Intn(999))
 
@@ -1404,12 +1444,12 @@ func (ms my_spline) PrintMathematicaCode() (string,string){
 			if ms.coeffs[i+(ms.deg-d)] >= 0 {
 				result += fmt.Sprint("+")
 			}
-			result += fmt.Sprintf("%.20fx^%v",ms.coeffs[i+(ms.deg-d)],d)
+			result += fmt.Sprintf(yAccuStr+"x^%v",ms.coeffs[i+(ms.deg-d)],d)
 		}
 		result += fmt.Sprint(",")
-		result += fmt.Sprintf("%.3f",ms.x[i/(ms.deg+1)])
+		result += fmt.Sprintf(xAccuStr,ms.x[i/(ms.deg+1)])
 		result += fmt.Sprint("<=x<=")
-		result += fmt.Sprintf("%.3f",ms.x[i/(ms.deg+1)+1])
+		result += fmt.Sprintf("%.4f",ms.x[i/(ms.deg+1)+1])
 		result += fmt.Sprint("}")
 		if i<(ms.deg+1)*(len(ms.x)-1)-(ms.deg+1) {
 			result += fmt.Sprint(",")
@@ -1421,9 +1461,9 @@ func (ms my_spline) PrintMathematicaCode() (string,string){
 
 	result += fmt.Sprintf("fctplot%v := Plot[fct%v[x]",id,id)
 	result += ",{x,"
-	result += fmt.Sprintf("%.3f",ms.x[0])
+	result += fmt.Sprintf("%.4f",ms.x[0])
 	result += fmt.Sprint(",")
-	result += fmt.Sprintf("%.3f",ms.x[len(ms.x)-1])
+	result += fmt.Sprintf("%.4f",ms.x[len(ms.x)-1])
 	result += fmt.Sprint("},ImageSize->Large, PlotRange -> Automatic];\n")
 
 	//Show
@@ -1560,6 +1600,7 @@ func (ms my_spline) Integral(a float64, b float64, dx float64) float64{
 }
  */
 
+/*
 func (ms my_spline) IntegralSplineOld(a,b float64) float64 {
 	debug := false
 
@@ -1617,7 +1658,9 @@ func (ms my_spline) IntegralSplineOld(a,b float64) float64 {
 	return newSpline.FullIntegralSpline()
 
 }
+ */
 
+//returns int_{a}^{b} ms.At(x) dx
 func (ms my_spline) IntegralSpline(a,b float64) float64 {
 	integral := 0.0
 	i1 := 0
@@ -2267,8 +2310,10 @@ func (ms my_spline) NewtonRoot(x0 float64, y float64, tolYPerc float64) (float64
 		fmt.Println("at xn=",x0," the derivitive is ",derivative.At(x0))
 	}
 	xn := x0
-	skip := 1000
-	for math.Abs(y-ms.At(xn)) > tolYPerc*(max(ms.y)-min(ms.y)){
+	skip := 10000
+	span := max(ms.y)-min(ms.y)
+	tolY := tolYPerc * span
+	for math.Abs(y-ms.At(xn)) > tolY {
 		skip--
 		if skip == 0 || xn > max(ms.x) || xn < min (ms.x) {return 0,fmt.Errorf("newton couldn't find root")}
 		//fmt.Println("old xn: ",xn," , old yn: ", ms.At(xn), " , D(xn)=",ms.D(xn))
@@ -2278,7 +2323,6 @@ func (ms my_spline) NewtonRoot(x0 float64, y float64, tolYPerc float64) (float64
 		if debug{
 			fmt.Println(xn,":",ms.At(xn) , " , difference to ",y," is ",ms.At(xn)-y)
 		}
-		//time.Sleep(1)
 	}
 	return xn,nil
 }
@@ -2286,7 +2330,7 @@ func (ms my_spline) NewtonRoot(x0 float64, y float64, tolYPerc float64) (float64
 // divide range into n pieces, start NewtonRoot on each and collect all roots, gathering with tolerance tol
 func (ms my_spline) NewtonRoots (y float64, tolYPerc float64, n int) []float64 {
 	debug := true
-	tolX := 0.01
+	tolXPerc := 0.01
 	span := ms.x[len(ms.x)-1]-ms.x[0]
 	dx := span / float64(n)
 	var intersections []float64
@@ -2297,7 +2341,7 @@ func (ms my_spline) NewtonRoots (y float64, tolYPerc float64, n int) []float64 {
 			fmt.Println("continue with next starting point")
 			continue
 		}
-		if !containsFloat(intersections,root,tolX*span){
+		if !containsFloat(intersections,root,tolXPerc*span){
 			if debug {
 				fmt.Println("NewtonRoots: root:",root," since ms.At(root) = ",ms.At(root)," ~= y = ",y, "." +
 					"\nThe abs. val. of the difference is ",math.Abs(ms.At(root)-y)," < ",tolYPerc*(max(ms.y)-min(ms.y)))
@@ -2328,7 +2372,7 @@ func DoubleFloatUnionTol(ar [][]float64, tol float64) [][]float64 {
 
 // returns regions where ms is less than y and where ms is greater than y
 func (ms my_spline) PosNegRange (y float64, tolYPerc float64, n int) ([][]float64 , [][]float64) {
-	debug := true
+	debug := false
 	//tolXPerc := 0.01
 	//span := max(ms.x)-min(ms.x)
 	//tolX := tolXPerc*span
@@ -2773,7 +2817,29 @@ func MathematicaCodeZeroIntersection(callList []callfunc) string {
 func LoadPromptJson(path string, filename string) (string, []string, map[string][]float64, map[string][]float64, []int, string){
 
 }
- */
+*/
+
+
+//sorting and keeping index changes
+type sortable struct {
+	nums []float64
+	idxs []int
+}
+func (s sortable) Len() int           { return len(s.nums) }
+func (s sortable) Less(i, j int) bool { return s.nums[i] < s.nums[j] }
+func (s sortable) Swap(i, j int) {
+	s.nums[i], s.nums[j] = s.nums[j], s.nums[i]
+	s.idxs[i], s.idxs[j] = s.idxs[j], s.idxs[i]
+}
+func sortAndReturnIdxsFloat64(nums []float64) []int {
+	idxs := make([]int, len(nums))
+	for i := range idxs {
+		idxs[i] = i
+	}
+	sort.Sort(sortable{nums, idxs})
+	return idxs
+}
+
 
 func SavePromptJson(ticker string ,pdistDates []string, pdistX map[string][]float64, pdistY map[string][]float64, StrikeRange []int ,Contract_type string) {
 	data := map[string]interface{}{
