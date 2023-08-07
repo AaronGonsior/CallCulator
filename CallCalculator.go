@@ -1406,11 +1406,13 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 
 func (ms my_spline) PrintMathematicaCode() (string,string){
 
-	//either input or make dependent on ranges (ms.x,ms.y)
+	//either input or make dependent on ranges (ms.x,ms.y) AND minimal distance between entries
+	/*
 	xAccu := 4
 	yAccu := 10
 	xAccuStr := "%."+string(xAccu)+"f"
 	yAccuStr := "%."+string(yAccu)+"f"
+	 */
 
 	id := fmt.Sprint(rand.Intn(999))
 
@@ -1444,10 +1446,10 @@ func (ms my_spline) PrintMathematicaCode() (string,string){
 			if ms.coeffs[i+(ms.deg-d)] >= 0 {
 				result += fmt.Sprint("+")
 			}
-			result += fmt.Sprintf(yAccuStr+"x^%v",ms.coeffs[i+(ms.deg-d)],d)
+			result += fmt.Sprintf("%.10fx^%v",ms.coeffs[i+(ms.deg-d)],d)
 		}
 		result += fmt.Sprint(",")
-		result += fmt.Sprintf(xAccuStr,ms.x[i/(ms.deg+1)])
+		result += fmt.Sprintf("%.4f",ms.x[i/(ms.deg+1)])
 		result += fmt.Sprint("<=x<=")
 		result += fmt.Sprintf("%.4f",ms.x[i/(ms.deg+1)+1])
 		result += fmt.Sprint("}")
