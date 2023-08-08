@@ -10,7 +10,7 @@ import (
 	"bufio"
 	//"encoding/json"
 	"fmt"
-	"github.com/cnkei/gospline"
+	//"github.com/cnkei/gospline"
 	"math"
 	//"os"
 	"strconv"
@@ -31,6 +31,12 @@ func check(err error){
 	}
 }
 
+/*
+type finProduct struct {
+
+}
+ */
+
 type callfunc struct{
 	base float64
 	cost float64
@@ -44,6 +50,7 @@ type spread struct{
 	weights []float64
 }
 
+/*
 type spline_old struct {
 	spline gospline.Spline
 }
@@ -52,6 +59,7 @@ type normalized_spline_old struct{
 	xrange []float64
 	integral float64
 }
+ */
 
 
 //Lineares Gleichungs-System (linear equation-system)
@@ -118,7 +126,7 @@ func main(){
 		levels := []float64{0,0.125,0.25,0.5,0.75,0.875,1}
 		for _,d := range pdistDates {
 			cumSpline := pdistSplines[d].IntegrateDUMB()
-			tmp,id := cumSpline.PrintMathematicaCode()
+			tmp,id := cumSpline.PrintMathematicaCode(true)
 			mathCode += tmp+"\n"
 			mathCode += fmt.Sprintf("s%v\n",id)
 			sigmasMap[d] = pdistSplines[d].FindSigmas(levels)
@@ -171,7 +179,7 @@ func main(){
 
 
 		for _,d := range pdistDates {
-			tmp,id := pdistSplines[d].PrintMathematicaCode()
+			tmp,id := pdistSplines[d].PrintMathematicaCode(false)
 			mathCode += tmp+"\n"
 			mathCode += fmt.Sprintf("s%v\n",id)
 		}
@@ -191,11 +199,11 @@ func main(){
 			invIntSpline := NewSpline(splinetype,cumX,pdistSplines[d].x)
 			invCumSplines = append(invCumSplines,invIntSpline)
 
-			tmp,id := cumSpline.PrintMathematicaCode()
+			tmp,id := cumSpline.PrintMathematicaCode(true)
 			mathCode += tmp+"\n"
 			mathCode += fmt.Sprintf("s%v\n",id)
 
-			tmp,id = invIntSpline.PrintMathematicaCode()
+			tmp,id = invIntSpline.PrintMathematicaCode(true)
 			mathCode += tmp+"\n"
 			mathCode += fmt.Sprintf("s%v\n",id)
 		}
@@ -206,7 +214,7 @@ func main(){
 		//cumSplines[0].At(invCumSplines[1].At(0.5))
 
 		test := cumSplines[0].Subtract(cumSplines[1])
-		tmp,id := test.PrintMathematicaCode()
+		tmp,id := test.PrintMathematicaCode(true)
 		mathCode += tmp+"\n"
 		mathCode += fmt.Sprintf("s%v\n",id)
 
@@ -218,7 +226,7 @@ func main(){
 			transportMapFloat = append(transportMapFloat,cumSplines[0].Subtract(cumSplines[1]).IntegralSpline(0,x))
 		}
 		transportMapSpline := NewSpline(splinetype,cumSplines[0].x,transportMapFloat)
-		tmp,id = transportMapSpline.PrintMathematicaCode()
+		tmp,id = transportMapSpline.PrintMathematicaCode(true)
 		mathCode += tmp+"\n"
 		mathCode += fmt.Sprintf("s%v\n",id)
 
@@ -340,14 +348,14 @@ func main(){
 
 		//fmt.Println(s.Integral(min(x),max(x),dx))
 
-		tmp, _ := s.PrintMathematicaCode()
+		tmp, _ := s.PrintMathematicaCode(true)
 		mathCode := tmp
 		fmt.Println(mathCode)
 
 
 		ns := NewNormedSpline(s)
 
-		tmp, _ = ns.PrintMathematicaCode()
+		tmp, _ = ns.PrintMathematicaCode(true)
 		mathCode = tmp
 		fmt.Println(mathCode)
 
@@ -399,7 +407,7 @@ func main(){
 		s := NewSpline(splinetype,x,y)
 		s = s.Init(splinetype,x,y)
 
-		tmp,_ := s.PrintMathematicaCode()
+		tmp,_ := s.PrintMathematicaCode(true)
 		mathCode := tmp
 		fmt.Println(mathCode)
 
@@ -440,7 +448,7 @@ func main(){
 		pdistSplines[d] = ns
 		constMinus := constSpline((max(ns.y)+min(ns.y))/2,[]float64{min(ns.x),max(ns.x)})
 		testFunc := pdistSplines[d].Subtract(constMinus)
-		fmt.Println(testFunc.PrintMathematicaCode())
+		fmt.Println(testFunc.PrintMathematicaCode(true))
 		roots := testFunc.NewtonRoots(0,0.01*((max(ns.y)+min(ns.y))/2),10)
 		fmt.Println("roots: ",roots)
 
@@ -603,8 +611,11 @@ func run(promptName string){
 		factor: 1,
 		date:   nil,
 	}
+	//nonInvested cannot be represented by a call - we want a constant=0 function
+	//nonInvested := constSpline(0.0,[]float64{0,1000000})
 	var addToAll []callfunc
 	addToAll = append(addToAll,long)
+	//addToAll = append(addToAll,nonInvested)
 	// together with put, also implement short including checking all functions if they can handle short-interested functions and data
 
 
@@ -722,7 +733,7 @@ func run(promptName string){
 
 		fmt.Println(optionsList)
 
-		tmp,idPdist := pdist.PrintMathematicaCode()
+		tmp,idPdist := pdist.PrintMathematicaCode(false)
 		mathCode = tmp
 		fmt.Println(mathCode)
 		content += mathCode
@@ -768,6 +779,7 @@ func run(promptName string){
 		content += mathCode
 		content += "Export[\"" + folderName + "\\expected_returns_strike.png\", Show[xy], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
+
 		strikes = make([]float64,0)
 		costs = make([]float64,0)
 		for _, opt := range optionsMap[d] {
@@ -780,14 +792,17 @@ func run(promptName string){
 		content += mathCode
 		content += "Export[\"" + folderName + "\\strike_price.png\", Show[xy], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
-		//still causes some indexing bug
+		//still causes some indexing bug. still?
 
 
 		bestCallSpline := bestcall.ToSpline(min(pdist.x),max(pdist.x))
-		tmp,id := bestCallSpline.PrintMathematicaCode()
+		/*
+		tmp,id := bestCallSpline.PrintMathematicaCode(false)
 		mathCode += tmp+"\n"
 		mathCode += "Export[\"" + folderName + "\\TEST_bestCallSpline.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 		content += mathCode
+		 */
+		content += bestCallSpline.MathematicaExport(false,folderName,"TEST_bestCallSpline",mathematicaCompressionLevel,mathematicaImageResolution)
 
 		//only testing
 		/*
@@ -811,6 +826,7 @@ func run(promptName string){
 		*/
 
 		//more testing with constants
+		/*
 		const1 := my_spline{
 			deg:        1,
 			splineType: splinetype,
@@ -830,6 +846,7 @@ func run(promptName string){
 		fmt.Println("constant splines before UnionXYCC():")
 		fmt.Println("len(const1.x)=",len(const1.x)," ; len(const2.x)=",len(const2.x))
 		fmt.Println("len(const1.coeffs)=",len(const1.coeffs)," ; len(const2.coeffs)=",len(const2.coeffs))
+		 */
 
 
 		/*
@@ -879,19 +896,24 @@ func run(promptName string){
 
 		fmt.Print("probReturn...")
 		probReturn := pdist.SplineMultiply(long.ToSpline(0,max(pdist.x)))
-		tmp,id = probReturn.PrintMathematicaCode()
+		/*
+		tmp,id = probReturn.PrintMathematicaCode(false)
 		mathCode += tmp+"\n"
 		mathCode += "Export[\"" + folderName + "\\probReturn.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 		content += mathCode
-		fmt.Println(" done.")
+		 */
+		content += probReturn.MathematicaExport(false,folderName,"probReturn",mathematicaCompressionLevel,mathematicaImageResolution)
 
 		fmt.Print("probReturnIntegral...")
 		probReturnIntegral := probReturn.Integrate()
-		tmp,id = probReturnIntegral.PrintMathematicaCode()
+		/*
+		tmp,id = probReturnIntegral.PrintMathematicaCode(false)
 		mathCode += tmp+"\n"
 		mathCode += "Export[\"" + folderName + "\\probReturnIntegral.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 		content += mathCode
-		fmt.Println(" done.")
+		 */
+		content += probReturnIntegral.MathematicaExport(false,folderName,"probReturnIntegral",mathematicaCompressionLevel,mathematicaImageResolution)
+
 
 		root := probReturnIntegral.NewtonRoots(0,0.01,100)
 		fmt.Println("probReturnIntrgral root: ",root)
@@ -907,7 +929,7 @@ func run(promptName string){
 
 		fmt.Print("pdistIntegral...")
 		pdistIntegrate := pdist.Integrate()
-		tmp,id = pdistIntegrate.PrintMathematicaCode()
+		tmp,id := pdistIntegrate.PrintMathematicaCode(true)
 		mathCode += tmp+"\n"
 		mathCode += "Export[\"" + folderName + "\\pdistIntegrate.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 		content += mathCode
@@ -962,106 +984,130 @@ func run(promptName string){
 		*/
 
 		fmt.Println("riskSpline...")
-		var ys []float64
-		var probs []float64
 
-		n := 10
-		tolYPerc := 0.0001
-		var probsMap map[float64]float64
-		probsMap = make(map[float64]float64)
-		dy := (max(bestCallSpline.y)-min(bestCallSpline.y))/float64(n)
-		for y := min(bestCallSpline.y) ; y <= max(bestCallSpline.y) ; y += dy{
-			ys = append(ys, y)
-			neg,_ := bestCallSpline.PosNegRange(y,tolYPerc,2*n)
-			prob_tmp := 0.0
-			for i := range neg {
-				prob_tmp += pdist.IntegralSpline(neg[i][0],neg[i][1])
-			}
-			probs = append(probs,prob_tmp)
-			probsMap[y] = prob_tmp
-		}
-
-		//sort probs and accordingly change ys
-		//ideally probs should already be sorted
+		riskSpline := bestcall.ToSpread().riskProfile(pdist)
+		content += riskSpline.MathematicaExport(false,folderName,"-riskSplineBestCall",mathematicaCompressionLevel,mathematicaImageResolution)
 		/*
-		idx := sortAndReturnIdxsFloat64(probs)
-		var ys_tmp []float64
-		for i := range ys {
-			ys_tmp = append(ys_tmp,ys[idx[i]])
-		}
-		ys = ys_tmp
+		riskSpline := bestcallSpread.riskProfile(pdist)
+		tmp,id = riskSpline.PrintMathematicaCode(false)
+		mathCode += tmp+"\n"
+		mathCode += "Export[\"" + folderName + "\\-riskSplineBestCall.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		content += mathCode
 		 */
 
-		sortAndReturnIdxsFloat64(ys)
 
+		//test nonInvested
+		/*
+		nonInvestedSpread := nonInvested.ToSpread()
+		content += nonInvestedSpread.MathematicaExport(pdist,false,folderName,"nonInvested",mathematicaCompressionLevel,mathematicaImageResolution)
 
-		fmt.Println("(probs,ys):")
-		var probs2 []float64
-		probs2 = make([]float64,len(ys))
-		for i := range probs {
-			fmt.Println("(",probsMap[ys[i]],",",ys[i],")")
-			probs2[i] = probsMap[ys[i]]
-		}
+		bestcallNonInvestedSpread := bestcallSpread.Add(nonInvested,0.5)
+		content += bestcallNonInvestedSpread.MathematicaExport(pdist,false,folderName,"bestCallNonInvested",mathematicaCompressionLevel,mathematicaImageResolution)
 
-		//fmt.Println("probs: ",probs)
-		//fmt.Println("ys: ",ys)
-
-		//splinetype = []string{"3","2","=Sl","=Cv","E0Sl"}
-		splinetype = []string{"1","2"}
-		riskSpline := NewSpline(splinetype,probs2,ys)
-		tmp,id = riskSpline.PrintMathematicaCode()
-		mathCode += tmp+"\n"
-		mathCode += "Export[\"" + folderName + "\\riskSplineBestCall.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
-		content += mathCode
-		fmt.Println(tmp)
+		*/
 
 
 
 		//careful: sometimes out of memory
-		/*
-			var spreads []spread
-			//only neigboring calls
 
-			for i := 0 ; i < len(callList)-1 ; i++ {
-				spreads = append(spreads,spread{
-					num:     2,
-					calls:   []callfunc{callList[i],callList[i+1]},
-					weights: []float64{0.5,-0.5},
-				})
-				spreads = append(spreads,spread{
-					num:     2,
-					calls:   []callfunc{callList[i],callList[i+1]},
-					weights: []float64{-0.5,0.5},
-				})
+		//var spreads []spread
+		//only neigboring calls
+
+		/*
+		bestSpreadExp := -100.0
+		var bestSpread spread
+		var spread_tmp spread
+		for i := 0 ; i < len(callList)-1 ; i++ {
+			spread_tmp = spread{
+				num:     2,
+				calls:   []callfunc{callList[i],callList[i+1]},
+				weights: []float64{0.5,-0.5},
 			}
-		*/
+			if spread_tmp.ExpectedReturn(pdist) > bestSpreadExp {
+				//spreads = append(spreads,spread_tmp)
+				bestSpreadExp = spread_tmp.ExpectedReturn(pdist)
+				bestSpread = spread_tmp
+			}
+			spread_tmp = spread{
+				num:     2,
+				calls:   []callfunc{callList[i],callList[i+1]},
+				weights: []float64{-0.5,0.5},
+			}
+			if spread_tmp.ExpectedReturn(pdist) > bestSpreadExp {
+				//spreads = append(spreads,spread_tmp)
+				bestSpreadExp = spread_tmp.ExpectedReturn(pdist)
+				bestSpread = spread_tmp
+			}
+		}
+
+		content += bestSpread.ToSpline(min(pdist.x),max(pdist.x)).MathematicaExport(false,folderName,"-bestNeighborSpread",mathematicaCompressionLevel,mathematicaImageResolution)
+		content += bestSpread.riskProfile(pdist).MathematicaExport(false,folderName,"-bestNeighborSpreadRiskProfile",mathematicaCompressionLevel,mathematicaImageResolution)
 
 
-		/*
-			// all 2-combinations of calls and 50-50% weighing in both directions (buy&sell)
-			ws := []float64{0.5,0.75,0.25}
-			for i := 0 ; i < len(callList)-1 ; i++ {
-				for j := i ; j < len(callList)-1 ; j++{
-					for _,w := range ws {
-						spreads = append(spreads,spread{
-							num:     2,
-							calls:   []callfunc{callList[i],callList[j]},
-							weights: []float64{w,-(1.0-w)},
-						})
-						spreads = append(spreads,spread{
-							num:     2,
-							calls:   []callfunc{callList[i],callList[j]},
-							weights: []float64{w,1.0-w},
-						})
-						spreads = append(spreads,spread{
-							num:     2,
-							calls:   []callfunc{callList[i],callList[j]},
-							weights: []float64{-w,(1.0-w)},
-						})
+		 */
+
+
+		// all 2-combinations of calls and {0.5,0.75,0.25} weighing in both directions (buy&sell)
+		bestSpreadExp := -100.0
+		bestSpread := spread{
+			num:     2,
+			calls:   []callfunc{callList[0],callList[1]},
+			weights: []float64{0,-(1.0-0)},
+		}
+		var spread_tmp spread
+		ws := []float64{0.5,0.75,0.25}
+		for i := 0 ; i < len(callList)-1 ; i++ {
+			for j := i ; j < len(callList)-1 ; j++{
+				for _,w := range ws {
+					spread_tmp = spread{
+						num:     2,
+						calls:   []callfunc{callList[i],callList[j]},
+						weights: []float64{w,-(1.0-w)},
+					}
+					if spread_tmp.ExpectedReturn(pdist) > bestSpreadExp {
+						//spreads = append(spreads,spread_tmp)
+						bestSpreadExp = spread_tmp.ExpectedReturn(pdist)
+						bestSpread = spread_tmp
+					}
+					spread_tmp = spread{
+						num:     2,
+						calls:   []callfunc{callList[i],callList[j]},
+						weights: []float64{w,(1.0-w)},
+					}
+					if spread_tmp.ExpectedReturn(pdist) > bestSpreadExp {
+						//spreads = append(spreads,spread_tmp)
+						bestSpreadExp = spread_tmp.ExpectedReturn(pdist)
+						bestSpread = spread_tmp
+					}
+					spread_tmp = spread{
+						num:     2,
+						calls:   []callfunc{callList[i],callList[j]},
+						weights: []float64{-w,(1.0-w)},
+					}
+					if spread_tmp.ExpectedReturn(pdist) > bestSpreadExp {
+						//spreads = append(spreads,spread_tmp)
+						bestSpreadExp = spread_tmp.ExpectedReturn(pdist)
+						bestSpread = spread_tmp
+					}
+					spread_tmp = spread{
+						num:     2,
+						calls:   []callfunc{callList[i],callList[j]},
+						weights: []float64{-w,-(1.0-w)},
+					}
+					if spread_tmp.ExpectedReturn(pdist) > bestSpreadExp {
+						//spreads = append(spreads,spread_tmp)
+						bestSpreadExp = spread_tmp.ExpectedReturn(pdist)
+						bestSpread = spread_tmp
 					}
 				}
 			}
-		*/
+		}
+
+		content += bestSpread.ToSpline(min(pdist.x),max(pdist.x)).MathematicaExport(false,folderName,"-bestSpread",mathematicaCompressionLevel,mathematicaImageResolution)
+		content += bestSpread.riskProfile(pdist).MathematicaExport(false,folderName,"-bestSpreadRiskProfile",mathematicaCompressionLevel,mathematicaImageResolution)
+
+
+
 
 
 		//bestSpread,bestSpreadExp := FindBestSpread(pdist,spreads)
@@ -1170,6 +1216,21 @@ func run(promptName string){
 
 // ------------------------------- spread specific functions -------------------------------
 
+
+func(sp spread) Add (c callfunc, w float64) spread {
+	var weights_new []float64
+	for i := range sp.weights {
+		weights_new = append(weights_new,sp.weights[i]*(1-w))
+	}
+	weights_new = append(weights_new,w)
+
+	return spread{
+		num:     sp.num+1,
+		calls: append(sp.calls, c),
+		weights: weights_new,
+	}
+}
+
 func (sp spread) ToSpline(a,b float64) my_spline {
 	result := sp.calls[0].ToSpline(a,b).Factor(sp.weights[0])
 	for s := 1 ; s < len(sp.calls) ; s++ {
@@ -1184,6 +1245,66 @@ func (sp spread) ExpectedReturn(pdist my_spline) float64 {
 		expReturns += sp.weights[i]*c.ExpectedReturn(pdist)
 	}
 	return expReturns
+}
+
+func (sp spread) riskProfile(pdist my_spline) my_spline {
+	spreadPerf := sp.ToSpline(min(pdist.x),max(pdist.x))
+	var ys []float64
+	var probs []float64
+
+	n := 100
+	tolYPerc := 0.0001
+	var probsMap map[float64]float64
+	probsMap = make(map[float64]float64)
+	dy := (max(spreadPerf.y)-min(spreadPerf.y))/float64(n)
+	for y := min(spreadPerf.y) ; y <= max(spreadPerf.y) ; y += dy{
+		neg,_ := spreadPerf.PosNegRange(y,tolYPerc,2*n)
+		prob_tmp := 0.0
+		for i := range neg {
+			prob_tmp += pdist.IntegralSpline(neg[i][0],neg[i][1])
+		}
+		//discard decreasing probs - not an ideal solution! kinda hacky, messy
+		if len(probs) == 0 || prob_tmp > probs[len(probs)-1] {
+			probs = append(probs,prob_tmp)
+			probsMap[y] = prob_tmp
+			ys = append(ys, y)
+		}
+	}
+
+	//sort probs and accordingly change ys
+	//ideally probs should already be sorted
+	/*
+		idx := sortAndReturnIdxsFloat64(probs)
+		var ys_tmp []float64
+		for i := range ys {
+			ys_tmp = append(ys_tmp,ys[idx[i]])
+		}
+		ys = ys_tmp
+	*/
+
+
+	//sort ys and accordingly change probs
+	/*
+		sortAndReturnIdxsFloat64(ys)
+		fmt.Println("(probs,ys):")
+		var probs2 []float64
+		probs2 = make([]float64,len(ys))
+		for i := range probs {
+			fmt.Println("(",probsMap[ys[i]],",",ys[i],")")
+			probs2[i] = probsMap[ys[i]]
+		}
+		probs = probs2
+	*/
+
+
+	//splinetype = []string{"3","2","=Sl","=Cv","E0Sl"}
+	splinetype := []string{"1","2"}
+	if len(probs) != len(ys){
+		fmt.Println("len(probs)!=len(ys)!!")
+		os.Exit(0)
+	}
+	riskSpline := NewSpline(splinetype,probs,ys)
+	return riskSpline
 }
 
 func FindBestSpread(pdist my_spline, spreads []spread) (spread,float64) {
@@ -1404,9 +1525,10 @@ func SplineLGSInit(splineType []string, x []float64, y []float64) (LGS,error){
 	return M,nil
 }
 
-func (ms my_spline) PrintMathematicaCode() (string,string){
+func (ms my_spline) PrintMathematicaCode(points bool) (string,string){
 
 	//either input or make dependent on ranges (ms.x,ms.y) AND minimal distance between entries
+	//careful with too low Accu!! it can cause the plots to be wrong and finding this as a cause isn't easy
 	/*
 	xAccu := 4
 	yAccu := 10
@@ -1436,7 +1558,9 @@ func (ms my_spline) PrintMathematicaCode() (string,string){
 	result += fmt.Sprintln("};")
 
 	//xyPlot
-	result += fmt.Sprintf("xy%v:=ListPlot[Transpose[{x%v, y%v}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic];\n",id,id,id)
+	if points {
+		result += fmt.Sprintf("xy%v:=ListPlot[Transpose[{x%v, y%v}], PlotStyle -> {AbsolutePointSize[8]},ImageSize -> Large, PlotRange -> Automatic];\n",id,id,id)
+	}
 
 	//piecewisePlot
 	result += fmt.Sprintf("fct%v[x_]:=Piecewise[{",id)
@@ -1446,7 +1570,7 @@ func (ms my_spline) PrintMathematicaCode() (string,string){
 			if ms.coeffs[i+(ms.deg-d)] >= 0 {
 				result += fmt.Sprint("+")
 			}
-			result += fmt.Sprintf("%.10fx^%v",ms.coeffs[i+(ms.deg-d)],d)
+			result += fmt.Sprintf("%.20fx^%v",ms.coeffs[i+(ms.deg-d)],d)
 		}
 		result += fmt.Sprint(",")
 		result += fmt.Sprintf("%.4f",ms.x[i/(ms.deg+1)])
@@ -1469,11 +1593,23 @@ func (ms my_spline) PrintMathematicaCode() (string,string){
 	result += fmt.Sprint("},ImageSize->Large, PlotRange -> Automatic];\n")
 
 	//Show
-	result += fmt.Sprintf("s%v:=Show[fctplot%v, xy%v];\n\n",id,id,id)
+	if points {
+		result += fmt.Sprintf("s%v:=Show[fctplot%v, xy%v];\n\n",id,id,id)
+	} else {
+		result += fmt.Sprintf("s%v:=Show[fctplot%v];\n\n",id,id)
+	}
 
 	return result,id
 
 
+}
+
+func (ms my_spline) MathematicaExport(points bool, folderName string, fileName string, mathematicaCompressionLevel string, mathematicaImageResolution string) string {
+	content := ""
+	tmp,id := ms.PrintMathematicaCode(points)
+	content += tmp+"\n"
+	content += "Export[\"" + folderName + "\\"+fileName+".png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+	return content
 }
 
 /*
@@ -2535,6 +2671,14 @@ func (ms my_spline) Inversion() my_spline {
 
 // ------------------------------- call specific functions -------------------------------
 
+func (call callfunc) ToSpread() spread {
+	return spread{
+		num:     1,
+		calls:   []callfunc{call},
+		weights: []float64{1},
+	}
+}
+
 func findBestCall(pdist my_spline, calllist []callfunc) (callfunc, float64){
 	best := calllist[0]
 	bestE := best.ExpectedReturn(pdist)
@@ -2629,7 +2773,7 @@ func PrintMathematicaCode(calls []callfunc, share_price float64) string {
 		code += fmt.Sprint("call"+strconv.Itoa(i)+":=Plot[100*Max[-1,(x/(",call.cost/call.factor,")-",call.base/(call.cost/call.factor),"-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic];\n")
 	}
 
-	code += "long := Plot[100*(x - "+fmt.Sprintf("%.0f",share_price)+")/"+fmt.Sprintf("%.0f",share_price)+", {x, 0, xmax}, PlotStyle -> Red];"
+	code += "long := Plot[100*(x - "+fmt.Sprintf("%.0f",share_price)+")/"+fmt.Sprintf("%.0f",share_price)+", {x, 0, xmax}, PlotStyle -> Red];\n"
 
 	for i := range calls {
 		if i==0{
