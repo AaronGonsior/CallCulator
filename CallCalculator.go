@@ -541,12 +541,12 @@ func run(promptName string){
 	content := "SetDirectory[NotebookDirectory[]];\n"
 
 	url := "https://api.polygon.io/v2/aggs/ticker/C:USDEUR/prev?adjusted=true&apiKey="+apiKey
-	fmt.Println("url: ",url)
+	//fmt.Println("url: ",url)
 	_,body,err := opt.APIRequest(url,1)
 	check(err)
 	body = strings.Split(body,"\"c\":")[1]
 	body = strings.Split(body,",")[0]
-	fmt.Println(body)
+	//fmt.Println(body)
 
 	usdtoeur,err = strconv.ParseFloat(body,64)
 	check(err)
@@ -555,7 +555,7 @@ func run(promptName string){
 
 	var share_price float64
 	url = "https://api.polygon.io/v2/aggs/ticker/"+ticker+"/prev?adjusted=true&apiKey="+apiKey
-	fmt.Println("url: ",url)
+	//fmt.Println("url: ",url)
 	_,body,err = opt.APIRequest(url,1)
 	check(err)
 	body = strings.Split(body,"\"c\":")[1]
@@ -563,7 +563,7 @@ func run(promptName string){
 
 	share_price,err = strconv.ParseFloat(body,64)
 	check(err)
-	fmt.Println("share_price(",ticker,"): ",share_price)
+	//fmt.Println("share_price(",ticker,"): ",share_price)
 
 
 
@@ -572,17 +572,22 @@ func run(promptName string){
 
 		//tbd: check how old options_latest.json is and decide whether to update or not
 
+		fmt.Println("update=false - load old options data from a previous gather")
+
 		readStr := opt.LoadJson("options"+"\\"+ticker+"\\"+"options_latest.json")
 		readStr = strings.Replace(readStr,"} {","\n",-1)
 		readStr = strings.Replace(readStr,"}]","",-1)
 		readStr = strings.Replace(readStr,"[{","",-1)
-		fmt.Println(readStr)
+
+		//fmt.Println(readStr)
 
 		options = opt.JsonToOptions("options.json")
-		fmt.Println("loaded options: \n",options)
+		fmt.Println("loaded old options data: \n",options)
 	}
 
 	if update {
+
+		fmt.Println("update=true - gather options data through API")
 
 		//how many successive requests at most; -1 is Inf
 		nMax := -1
@@ -678,7 +683,7 @@ func run(promptName string){
 	*/
 
 
-	debug := true
+	debug := false
 
 	if debug {
 		fmt.Println("len of optionsDates2: ", len(optionsMap), " aka. for how many different dates call options got loaded.\n These are all the dates:")
@@ -734,51 +739,51 @@ func run(promptName string){
 		callList := callListMap[d]
 		callList = callList[len(addToAll):len(callList)]
 
-		fmt.Println(optionsList)
+		fmt.Println("Found ",len(optionsList)," options for ",ticker," on the date ",d)
 
 		tmp,idPdist := pdist.PrintMathematicaCode(false,"Blue")
 		mathCode = tmp
-		fmt.Println(mathCode)
+		//fmt.Println(mathCode)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\pdist.png\", " + fmt.Sprintf("Show[fctplot%v]",idPdist) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
 		bestcall, bestE := findBestCall(pdist, callList)
-		fmt.Println("Best Call:", bestcall, "\nwith expected return:", bestE)
+		//fmt.Println("Best Call:", bestcall, "\nwith expected return:", bestE)
 		mathCode = bestcall.PrintMathematicaCode(max(pdist.x))
-		fmt.Println(mathCode)
+		//fmt.Println(mathCode)
 
 		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the call with strike %.1f has the highest expected return out of all call options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date, bestcall.base, bestE, ticker, long.ExpectedReturn(pdist))
 		content += mathCode
 		content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",idPdist) +", Show[call,long]}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
-		fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(pdist))
+		//fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(pdist))
 
-		fmt.Println("\nPrint all calls:\n")
+		//fmt.Println("\nPrint all calls:\n")
 		mathCode = PrintMathematicaCode(callList, share_price,"Blue","Red")
-		fmt.Println(mathCode)
+		//fmt.Println(mathCode)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\allCalls.png\", Show[s], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
-		fmt.Println("\nDistribution Chart for Call-Long intersections:\n")
+		//fmt.Println("\nDistribution Chart for Call-Long intersections:\n")
 		mathCode = MathematicaCodeLongIntersection(callList, share_price)
-		fmt.Println(mathCode)
+		//fmt.Println(mathCode)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\CallLongIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
-		fmt.Println("\nDistribution Chart for Call-Zero intersections:\n")
+		//fmt.Println("\nDistribution Chart for Call-Zero intersections:\n")
 		mathCode = MathematicaCodeZeroIntersection(callList)
-		fmt.Println(mathCode)
+		//fmt.Println(mathCode)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\CallZeroIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
-		fmt.Println("\nDistribution Chart for Call-Zero-Volumes intersections:\n")
+		//fmt.Println("\nDistribution Chart for Call-Zero-Volumes intersections:\n")
 		mathCode = MathematicaCodeZeroIntersectionVolumes(optionsList)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\CallZeroVolumesIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
-		fmt.Println("\nExpected returns for each strike:")
+		//fmt.Println("\nExpected returns for each strike:")
 		mathCode = MathematicaPrintExpectedReturns(pdistSplines[pdistDates[0]], callList) //careful: date should eventually be optimal transported.
-		fmt.Println(mathCode)
+		//fmt.Println(mathCode)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\expected_returns_strike.png\", Show[xy], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
@@ -790,8 +795,8 @@ func run(promptName string){
 			costs = append(costs, (opt.Close))
 		}
 		mathCode = MathematicaXYPlot(strikes, costs)
-		fmt.Println("\nPlot strike vs cost:\n")
-		fmt.Println(mathCode)
+		//fmt.Println("\nPlot strike vs cost:\n")
+		//fmt.Println(mathCode)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\strike_price.png\", Show[xy], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
@@ -900,11 +905,12 @@ func run(promptName string){
 		fmt.Print("probReturn...")
 		probReturn := pdist.SplineMultiply(long.ToSpline(0,max(pdist.x)))
 		content += probReturn.MathematicaExport("Blue","",false,folderName,"probReturn",mathematicaCompressionLevel,mathematicaImageResolution)
+		fmt.Println(" done.")
 
 		fmt.Print("probReturnIntegral...")
 		probReturnIntegral := probReturn.Integrate()
 		content += probReturnIntegral.MathematicaExport("Blue","",false,folderName,"probReturnIntegral",mathematicaCompressionLevel,mathematicaImageResolution)
-
+		fmt.Println(" done.")
 
 		root := probReturnIntegral.NewtonRoots(0,0.01,100)
 		fmt.Println("probReturnIntrgral root: ",root)
@@ -966,7 +972,7 @@ func run(promptName string){
 			fmt.Println(" done.")
 		*/
 
-		fmt.Println("riskSpline...")
+		fmt.Print("riskSpline...")
 
 		riskSpline := bestcall.ToSpread().riskProfile(pdist)
 		content += riskSpline.MathematicaExport2("Blue",riskTolSpline,"Darker[Red]","",false,folderName,"-riskSplineBestCall",mathematicaCompressionLevel,mathematicaImageResolution)
@@ -1141,7 +1147,8 @@ func run(promptName string){
 						}
 					}
 
-					if math.Mod(float64(spreadCount)/float64(totalCount),percSteps) < percSteps/2000 {
+					//if math.Mod(float64(spreadCount)/float64(totalCount),percSteps) < percSteps/2000 {
+					if math.Mod(float64(spreadCount),percSteps*float64(totalCount)) < 4 {
 						elapsed := time.Now().Sub(timeStart).Milliseconds()
 						elapsedPerSpread := float64(elapsed)/float64(spreadCount-spreadStart)
 						fmt.Println(fmt.Sprintf("%.1f",100.0*float64(spreadCount)/float64(totalCount)) , "% (took "+fmt.Sprintf("%v",elapsed)+" milliseconds - ",elapsedPerSpread," per spread)")
@@ -1234,6 +1241,8 @@ func run(promptName string){
 		fmt.Println(fmt.Sprintf("pdist.IntegralSpline(%v,%v)=",a,b),pdist.IntegralSpline(a,b))
 		 */
 
+		fmt.Println("Done with date", d,"\n\n")
+
 	}
 
 
@@ -1292,17 +1301,18 @@ func (sp spread) riskProfile(pdist my_spline) my_spline {
 	var probs []float64
 
 	n := 10
-	tolYPerc := 0.0001 //basically in NewtonRoot()
+	tolYPerc := 0.00001 //basically in NewtonRoot()
 	var probsMap map[float64]float64
 	probsMap = make(map[float64]float64)
 	dy := (max(spreadPerf.y)-min(spreadPerf.y))/float64(n)
 	for y := min(spreadPerf.y)  /*-2*math.Abs(dy*min(spreadPerf.y))*/ ; y <= max(spreadPerf.y) ; y += dy{
-		neg,_ := spreadPerf.PosNegRange(y,tolYPerc,2*n)
+		neg,_ := spreadPerf.PosNegRange(y,tolYPerc,4*n)
 		if len(neg) == 0 {
 			probs = append(probs,0.0)
 			probsMap[y] = 0.0
 			ys = append(ys, y)
 		}
+
 		prob_tmp := 0.0
 		for i := range neg {
 			prob_tmp += pdist.IntegralSpline(neg[i][0],neg[i][1])
