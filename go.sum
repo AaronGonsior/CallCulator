@@ -2,5 +2,7 @@ github.com/AaronGonsior/optionsscheine2 v0.0.0-20230106020645-a160ff320c18 h1:Ln
 github.com/AaronGonsior/optionsscheine2 v0.0.0-20230106020645-a160ff320c18/go.mod h1:nTKyXT7zmKiuubaDokEG4S0jFDq6gcU0uMyYgEblcZA=
 github.com/AaronGonsior/optionsscheine2 v0.0.0-20230106125025-658738bace90 h1:/vD1RLjavzT+ost5DK+702is1rc2HwID4bAIMfflAHE=
 github.com/AaronGonsior/optionsscheine2 v0.0.0-20230106125025-658738bace90/go.mod h1:nTKyXT7zmKiuubaDokEG4S0jFDq6gcU0uMyYgEblcZA=
+github.com/AaronGonsior/optionsscheine2 v0.0.0-20230812131412-a254a8e6df6b h1:tWgtvpvR13MwS5bKHtjq2JX+eZq1ZTFOoDISpw1ya+c=
+github.com/AaronGonsior/optionsscheine2 v0.0.0-20230812131412-a254a8e6df6b/go.mod h1:nTKyXT7zmKiuubaDokEG4S0jFDq6gcU0uMyYgEblcZA=
 github.com/cnkei/gospline v0.0.0-20191204052713-d67fac29a294 h1:zIFcK9T9qytnmXuKt5Z7jG66C8c8FJjy8rtxOmVVm0o=
 github.com/cnkei/gospline v0.0.0-20191204052713-d67fac29a294/go.mod h1:DXXGDL64/wxXgBSgmGMEL0vYC0tdvpgNhkJrvavhqDM=

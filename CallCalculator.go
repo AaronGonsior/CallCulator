@@ -1284,8 +1284,8 @@ func run(promptName string){
 
 
 func riskMatch(riskProfile my_spline, riskTol my_spline) bool {
-	dx := 0.05
-	for x := 0.0 ; x <= 1.0+0.1*dx ; x += dx {
+	dx := 0.01
+	for x := 0.001 ; x <= 1.0+0.1*dx ; x += dx {
 		if riskProfile.At(x) < riskTol.At(x) {return false}
 	}
 	return true
