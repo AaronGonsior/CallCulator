@@ -1375,7 +1375,9 @@ func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 	var probsMap map[float64]float64
 	probsMap = make(map[float64]float64)
 	dy := (max(spreadPerf.y)-min(spreadPerf.y))/float64(n)
-	if math.Abs(dy) < 0.00001 {return my_spline{},fmt.Errorf("dy=0")}
+	if math.Abs(dy) < 0.0000000001 {
+		return NewSpline([]string{"1","2"},[]float64{min(pdist.x),max(pdist.x)},[]float64{min(spreadPerf.y),max(spreadPerf.y)}), nil
+	}
 	if debug {
 		fmt.Println("dy: ",dy)
 		fmt.Println("min(spreadPerf.y) :",min(spreadPerf.y) )
@@ -1441,6 +1443,7 @@ func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 		os.Exit(0)
 	}
 	riskSpline := NewSpline(splinetype,probs,ys)
+
 	if len(riskSpline.x) == 0 || len(riskSpline.y) == 0 {
 		return my_spline{},fmt.Errorf("riskSpline has no length")
 	}
