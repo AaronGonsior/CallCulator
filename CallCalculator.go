@@ -454,7 +454,7 @@ func main(){
 		roots := testFunc.NewtonRoots(0,0.01*((max(ns.y)+min(ns.y))/2),10)
 		fmt.Println("roots: ",roots)
 
-		negRange,posRange := testFunc.PosNegRange(0,0.01,100)
+		negRange,posRange := testFunc.PosNegRange(0,0.001,100)
 		fmt.Println("probReturn negRange: ",negRange)
 		fmt.Println("probReturn posRange: ",posRange)
 		os.Exit(1)
@@ -494,9 +494,22 @@ func constSpline(c float64, xrange []float64) my_spline{
 }
 
 func run(promptName string){
-	update := true
+	forceUpdate := false
 	debug := false
+	info := true
 
+	if info{
+		fmt.Println("Starting to execute prompt with name", promptName)
+		fmt.Println("forceUpdate=",forceUpdate)
+		fmt.Println("debug=",debug)
+		fmt.Println("Starting data loading and preparation.")
+	}
+
+	startTime := time.Now()
+
+	if info{
+		fmt.Print("Loading prompt data and API key...")
+	}
 	path, err := os.Getwd()
 	check(err)
 	currentTime := time.Now()
@@ -504,12 +517,24 @@ func run(promptName string){
 
 	ticker,pdistDates,pdistX,pdistY,StrikeRange,DateRange,Contract_type,riskTolX,riskTolY := LoadPromptEasy(path+"\\prompts\\","prompt_"+promptName+".json")
 
+	apiKey := opt.LoadJson("apiKey.json")
+
+	if info {
+		fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+	}
+
 	if debug{
 		fmt.Println("riskTol:")
 		for i := range riskTolX {
 			fmt.Printf("(%.1f,%.1f)\n",riskTolX[i],riskTolY[i])
 		}
 	}
+
+	if info {
+		fmt.Print("Creating pdist and riskTol splines...")
+		startTime = time.Now()
+	}
+
 
 	splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
 	var pdistSplines map[string]my_spline
@@ -524,7 +549,14 @@ func run(promptName string){
 
 	riskTolSpline := NewSpline([]string{"1","2"},riskTolX,riskTolY)
 
-	apiKey := opt.LoadJson("apiKey.json")
+	if info{
+		fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+	}
+
+	if info{
+		fmt.Print("Creating OptionsRequest for API Calls...")
+		startTime = time.Now()
+	}
 
 	var optreq opt.OptionURLReq
 
@@ -541,7 +573,9 @@ func run(promptName string){
 		optreqs = append(optreqs,optreq)
 	}
 
-	//also puts
+	if info{
+		fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+	}
 
 	/*
 		SavePromptJson(ticker,pdistDates,pdistX,pdistY,optreq.StrikeRange,optreq.Contract_type)
@@ -552,6 +586,14 @@ func run(promptName string){
 	/* End User Inputs */
 
 
+	if info {
+		if forceUpdate{
+			fmt.Print("Making API Calls to pull neccessary data...")
+		} else {
+			fmt.Print("Making API Calls to pull currency ratios and the current share price but not Optionsdata as update=false ...")
+		}
+		startTime = time.Now()
+	}
 
 	url := "https://api.polygon.io/v2/aggs/ticker/C:USDEUR/prev?adjusted=true&apiKey="+apiKey
 	//fmt.Println("url: ",url)
@@ -561,11 +603,13 @@ func run(promptName string){
 	body = strings.Split(body,",")[0]
 	//fmt.Println(body)
 
+	//Pull USDEUR
 	usdtoeur,err = strconv.ParseFloat(body,64)
 	check(err)
 	eurtousd = 1/usdtoeur
 
 
+	//Pull share price
 	var share_price float64
 	url = "https://api.polygon.io/v2/aggs/ticker/"+ticker+"/prev?adjusted=true&apiKey="+apiKey
 	//fmt.Println("url: ",url)
@@ -582,26 +626,51 @@ func run(promptName string){
 
 	var options []opt.Option
 
-	if !update{
+	if !forceUpdate{
 
 		//tbd: check how old options_latest.json is and decide whether to update or not
 
-		fmt.Println("update=false - load old options data from a previous gather")
+		//fmt.Println("update=false - load old options data from a previous gather")
 
+		//replace with proper json
+		/*
 		readStr := opt.LoadJson("options"+"\\"+ticker+"\\"+"options_latest.json")
 		readStr = strings.Replace(readStr,"} {","\n",-1)
 		readStr = strings.Replace(readStr,"}]","",-1)
 		readStr = strings.Replace(readStr,"[{","",-1)
-
-		//fmt.Println(readStr)
-
 		options = opt.JsonToOptions("options.json")
-		fmt.Println("loaded old options data: \n",options)
+		 */
+
+		pulledDate, Contract_typeLoaded, options_tmp := LoadOptionsJson(path+"\\options\\"+ticker+"\\","options_latest.json")
+		options = options_tmp
+
+		fmt.Println("Loaded",len(options),"options from json file.")
+
+		for _,ct := range Contract_type {
+			if !contains(Contract_typeLoaded,ct){forceUpdate = true}
+		}
+
+		outOfDate := time.Now().Sub(pulledDate).Minutes()
+		fmt.Println("outOfDate=",outOfDate)
+		fmt.Println("pulledDate=",pulledDate)
+		var hoursLimit int = 12
+		if outOfDate > float64(hoursLimit*60) {
+			fmt.Printf("optionsdata %v h %v m old which is too old (%vh limit) - pulling data again through the API\n",(int)(outOfDate/60),int(math.Mod(outOfDate,60)),hoursLimit)
+			forceUpdate = true
+		} else {
+			fmt.Printf("Loaded old options data. (%vh%vm old)\n",(int)(outOfDate/60),int(math.Mod(outOfDate,60)))
+		}
+
+		/*
+		for _,o := range options {
+			fmt.Println(o.Expiration_date)
+		}
+		 */
 	}
 
-	if update {
+	if forceUpdate {
 
-		fmt.Println("update=true - gather options data through API")
+		//fmt.Println("update=true - gather options data through API")
 
 		//how many successive requests at most; -1 is Inf
 		nMax := -1
@@ -610,31 +679,37 @@ func run(promptName string){
 		var msg string
 
 		var options_tmp []opt.Option
+		//execute all options requests and append the results in options []opt.Option
 		for _,optreq := range optreqs{
 			options_tmp, msg = opt.GetOptions(optreq,nMax)
 			for _,opt := range options_tmp {
 				options = append(options,opt)
 			}
-
 			log += msg
 		}
-		//options, msg = opt.GetOptions(optreq,nMax)
-		//log += msg
 
+		/*
 		for _,opt := range options {
 			fmt.Println(opt.Print())
 		}
+		 */
 		opt.WriteJson("log.json",log)
 
 		os.Mkdir("options",0755)
 		os.Mkdir("options"+"\\"+ticker,0755)
 		os.Mkdir("options"+"\\"+ticker+"\\"+live,0755)
 		//os.Mkdir("options"+"\\"+ticker+"\\"+live+"\\",0755)
+
+		//replace with proper json!
+		/*
 		opt.WriteJson("options"+"\\"+ticker+"\\"+live+"\\"+"options.json",fmt.Sprint(options))
 		opt.WriteJson("options"+"\\"+ticker+"\\"+"options_latest.json",fmt.Sprint(options))
+		 */
+		now := time.Now()
+		SaveOptionsJson("\\options\\"+ticker+"\\"+live+"\\","options",now,options,Contract_type)
+		SaveOptionsJson("\\options\\"+ticker+"\\","options_latest",now,options,Contract_type)
 
 	}
-
 
 	long := callfunc{
 		base:   0,
@@ -659,6 +734,11 @@ func run(promptName string){
 
 
 	optionsDates, optionsMap, callListMap := OptionsToOptionsDates(options, addToAll)
+
+	if info {
+		fmt.Println("Found ",len(optionsDates), "(",optionsDates,") dates.")
+		fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+	}
 
 	/*
 		var optionsMap map[string][]opt.Option
@@ -714,7 +794,6 @@ func run(promptName string){
 
 
 	debug = false
-
 	if debug {
 		fmt.Println("len of optionsDates2: ", len(optionsMap), " aka. for how many different dates call options got loaded.\n These are all the dates:")
 		for _,d := range optionsDates {
@@ -740,6 +819,9 @@ func run(promptName string){
 
 
 
+	if info{
+		fmt.Println("Iterating through all dates:")
+	}
 
 	content := "SetDirectory[NotebookDirectory[]];\n"
 	mathCode := "SetDirectory[NotebookDirectory[]]\n"
@@ -761,64 +843,112 @@ func run(promptName string){
 		//careful: date should eventually be optimal transported.
 		// ------- currently always uses first date!!! -------------
 		pdist := pdistSplines[pdistDates[0]]
-
-
 		folderName := ticker+d+"(live data from "+live+")"
 		err = os.Mkdir(path+folderName, 0755)
 		check(err)
 		optionsList := optionsMap[d]
 		callList := callListMap[d]
 		callList = callList[len(addToAll):len(callList)]
+		if info{
+			fmt.Println("Found ",len(optionsList)," options for ",ticker," on the date ",d)
+		}
 
-		fmt.Println("Found ",len(optionsList)," options for ",ticker," on the date ",d)
 
+		// Pdist
+		if info{
+			fmt.Print("Creating pdist wolfram mathematica export code...")
+			startTime = time.Now()
+		}
 		tmp,idPdist := pdist.PrintMathematicaCode(false,"Blue","Automatic")
 		mathCode = tmp
 		//fmt.Println(mathCode)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\pdist.png\", " + fmt.Sprintf("Show[fctplot%v]",idPdist) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		if info {
+			fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+		}
 
-		bestcall, bestE := findBestCall(pdist, callList)
-		//fmt.Println("Best Call:", bestcall, "\nwith expected return:", bestE)
-		mathCode = bestcall.PrintMathematicaCode(max(pdist.x))
-		//fmt.Println(mathCode)
 
-		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the %s with strike %.1f has the highest expected return out of all call options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date,bestcall.optionType, bestcall.base, bestE, ticker, long.ExpectedReturn(pdist))
-		content += mathCode
-		content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",idPdist) +", Show[call,long]}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 
-		//fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(pdist))
-
-		//fmt.Println("\nPrint all calls:\n")
+		// All Options
+		if info {
+			fmt.Print("Creating wolfram mathematica export code for all options(",Contract_type,")...")
+			startTime = time.Now()
+		}
 		mathCode = PrintMathematicaCode(callList, share_price,"Blue","Red")
 		//fmt.Println(mathCode)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\allCalls.png\", Show[s], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		if info {
+			fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+		}
 
+
+		// Best Call
+		if info{
+			fmt.Print("Finding best option(",Contract_type,") and creating wolfram mathematica export code...")
+			startTime = time.Now()
+		}
+		bestcall, bestE := findBestCall(pdist, callList)
+		//fmt.Println("Best Call:", bestcall, "\nwith expected return:", bestE)
+		mathCode = bestcall.PrintMathematicaCode(max(pdist.x))
+		//fmt.Println(mathCode)
+		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the %s with strike %.1f has the highest expected return out of all call options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date,bestcall.optionType, bestcall.base, bestE, ticker, long.ExpectedReturn(pdist))
+		content += mathCode
+		content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",idPdist) +", Show[call,long]}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		if info {
+			fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+		}
+		//fmt.Println("owning $TSLA has an expected return of: ", long.ExpectedReturn(pdist))
+
+
+		//Distribution Chart for Call-Long intersections
+		/*
 		//fmt.Println("\nDistribution Chart for Call-Long intersections:\n")
 		mathCode = MathematicaCodeLongIntersection(callList, share_price)
 		//fmt.Println(mathCode)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\CallLongIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		 */
 
+		//Distribution Chart for Call-Zero intersections
+		/*
 		//fmt.Println("\nDistribution Chart for Call-Zero intersections:\n")
 		mathCode = MathematicaCodeZeroIntersection(callList)
 		//fmt.Println(mathCode)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\CallZeroIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		 */
 
+		//Distribution Chart for Call-Zero-Volumes intersections
+		/*
 		//fmt.Println("\nDistribution Chart for Call-Zero-Volumes intersections:\n")
 		mathCode = MathematicaCodeZeroIntersectionVolumes(optionsList)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\CallZeroVolumesIntersectionDistribution.png\", Show[dist], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		 */
 
-		//fmt.Println("\nExpected returns for each strike:")
+
+		//Expected returns for each option
+		if info {
+			fmt.Print("Computing expected returns (given pdist) for each option (",Contract_type,") and creating wolfram mathematica export code...")
+			startTime = time.Now()
+		}
+		//fmt.Println("\nExpected returns for each option:")
 		mathCode = MathematicaPrintExpectedReturns(pdistSplines[pdistDates[0]], callList) //careful: date should eventually be optimal transported.
 		//fmt.Println(mathCode)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\expected_returns_strike.png\", Show[xy], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		if info {
+			fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+		}
 
 
+		// Strike prices
+		if info {
+			fmt.Print("Creating wolfram mathematica export code for a strike price plot...")
+			startTime = time.Now()
+		}
 		strikes = make([]float64,0)
 		costs = make([]float64,0)
 		for _, opt := range optionsMap[d] {
@@ -826,10 +956,12 @@ func run(promptName string){
 			costs = append(costs, (opt.Close))
 		}
 		mathCode = MathematicaXYPlot(strikes, costs)
-		//fmt.Println("\nPlot strike vs cost:\n")
-		//fmt.Println(mathCode)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\strike_price.png\", Show[xy], \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
+		if info {
+			fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+		}
+
 
 		//still causes some indexing bug. still?
 
@@ -933,27 +1065,46 @@ func run(promptName string){
 		*/
 
 
-		fmt.Print("probReturn...")
+		// probReturn
+		if info{
+			fmt.Print("Creating wolfram mathematica export code for probReturn...")
+			startTime = time.Now()
+		}
 		probReturn := pdist.SplineMultiply(long.ToSpline(0,max(pdist.x)))
 		content += probReturn.MathematicaExport("Blue","",false,folderName,"probReturn",mathematicaCompressionLevel,mathematicaImageResolution,"Automatic")
-		fmt.Println(" done.")
+		if info {
+			fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+		}
 
-		fmt.Print("probReturnIntegral...")
+
+		// probReturnIntegral
+		if info{
+			fmt.Print("Creating wolfram mathematica export code for probReturnIntegral...")
+			startTime = time.Now()
+		}
 		probReturnIntegral := probReturn.Integrate()
 		content += probReturnIntegral.MathematicaExport("Blue","",false,folderName,"probReturnIntegral",mathematicaCompressionLevel,mathematicaImageResolution,"Automatic")
-		fmt.Println(" done.")
+		if info {
+			fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+		}
 
 		root := probReturnIntegral.NewtonRoots(0,0.01,100)
 		fmt.Println("probReturnIntrgral root: ",root)
 
 
-		fmt.Print("pdistIntegral...")
+		// pdistIntegral
+		if info{
+			fmt.Print("Creating wolfram mathematica export code for pdistIntegral...")
+			startTime = time.Now()
+		}
 		pdistIntegrate := pdist.Integrate()
 		tmp,id := pdistIntegrate.PrintMathematicaCode(true,"Blue","Automatic")
 		mathCode += tmp+"\n"
 		mathCode += "Export[\"" + folderName + "\\pdistIntegrate.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 		content += mathCode
-		fmt.Println(" done.")
+		if info {
+			fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+		}
 
 		/*
 		fmt.Print("pdistIntegralInverse...")
@@ -1003,17 +1154,21 @@ func run(promptName string){
 			fmt.Println(" done.")
 		*/
 
-
-		fmt.Print("riskSpline...")
+		// riskSpline
+		if info{
+			fmt.Print("Creating wolfram mathematica export code for riskSpline...")
+			startTime = time.Now()
+		}
 		riskSpline, err := bestcall.ToSpread().riskProfile(pdist)
 		if len(riskSpline.x) == 0 || len(riskSpline.y) == 0 {continue}
 		if err == nil {
-			content += riskSpline.MathematicaExport2("Blue",riskTolSpline,"Darker[Red]","",false,folderName,"-riskSplineBestCall",mathematicaCompressionLevel,mathematicaImageResolution,"Automatic")
+			content += riskSpline.MathematicaExport2("Blue",riskTolSpline,"Darker[Red]","",true,folderName,"-riskSplineBestCall",mathematicaCompressionLevel,mathematicaImageResolution,"Automatic")
 		} else {
 			fmt.Println("ERROR in riskProfile:",err)
 		}
-
-		fmt.Println("done.")
+		if info {
+			fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+		}
 
 
 		/*
@@ -1023,8 +1178,17 @@ func run(promptName string){
 			mathCode += "Export[\"" + folderName + "\\-riskSplineBestCall.png\"," + fmt.Sprintf("Show[s%v]",id) + ", \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 			content += mathCode
 		*/
-		//plotRange := "{{0,1},{"+math.Min(riskSpline.At(0.0),riskTolSpline.At(0.0))+","+math.Max(riskSpline.At(1.0),riskTolSpline.At(1.0))+"}}"
+
+
+		// riskTolSpline
+		if info{
+			fmt.Print("Creating wolfram mathematica export code for riskTolSpline...")
+			startTime = time.Now()
+		}
 		content += riskTolSpline.MathematicaExport("Darker[Red]","",false,folderName,"-UserRiskTolSpline",mathematicaCompressionLevel,mathematicaImageResolution,riskPlotRange(riskSpline,riskTolSpline))
+		if info {
+			fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
+		}
 
 		//test nonInvested
 		/*
@@ -1076,10 +1240,13 @@ func run(promptName string){
 
 		 */
 
-		fmt.Println("forming and comparing spreads...")
+
 		// all 2-combinations of calls and {0.5,0.75,0.25} weighing in both directions (buy&sell)
-		riskCompare := true
-		selling := true
+		if info{
+			fmt.Println("Forming and comparing spreads and creating wolfram mathematica export codes...")
+			startTime = time.Now()
+		}
+		/*
 		bestSpreadExp := -1000.0
 		var bestSpread spread
 		var spread_tmp spread
@@ -1234,11 +1401,63 @@ func run(promptName string){
 			riskTolExclusion = fmt.Sprintf("%.2f Percent (%v out of %v) of spreads were excluded due to the risk profile not matching.\n",100.0*float64(totalCount-riskMatchCount)/float64(totalCount),totalCount-riskMatchCount,totalCount)
 			fmt.Println(riskTolExclusion)
 		}
-		fmt.Println("done.")
+		 */
+		riskCompare := true
+		selling := true
+		weights := []float64{0.0,0.1,0.25,0.5,0.75,0.9,1.0}
+		bestSpread,bestSpreadExp,riskMatchCount,totalCount,timeTallys := BestSpread2CombinationsManual(pdist,callList,weights,riskCompare,riskTolSpline,selling)
+
+		riskTolExclusion := ""
+		if riskCompare {
+			riskTolExclusion = fmt.Sprintf("%.3f Percent (%v out of %v) of spreads were excluded due to the risk profile not matching.\n",100.0*float64(totalCount-riskMatchCount)/float64(totalCount),totalCount-riskMatchCount,totalCount)
+			fmt.Println(riskTolExclusion)
+		}
+
+		if info {
+			tDelta := time.Now().Sub(startTime).Milliseconds()
+			fmt.Println("done. (took",tDelta,"ms, created and compared",totalCount,"spreads (",float64(tDelta)/float64(totalCount),"ms per spread))")
+			timeTally1 := timeTallys[0]
+			timeTally2 := timeTallys[1]
+			fmt.Printf("%.1f %% (%.1f seconds) of time was spend riskProfile(), the remaining %.1f %% (%.1f seconds) were spend in the rest of BestSpread2CombinationManual()\n",timeTally2/(timeTally1+timeTally2)*100,timeTally2/1000.0,timeTally1/(timeTally1+timeTally2)*100,timeTally1/1000.0)
+		}
 
 
 
+		/*
 		//fmt.Printf("Assuming the probability distribution for the date %v, the 2-spread with strikes and weights {(%.1f, %.2f),(%.1f, %.2f)} has the highest expected return out of all call options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%. %s", bestSpread.calls[0].date, bestSpread.calls[0].base,bestSpread.weights[0],bestSpread.calls[1].base,bestSpread.weights[1], bestSpreadExp, ticker, long.ExpectedReturn(pdist),riskTolExclusion)
+		if riskMatchCount == 0 {
+			fmt.Println("No spreads matching risk profile. Continue with next prompt.")
+			content += riskTolSpline.MathematicaExport("Darker[Red]","No spreads matching risk profile. Continue with next prompt.",true,folderName,"-bestSpreadRiskProfile",mathematicaCompressionLevel,mathematicaImageResolution,riskPlotRange(riskTolSpline,riskTolSpline))
+			continue
+		} else {
+			msg := fmt.Sprintf("Assuming the probability distribution for the date %v, the 2-spread with strikes and weights {(%s,%.1f, %.2f),(%s,%.1f, %.2f)} has the highest expected return out of all call options available with %.1f Percent expected return. Owning the underlying asset (%v) has an expected return of %.1f Percent. %s", bestSpread.calls[0].date,bestSpread.calls[0].optionType, bestSpread.calls[0].base,bestSpread.weights[0],bestSpread.calls[1].optionType,bestSpread.calls[1].base,bestSpread.weights[1], bestSpreadExp, ticker, long.ExpectedReturn(pdist),riskTolExclusion)
+			longSpline := long.ToSpline(min(pdist.x),max(pdist.x))
+			bestSpreadSpline := bestSpread.ToSpline(min(pdist.x),max(pdist.x))
+			content += bestSpreadSpline.MathematicaExport2("Blue",longSpline,"Red",msg,false,folderName,"-bestSpread",mathematicaCompressionLevel,mathematicaImageResolution,PlotRange(pdist,bestSpreadSpline,longSpline))
+			rp,err1 := bestSpread.riskProfile(pdist)
+			if len(rp.x) == 0 || len(rp.y) == 0 {continue}
+			if err1 == nil {
+				content += rp.MathematicaExport2("Blue",riskTolSpline,"Darker[Red]","",true,folderName,"-bestSpreadRiskProfile",mathematicaCompressionLevel,mathematicaImageResolution,riskPlotRange(rp,riskTolSpline))
+			} else {
+				fmt.Println("ERROR in riskProfile:",err)
+			}
+
+
+			//PosNegRange testing
+			fmt.Println("PosNegRange testing...")
+			bestSpreadSpline = bestSpread.ToSpline(min(pdist.x),max(pdist.x))
+			//bestSpreadSpline := bestcall.ToSpline(min(pdist.x),max(pdist.x))
+			yTest := 120.0
+			roots := bestSpreadSpline.NewtonRoots(yTest,0.0001,40)
+			fmt.Println("roots: ",roots)
+			negTest,_ := bestSpreadSpline.PosNegRange(yTest,0.0001,40)
+			fmt.Println("negRange: ",negTest)
+			fmt.Println("done.")
+
+		}
+		 */
+
+
 		msg := fmt.Sprintf("Assuming the probability distribution for the date %v, the 2-spread with strikes and weights {(%s,%.1f, %.2f),(%s,%.1f, %.2f)} has the highest expected return out of all call options available with %.1f Percent expected return. Owning the underlying asset (%v) has an expected return of %.1f Percent. %s", bestSpread.calls[0].date,bestSpread.calls[0].optionType, bestSpread.calls[0].base,bestSpread.weights[0],bestSpread.calls[1].optionType,bestSpread.calls[1].base,bestSpread.weights[1], bestSpreadExp, ticker, long.ExpectedReturn(pdist),riskTolExclusion)
 		longSpline := long.ToSpline(min(pdist.x),max(pdist.x))
 		bestSpreadSpline := bestSpread.ToSpline(min(pdist.x),max(pdist.x))
@@ -1246,7 +1465,7 @@ func run(promptName string){
 		rp,err1 := bestSpread.riskProfile(pdist)
 		if len(rp.x) == 0 || len(rp.y) == 0 {continue}
 		if err1 == nil {
-			content += rp.MathematicaExport2("Blue",riskTolSpline,"Darker[Red]","",false,folderName,"-bestSpreadRiskProfile",mathematicaCompressionLevel,mathematicaImageResolution,riskPlotRange(rp,riskTolSpline))
+			content += rp.MathematicaExport2("Blue",riskTolSpline,"Darker[Red]","",true,folderName,"-bestSpreadRiskProfile",mathematicaCompressionLevel,mathematicaImageResolution,riskPlotRange(rp,riskTolSpline))
 		} else {
 			fmt.Println("ERROR in riskProfile:",err)
 		}
@@ -1262,6 +1481,9 @@ func run(promptName string){
 		negTest,_ := bestSpreadSpline.PosNegRange(yTest,0.0001,40)
 		fmt.Println("negRange: ",negTest)
 		fmt.Println("done.")
+
+
+
 
 
 		//sell put testing
@@ -1385,12 +1607,232 @@ func run(promptName string){
 
 // ------------------------------- spread specific functions -------------------------------
 
-/*
-func BestSpread2Combinations(callList []callfunc, weights []float64, riskCompare bool, riskTolSpline my_spline) spread {
+//returns best spread,bestSpreadExp, riskMatchCount, totalCount
+func BestSpread2CombinationsManual(pdist my_spline, callList []callfunc, weights []float64, riskCompare bool, riskTolSpline my_spline, selling bool) (spread,float64,int,int,[]float64) {
 
+	bestSpreadExp := -10000.0
+	var bestSpread spread
+	var spread_tmp spread
+	var riskMatchBool bool
+	spreadStart := 0
+	timeTally1 := 0.0
+	timeTally2 := 0.0
+	timeStart := time.Now()
+	timeStart1 := time.Now()
+	timeStart2 := time.Now()
+	var percSteps float64
+	if riskCompare{
+		percSteps = 0.1
+	} else {
+		percSteps = 0.1
+	}
+	spreadCount := 0
+	riskMatchCount := 0
+	ws := weights
+	//ws := []float64{0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0}
+	//ws := []float64{0.25,0.5,0.75}
+	totalCount := (int)(4*len(ws)*len(callList)*(len(callList)-1)/2)
+	for i := 0 ; i < len(callList)-1 ; i++ {
+		for j := i+1 ; j < len(callList)-1 ; j++{
+			for _,w := range ws {
+
+				//buy-buy
+				spread_tmp = spread{
+					num:     2,
+					calls:   []callfunc{callList[i],callList[j]},
+					weights: []float64{w,(1.0-w)},
+				}
+				spreadCount++
+				//totalCount++
+				if spread_tmp.ExpectedReturn(pdist) > bestSpreadExp {
+					if riskCompare {
+
+						timeTally1 += float64(time.Now().Sub(timeStart1).Microseconds())/1000.0
+						timeStart2 = time.Now()
+						rp,err := spread_tmp.riskProfile(pdist)
+						timeTally2 += float64(time.Now().Sub(timeStart2).Microseconds())/1000.0
+						timeStart1 = time.Now()
+
+						rp,err = spread_tmp.riskProfile(pdist)
+						if len(rp.x) == 0 || len(rp.y) == 0 {continue}
+						if err == nil{
+							riskMatchBool = riskMatch(rp,riskTolSpline)
+						} else {
+							fmt.Println("ERROR in riskProfile:",err)
+						}
+					} else {riskMatchBool = true}
+					if riskMatchBool {riskMatchCount++}
+					if riskMatchBool {
+						//spreads = append(spreads,spread_tmp)
+						bestSpreadExp = spread_tmp.ExpectedReturn(pdist)
+						bestSpread = spread_tmp
+					}
+				}
+
+
+				if selling {
+
+					//buy-sell
+					spread_tmp = spread{
+						num:     2,
+						calls:   []callfunc{callList[i],callList[j]},
+						weights: []float64{w,-(1.0-w)},
+					}
+					spreadCount++
+					//totalCount++
+					if spread_tmp.ExpectedReturn(pdist) > bestSpreadExp {
+						if riskCompare {
+
+							timeTally1 += float64(time.Now().Sub(timeStart1).Microseconds())/1000.0
+							timeStart2 = time.Now()
+							rp,err := spread_tmp.riskProfile(pdist)
+							timeTally2 += float64(time.Now().Sub(timeStart2).Microseconds())/1000.0
+							timeStart1 = time.Now()
+
+							rp,err = spread_tmp.riskProfile(pdist)
+							if len(rp.x) == 0 || len(rp.y) == 0 {continue}
+							if err == nil{
+								riskMatchBool = riskMatch(rp,riskTolSpline)
+							} else {
+								fmt.Println("ERROR in riskProfile:",err)
+							}
+						} else {riskMatchBool = true}
+						if riskMatchBool {riskMatchCount++}
+						if riskMatchBool {
+							//spreads = append(spreads,spread_tmp)
+							bestSpreadExp = spread_tmp.ExpectedReturn(pdist)
+							bestSpread = spread_tmp
+						}
+					}
+
+					//sell-buy
+					spread_tmp = spread{
+						num:     2,
+						calls:   []callfunc{callList[i],callList[j]},
+						weights: []float64{-w,(1.0-w)},
+					}
+					spreadCount++
+					//totalCount++
+					if spread_tmp.ExpectedReturn(pdist) > bestSpreadExp {
+						if riskCompare {
+
+							timeTally1 += float64(time.Now().Sub(timeStart1).Microseconds())/1000.0
+							timeStart2 = time.Now()
+							rp,err := spread_tmp.riskProfile(pdist)
+							timeTally2 += float64(time.Now().Sub(timeStart2).Microseconds())/1000.0
+							timeStart1 = time.Now()
+
+							rp,err = spread_tmp.riskProfile(pdist)
+							if len(rp.x) == 0 || len(rp.y) == 0 {continue}
+							if err == nil{
+								riskMatchBool = riskMatch(rp,riskTolSpline)
+							} else {
+								fmt.Println("ERROR in riskProfile:",err)
+							}
+						} else {riskMatchBool = true}
+						if riskMatchBool {riskMatchCount++}
+						if riskMatchBool {
+							//spreads = append(spreads,spread_tmp)
+							bestSpreadExp = spread_tmp.ExpectedReturn(pdist)
+							bestSpread = spread_tmp
+						}
+					}
+
+
+					//sell-sell
+					spread_tmp = spread{
+						num:     2,
+						calls:   []callfunc{callList[i],callList[j]},
+						weights: []float64{-w,-(1.0-w)},
+					}
+					spreadCount++
+					//totalCount++
+					if spread_tmp.ExpectedReturn(pdist) > bestSpreadExp {
+						if riskCompare {
+
+							timeTally1 += float64(time.Now().Sub(timeStart1).Microseconds())/1000.0
+							timeStart2 = time.Now()
+							rp,err := spread_tmp.riskProfile(pdist)
+							timeTally2 += float64(time.Now().Sub(timeStart2).Microseconds())/1000.0
+							timeStart1 = time.Now()
+
+							rp,err = spread_tmp.riskProfile(pdist)
+							if len(rp.x) == 0 || len(rp.y) == 0 {continue}
+							if err == nil{
+								riskMatchBool = riskMatch(rp,riskTolSpline)
+							} else {
+								fmt.Println("ERROR in riskProfile:",err)
+							}
+						} else {riskMatchBool = true}
+						if riskMatchBool {riskMatchCount++}
+						if riskMatchBool {
+							//spreads = append(spreads,spread_tmp)
+							bestSpreadExp = spread_tmp.ExpectedReturn(pdist)
+							bestSpread = spread_tmp
+						}
+					}
+
+				}
+
+
+
+				//if math.Mod(float64(spreadCount)/float64(totalCount),percSteps) < percSteps/2000 {
+				if math.Mod(float64(spreadCount),percSteps*float64(totalCount)) < 4 {
+					elapsed := time.Now().Sub(timeStart).Milliseconds()
+					elapsedPerSpread := float64(elapsed)/float64(spreadCount-spreadStart)
+					fmt.Println(fmt.Sprintf("%.1f",100.0*float64(spreadCount)/float64(totalCount)) , "% (took "+fmt.Sprintf("%v milliseconds - %.4f ms per spread",elapsed,elapsedPerSpread)+") - est. time rem.:",fmt.Sprintf("%.1f",float64(totalCount-spreadCount)*elapsedPerSpread/1000),"seconds")
+					timeStart = time.Now()
+					spreadStart = spreadCount
+				}
+
+			}
+		}
+	}
+
+	timeTally1 += float64(time.Now().Sub(timeStart1).Microseconds())/1000.0
+
+	timeTallys := []float64{timeTally1,timeTally2}
+
+	if riskMatchCount == 0 {
+		return spread{
+			num:     0,
+			calls:   nil,
+			weights: nil,
+		},bestSpreadExp,0,0,timeTallys
+	}
+
+	return bestSpread,bestSpreadExp, riskMatchCount, totalCount, timeTallys
 }
- */
 
+//Add all combination of calls with weights to baseSpread, filter for riskTol and to bestSpreadExp and return the (new) best spread, its expected return and how many spreads have been created and checked and how many passed the risk tolerance
+func BestSpreadInteration(n int, baseSpread spread, bestSpreadExp float64, pdist my_spline, callList []callfunc, weights []float64, riskCompare bool, riskTolSpline my_spline, selling bool) (spread,float64,string,int,int) {
+
+
+	return spread{
+		num:     0,
+		calls:   nil,
+		weights: nil,
+	},0,"",100,10
+}
+
+//building all spreads first and only then comparing is very expensive w.r.t. RAM usage and should be avoided. Compare while building the spreads already and check for risk tolerance and discard bad spreads
+func FindBestSpread(pdist my_spline, spreads []spread) (spread,float64) {
+	// Expected returns of all spreads
+	//dx := 0.1
+	var SpreadsExpReturns []float64
+	for i := range spreads {
+		SpreadsExpReturns = append(SpreadsExpReturns,spreads[i].ExpectedReturn(pdist))
+	}
+	var bestSpread spread = spreads[0]
+	var bestSpreadExp float64 = SpreadsExpReturns[0]
+	for i,spExp := range SpreadsExpReturns[1:] {
+		if spExp > bestSpreadExp {
+			bestSpread = spreads[i]
+			bestSpreadExp = spExp
+		}
+	}
+	return bestSpread,bestSpreadExp
+}
 
 func(sp spread) Add (c callfunc, w float64) spread {
 	var weights_new []float64
@@ -1429,12 +1871,14 @@ func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 	var ys []float64
 	var probs []float64
 
-	n := 10
-	tolYPerc := 0.00001 //basically in NewtonRoot()
+	n := 100
+	tolYPerc := 0.01 //basically in NewtonRoot()
 	var probsMap map[float64]float64
 	probsMap = make(map[float64]float64)
-	dy := (max(spreadPerf.y)-min(spreadPerf.y))/float64(n)
-	if math.Abs(dy) < 0.0000000001 {
+	start := min(spreadPerf.y)
+	end := max(spreadPerf.y)
+	dy := (end-start)/float64(n)
+	if math.Abs(dy) < 0.00000001 {
 		return NewSpline([]string{"1","2"},[]float64{min(pdist.x),max(pdist.x)},[]float64{min(spreadPerf.y),max(spreadPerf.y)}), nil
 	}
 	if debug {
@@ -1443,9 +1887,10 @@ func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 		fmt.Println( "max(spreadPerf.y) :",max(spreadPerf.y) )
 		//os.Exit(0)
 	}
-	for y := min(spreadPerf.y)  /*-2*math.Abs(dy*min(spreadPerf.y))*/ ; y <= max(spreadPerf.y) ; y += dy{
+
+	for y := start  /*-2*math.Abs(dy*min(spreadPerf.y))*/ ; y <= end ; y += dy /*dy + dy*(-math.Pow (y - (start + end)/2, 2) + math.Pow ((start + end)/2, 2))/math.Pow ((start + end)/2, 2)*/ { //normally dy but I'm trying to concentrate more towards start and end
 		if debug {fmt.Println("y: ",y)}
-		neg,_ := spreadPerf.PosNegRange(y,tolYPerc,4*n)
+		neg,_ := spreadPerf.PosNegRange(y,tolYPerc,50/*4*n*/)
 		if debug {fmt.Println(neg)}
 		if len(neg) == 0 {
 			probs = append(probs,0.0)
@@ -1509,25 +1954,6 @@ func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 	return riskSpline,nil
 }
 
-//building all spreads first and only then comparing is very expensive w.r.t. RAM usage and should be avoided. Compare while building the spreads already and check for risk tolerance and discard bad spreads
-func FindBestSpread(pdist my_spline, spreads []spread) (spread,float64) {
-	// Expected returns of all spreads
-	//dx := 0.1
-	var SpreadsExpReturns []float64
-	for i := range spreads {
-		SpreadsExpReturns = append(SpreadsExpReturns,spreads[i].ExpectedReturn(pdist))
-	}
-	var bestSpread spread = spreads[0]
-	var bestSpreadExp float64 = SpreadsExpReturns[0]
-	for i,spExp := range SpreadsExpReturns[1:] {
-		if spExp > bestSpreadExp {
-			bestSpread = spreads[i]
-			bestSpreadExp = spExp
-		}
-	}
-	return bestSpread,bestSpreadExp
-}
-
 
 
 
@@ -1536,8 +1962,8 @@ func FindBestSpread(pdist my_spline, spreads []spread) (spread,float64) {
 // ------------------------------- my spline specific functions -------------------------------
 
 func riskMatch(riskProfile my_spline, riskTol my_spline) bool {
-	dx := 0.01
-	for x := 0.001 ; x <= 1.0+0.1*dx ; x += dx {
+	dx := 0.001
+	for x := 0.0 ; x <= 1.0 ; x += dx {
 		if riskProfile.At(x) < riskTol.At(x) {return false}
 	}
 	return true
@@ -3178,10 +3604,6 @@ func (call callfunc) ExpectedReturn (pdist my_spline) float64{
 	debug := false
 	var ref float64
 	var dx float64
-	if debug{
-		dx = 0.1
-		ref = call.ExpectedReturnDX(pdist,dx)
-	}
 	//result := pdist.SplineMultiply(call.ToSpline(min(pdist.x),max(pdist.x))).Integral(min(pdist.x),max(pdist.x),dx)
 	callSpline := call.ToSpline(min(pdist.x),max(pdist.x))
 	if len(callSpline.x) == 0 || len(callSpline.y) == 0 {
@@ -3190,7 +3612,12 @@ func (call callfunc) ExpectedReturn (pdist my_spline) float64{
 	}
 	result := pdist.SplineMultiply(callSpline).FullIntegralSpline()
 	if debug{
-		if math.Abs(ref - result) > 0.5*math.Abs(ref) {
+		fmt.Print("debug in call.ExpectedReturn ")
+		dx = 0.001
+		ref = call.ExpectedReturnDX(pdist,dx)
+		diff := math.Abs(ref - result)
+		fmt.Println("math.Abs(ref - result)=",diff)
+		if diff > 0.01*math.Abs(ref) {
 			fmt.Println("ExpectedReturn(): error: ref not close enough. Ref is ",ref," and the new result is ",result)
 			os.Exit(1)
 		}
@@ -3366,6 +3793,120 @@ func sortAndReturnIdxsFloat64(nums []float64) []int {
 }
 
 
+//saves pulled options as well as the date and the contract type in a json at location os.Getwd()/pathExt/filename.json
+func SaveOptionsJson(pathExt string, filename string, pulledDate time.Time, options []opt.Option, Contract_type []string){
+	//.UTC().Format("2006-01-02T15:04:05Z07:00")
+
+	data := map[string]interface{}{
+		"pulledDate":    pulledDate.UTC().Format("2006-01-02T15:04:05Z07:00"),
+		"options":   options,
+		"Contract_type":	Contract_type,
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		fmt.Printf("could not marshal json: %s\n", err)
+		return
+	}
+	jsonDataStr := fmt.Sprintf("%s\n",jsonData)
+	jsonDataStr = strings.Replace(jsonDataStr,",",",\n",-1)
+
+	path, err := os.Getwd()
+	check(err)
+	os.Mkdir(path+pathExt,0755)
+
+	WriteFile(filename+".json",jsonDataStr,pathExt)
+
+}
+
+func LoadOptionsJson(path string, filename string) (time.Time,[]string,[]opt.Option) {
+	jsonFile, err := os.Open(path+filename)
+	check(err)
+
+	// read our opened jsonFile as a byte array.
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+
+	var result map[string]interface{}
+	json.Unmarshal(byteValue, &result)
+
+	//ticker := result["ticker"].(string)
+
+	pulledDate_tmp := result["pulledDate"].(string)
+	//pulledDate_tmp = strings.Split(pulledDate_tmp,".")[0]
+	//fmt.Println("pulledDate_tmp=",pulledDate_tmp)
+	//layout := "2023-09-14T15:28:06.702131+02:00"
+	//layout := "2023-09-15T13:41:45Z"
+	pulledDate, err := time.Parse("2006-01-02T15:04:05Z07:00", pulledDate_tmp)
+	check(err)
+	//fmt.Println("pulledDate=",pulledDate)
+
+	/*
+	layout := "2006-01-02T15:04:05.000Z"
+	str := "2014-11-12T11:45:26.371Z"
+	t, err := time.Parse(layout, str)
+	 */
+
+
+	var Contract_type []string
+
+	for _,ct := range result["Contract_type"].([]interface{}) {
+		Contract_type = append(Contract_type,ct.(string))
+	}
+
+	var options []opt.Option
+
+	options_tmp := result["options"]
+	for _,o := range options_tmp.([]interface{}) {
+		oCasted := o.(map[string]interface{})
+		opt_tmp := opt.Option{}
+
+		//fmt.Println(o)
+
+		/*
+			Cfi string
+			Contract_type string
+			Exerciese_style string
+			Expiration_date string
+			Primaty_exchange string
+			Shares_per_contract int
+			Strike_price float64
+			Ticker string
+			Underlying_ticker string
+			Volume int
+			Vw float64
+			Open float64
+			Close float64
+			High float64
+			Low float64
+			T int
+			N int
+		 */
+
+		opt_tmp.Cfi 				= oCasted["Cfi"].(string)
+		opt_tmp.Contract_type 		= oCasted["Contract_type"].(string)
+		opt_tmp.Exerciese_style 	= oCasted["Exerciese_style"].(string)
+		opt_tmp.Expiration_date		= oCasted["Expiration_date"].(string)
+		opt_tmp.Primaty_exchange 	= oCasted["Primaty_exchange"].(string)
+		opt_tmp.Shares_per_contract = int(oCasted["Shares_per_contract"].(float64))
+		opt_tmp.Strike_price 		= oCasted["Strike_price"].(float64)
+		opt_tmp.Ticker 				= oCasted["Ticker"].(string)
+		opt_tmp.Underlying_ticker 	= oCasted["Underlying_ticker"].(string)
+		opt_tmp.Volume 				= int(oCasted["Volume"].(float64))
+		opt_tmp.Vw 					= oCasted["Vw"].(float64)
+		opt_tmp.Open 				= oCasted["Open"].(float64)
+		opt_tmp.Close 				= oCasted["Close"].(float64)
+		opt_tmp.High 				= oCasted["High"].(float64)
+		opt_tmp.Low 				= oCasted["Low"].(float64)
+		opt_tmp.T 					= int(oCasted["T"].(float64))
+		opt_tmp.N 					= int(oCasted["N"].(float64))
+
+		//fmt.Println(opt_tmp)
+		options = append(options,opt_tmp)
+
+	}
+
+	return pulledDate,Contract_type,options
+}
+
 func SavePromptJson(ticker string ,pdistDates []string, pdistX map[string][]float64, pdistY map[string][]float64, StrikeRange []int ,Contract_type string) {
 	data := map[string]interface{}{
 		"ticker":    ticker,
@@ -3386,6 +3927,7 @@ func SavePromptJson(ticker string ,pdistDates []string, pdistX map[string][]floa
 
 	currentTime := time.Now()
 	live := currentTime.Format("2006-01-02")
+
 	filename := "prompt2_"+ticker+" ("+live+").json"
 	path, err := os.Getwd()
 	check(err)
@@ -3554,9 +4096,11 @@ func LoadPromptEasy(path string, filename string) (string, []string, map[string]
 		}
 	}
 	// Print resultMap
+	/*
 	for k, v := range pdistDatesXY {
 		fmt.Printf("%s: %v\n", k, v)
 	}
+	 */
 
 
 	/*
@@ -3591,11 +4135,13 @@ func LoadPromptEasy(path string, filename string) (string, []string, map[string]
 	}
 
 
+	/*
 	fmt.Println(ticker)
 	fmt.Println(pdistDatesXY)
 	fmt.Println(StrikeRange)
 	fmt.Println(Contract_type)
 	fmt.Println(DateRange)
+	 */
 
 	//Convert pdistDatesXY into pdistDates, pdistX, pdistY
 	var pdistDates = make ([]string,0)
@@ -3612,7 +4158,7 @@ func LoadPromptEasy(path string, filename string) (string, []string, map[string]
 	}
 
 	riskTol := result["riskTol"].([]interface{})
-	fmt.Println("riskTol:\n",riskTol)
+	//fmt.Println("riskTol:\n",riskTol)
 	var riskTolX = make([]float64,len(riskTol))
 	var riskTolY = make([]float64,len(riskTol))
 	for i := range riskTol {
@@ -3620,10 +4166,12 @@ func LoadPromptEasy(path string, filename string) (string, []string, map[string]
 		riskTolY[i] = riskTol[i].([]interface{})[1].(float64)
 	}
 
+	/*
 	fmt.Println("len(pdistDatesXY)=",len(pdistDatesXY))
 	fmt.Println("pdistDates: ",pdistDates, "len: ",len(pdistDates))
 	fmt.Println("pdistX: ",pdistX, "len[0]: ",len(pdistX[pdistDates[0]]))
 	fmt.Println("pdistY: ",pdistY, "len[0]: ",len(pdistY[pdistDates[0]]))
+	 */
 
 	//os.Exit(1)
 
@@ -3706,7 +4254,7 @@ func OptionsToOptionsDates (options []opt.Option, addToAll []callfunc) ([]string
 
 		dateStr = strings.Split(optt.Expiration_date,"-")
 		dateInt = []int{}
-		for i:=0;i<3;i++ {
+		for i:=0;i</*3*/len(dateStr);i++ {
 			tmp,_ := strconv.Atoi(dateStr[i])
 			dateInt = append(dateInt,tmp)
 		}
