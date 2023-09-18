@@ -1309,9 +1309,13 @@ func run(promptName string){
 			startTime = time.Now()
 		}
 		contractTypes := []string{"call","put","call","put"}
-		bestSpreadFindN, bestSpreadFindNExp := BestSpreadIterativeFindN(N,pdist,callList,weightDelta,iterations,riskTolSpline,starts,contractTypes)
-		fmt.Println("BestSpreadIterativeFindN() with N=",N," compared",N*4*iterations*starts," spreads and found",bestSpreadFindN,"with an exp. return of",bestSpreadFindNExp)
-
+		bestSpreadFindN, bestSpreadFindNExp,riskTotalCount,riskMatchCount := BestSpreadIterativeFindN(N,pdist,callList,weightDelta,iterations,riskTolSpline,starts,contractTypes)
+		if info {
+			totalCount := N*4*iterations*starts
+			fmt.Println("BestSpreadIterativeFindN() with N=",N," compared",totalCount," spreads and found",bestSpreadFindN,"with an exp. return of",bestSpreadFindNExp)
+			riskTolExclusion := fmt.Sprintf("%.5f Percent (%v out of %v) of spreads were excluded due to the risk profile not matching.\n",100.0*float64(riskTotalCount-riskMatchCount)/float64(totalCount),riskTotalCount-riskMatchCount,riskTotalCount)
+			fmt.Println(riskTolExclusion)
+		}
 		//msg := fmt.Sprintf("Assuming the probability distribution for the date %v, the 2-spread with strikes and weights {(%s,%.1f, %.2f),(%s,%.1f, %.2f)} has the highest expected return out of all call options available with %.1f Percent expected return. Owning the underlying asset (%v) has an expected return of %.1f Percent. %s", bestSpread.calls[0].date,bestSpread.calls[0].optionType, bestSpread.calls[0].base,bestSpread.weights[0],bestSpread.calls[1].optionType,bestSpread.calls[1].base,bestSpread.weights[1], bestSpreadExp, ticker, long.ExpectedReturn(pdist),riskTolExclusion)
 		longSpline = long.ToSpline(min(pdist.x),max(pdist.x))
 		bestSpreadFindSpline = bestSpreadFindN.ToSpline(min(pdist.x),max(pdist.x))
@@ -1328,6 +1332,7 @@ func run(promptName string){
 			elapsedPerSpread := float64(elapsed)/float64(N*4*iterations*starts)
 			fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms - ",elapsedPerSpread,"ms per spread)")
 		}
+
 
 
 
@@ -1503,7 +1508,7 @@ func run(promptName string){
 
 		riskTolExclusion := ""
 		if riskCompare {
-			riskTolExclusion = fmt.Sprintf("%.3f Percent (%v out of %v) of spreads were excluded due to the risk profile not matching.\n",100.0*float64(totalCount-riskMatchCount)/float64(totalCount),totalCount-riskMatchCount,totalCount)
+			riskTolExclusion = fmt.Sprintf("%.5f Percent (%v out of %v) of spreads were excluded due to the risk profile not matching.\n",100.0*float64(totalCount-riskMatchCount)/float64(totalCount),totalCount-riskMatchCount,totalCount)
 			fmt.Println(riskTolExclusion)
 		}
 
@@ -2526,10 +2531,15 @@ func BestSpreadIterativeFind4(pdist my_spline, optionsList []callfunc, weightDel
 
 }
 
-//still change from 4 to N
-func BestSpreadIterativeFindN(N int, pdist my_spline, optionsList []callfunc, weightDelta float64, iterations int, riskTolSpline my_spline, starts int, contractTypes []string) (spread,float64) {
+func BestSpreadIterativeFindN(N int, pdist my_spline, optionsList []callfunc, weightDelta float64, iterations int, riskTolSpline my_spline, starts int, contractTypes []string) (spread,float64,int,int) {
 
 	debug := true
+
+	startStarts := starts
+	startIterations := iterations
+
+	riskTotalCount := 0
+	riskMatchCount := 0
 
 	if len(contractTypes) != N {
 		fmt.Println("Error in BestSpreadIterativeFindN: len(contractTypes) != N !")
@@ -2609,6 +2619,11 @@ func BestSpreadIterativeFindN(N int, pdist my_spline, optionsList []callfunc, we
 	var startSpread spread
 	var startSpreadExp float64
 
+	//progress printing variables
+	var timeStart int = time.Now()
+	var spreadStart int = 0
+	percSteps := 0.1
+
 
 	for starts >= 0 {
 		fmt.Println("starts=",starts)
@@ -2678,6 +2693,9 @@ func BestSpreadIterativeFindN(N int, pdist my_spline, optionsList []callfunc, we
 
 		startSpreadExpBefore := -1000.0
 
+		var tmpRiskTotalCount int
+		var tmpRiskMatchCount int
+
 
 		for iterations > 0 /*&& math.Abs((bestSpreadExp-bestSpreadExpBefore)/bestSpreadExpBefore) > 0.01*/ {
 			startSpreadExpBefore = startSpreadExp
@@ -2690,19 +2708,27 @@ func BestSpreadIterativeFindN(N int, pdist my_spline, optionsList []callfunc, we
 
 				//o +
 				alterDirection = 1
-				startSpread,startSpreadExp,currentIdxs = alterCall(alterIndex, alterDirection, callList, putList, currentIdxs, searchLength, startSpread, pdist, riskTolSpline, startSpreadExp, debug)
+				startSpread,startSpreadExp,currentIdxs,tmpRiskTotalCount,tmpRiskMatchCount = alterCall(alterIndex, alterDirection, callList, putList, currentIdxs, searchLength, startSpread, pdist, riskTolSpline, startSpreadExp, debug)
+				riskTotalCount += tmpRiskTotalCount
+				riskMatchCount += tmpRiskMatchCount
 
 				//o -
 				alterDirection = -1
-				startSpread,startSpreadExp,currentIdxs = alterCall(alterIndex, alterDirection, callList, putList, currentIdxs, searchLength, startSpread, pdist, riskTolSpline, startSpreadExp, debug)
+				startSpread,startSpreadExp,currentIdxs,tmpRiskTotalCount,tmpRiskMatchCount = alterCall(alterIndex, alterDirection, callList, putList, currentIdxs, searchLength, startSpread, pdist, riskTolSpline, startSpreadExp, debug)
+				riskTotalCount += tmpRiskTotalCount
+				riskMatchCount += tmpRiskMatchCount
 
 				//w +
 				alterDirection = 1
-				startSpread, startSpreadExp = alterWeights(alterIndex, alterDirection, weightDelta, searchLength, startSpread, pdist, riskTolSpline, startSpreadExp, debug)
+				startSpread, startSpreadExp,tmpRiskTotalCount,tmpRiskMatchCount = alterWeights(alterIndex, alterDirection, weightDelta, searchLength, startSpread, pdist, riskTolSpline, startSpreadExp, debug)
+				riskTotalCount += tmpRiskTotalCount
+				riskMatchCount += tmpRiskMatchCount
 
 				//w -
 				alterDirection = -1
-				startSpread, startSpreadExp = alterWeights(alterIndex, alterDirection, weightDelta, searchLength, startSpread, pdist, riskTolSpline, startSpreadExp, debug)
+				startSpread, startSpreadExp,tmpRiskTotalCount,tmpRiskMatchCount = alterWeights(alterIndex, alterDirection, weightDelta, searchLength, startSpread, pdist, riskTolSpline, startSpreadExp, debug)
+				riskTotalCount += tmpRiskTotalCount
+				riskMatchCount += tmpRiskMatchCount
 
 			}
 
@@ -2718,6 +2744,19 @@ func BestSpreadIterativeFindN(N int, pdist my_spline, optionsList []callfunc, we
 			} else {
 				searchLength = 1
 			}
+
+
+			//progress print
+			spreadCount := 4*(startIterations-iterations)*(startStarts-starts)
+			totalCount := 4*startIterations*startStarts
+			if math.Mod(spreadCount,percSteps*float64(totalCount)) < 4 {
+				elapsed := time.Now().Sub(timeStart).Milliseconds()
+				elapsedPerSpread := float64(elapsed)/float64(spreadCount-spreadStart)
+				fmt.Println(fmt.Sprintf("%.1f",100.0*float64(spreadCount)/float64(totalCount)) , "% (took "+fmt.Sprintf("%v milliseconds - %.4f ms per spread",elapsed,elapsedPerSpread)+") - est. time rem.:",fmt.Sprintf("%.1f",float64(totalCount-spreadCount)*elapsedPerSpread/1000),"seconds")
+				timeStart = time.Now()
+				spreadStart = spreadCount
+			}
+
 
 			iterations--
 		}
@@ -2738,12 +2777,14 @@ func BestSpreadIterativeFindN(N int, pdist my_spline, optionsList []callfunc, we
 		(this way you won't find mispricings and might get stuck due to a mispricing; go perhaps 5 steps in the direction and compare them all)
 	*/
 
-	return bestSpread,bestSpreadExp
+	return bestSpread,bestSpreadExp,riskTotalCount,riskMatchCount
 
 }
 
 
-func alterCall(alterIndex int, alterDirection int, callList []callfunc, putList []callfunc , currentIdxs []int, searchLength int, startSpread spread, pdist my_spline, riskTolSpline my_spline, startSpreadExp float64, debug bool) (spread,float64,[]int) {
+func alterCall(alterIndex int, alterDirection int, callList []callfunc, putList []callfunc , currentIdxs []int, searchLength int, startSpread spread, pdist my_spline, riskTolSpline my_spline, startSpreadExp float64, debug bool) (spread,float64,[]int,int,int) {
+	riskMatchCount := 0
+	riskTotalCount := 0
 	tmpOptionType := startSpread.calls[alterIndex].optionType
 	var optList []callfunc
 	if tmpOptionType == "call" || tmpOptionType == "long" {
@@ -2761,20 +2802,26 @@ func alterCall(alterIndex int, alterDirection int, callList []callfunc, putList 
 			weights: startSpread.weights,
 		}
 		tmpExp := tmp.ExpectedReturn(pdist)
-		tmpRiskProfile,err := tmp.riskProfile(pdist)
-		check(err)
-		if tmpExp > startSpreadExp && riskMatch(tmpRiskProfile,riskTolSpline){
-			startSpread = tmp
-			startSpreadExp = tmpExp
-			currentIdxs[alterIndex] += alterDirection*searchLength
-			if debug {fmt.Println(startSpreadExp)}
+		if tmpExp > startSpreadExp{
+			tmpRiskProfile,err := tmp.riskProfile(pdist)
+			check(err)
+			riskTotalCount++
+			if riskMatch(tmpRiskProfile,riskTolSpline) {
+				riskMatchCount++
+				startSpread = tmp
+				startSpreadExp = tmpExp
+				currentIdxs[alterIndex] += alterDirection*searchLength
+				if debug {fmt.Println(startSpreadExp)}
+			}
+
 		}
 	}
-	return startSpread,startSpreadExp,currentIdxs
+	return startSpread,startSpreadExp,currentIdxs,riskTotalCount,riskMatchCount
 }
 
-func alterWeights(alterIndex int, alterDirection int, weightDelta float64, searchLength int, startSpread spread, pdist my_spline, riskTolSpline my_spline, startSpreadExp float64, debug bool) (spread,float64) {
-
+func alterWeights(alterIndex int, alterDirection int, weightDelta float64, searchLength int, startSpread spread, pdist my_spline, riskTolSpline my_spline, startSpreadExp float64, debug bool) (spread,float64,int,int) {
+	riskMatchCount := 0
+	riskTotalCount := 0
 	if startSpread.weights[alterIndex] + float64(alterDirection*searchLength)*weightDelta <= 1.0 {
 		tmpWeights := startSpread.weights
 		tmpWeights[alterIndex] = tmpWeights[alterIndex]+float64(alterDirection*searchLength)*weightDelta
@@ -2800,15 +2847,21 @@ func alterWeights(alterIndex int, alterDirection int, weightDelta float64, searc
 			weights: tmpWeights,
 		}
 		tmpExp := tmp.ExpectedReturn(pdist)
-		tmpRiskProfile,err := tmp.riskProfile(pdist)
-		check(err)
-		if tmpExp > startSpreadExp && riskMatch(tmpRiskProfile,riskTolSpline){
-			startSpread = tmp
-			startSpreadExp = tmpExp
-			if debug {fmt.Println(startSpreadExp)}
+
+		if tmpExp > startSpreadExp{
+			riskTotalCount++
+			tmpRiskProfile,err := tmp.riskProfile(pdist)
+			check(err)
+			if riskMatch(tmpRiskProfile,riskTolSpline) {
+				riskMatchCount++
+				startSpread = tmp
+				startSpreadExp = tmpExp
+				if debug {fmt.Println(startSpreadExp)}
+			}
+
 		}
 	}
-	return startSpread, startSpreadExp
+	return startSpread,startSpreadExp,riskTotalCount,riskMatchCount
 }
 
 //building all spreads first and only then comparing is very expensive w.r.t. RAM usage and should be avoided. Compare while building the spreads already and check for risk tolerance and discard bad spreads
