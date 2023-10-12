@@ -1033,7 +1033,7 @@ func run(promptSubPath string){
 				fmt.Println("diff=",int(math.Abs(float64(pdDy - y))))
 				 */
 				if int(math.Abs(float64(pdDy - (y+1)))) < yBestDist {
-					yBestDist = int(math.Abs(float64(pdDy - y)))
+					yBestDist = int(math.Abs(float64(pdDy - (y+1))))
 					/*
 					fmt.Println("match!")
 					fmt.Println("pdDy=",pdDy)
@@ -1052,7 +1052,7 @@ func run(promptSubPath string){
 				fmt.Println("diff=",int(math.Abs(float64(pdDy - y))))
 				 */
 				if int(math.Abs(float64(pdDy - (y)))) < yBestDist {
-					yBestDist = int(math.Abs(float64(pdDy - (y-1))))
+					yBestDist = int(math.Abs(float64(pdDy - (y))))
 					/*
 					fmt.Println("match!")
 					fmt.Println("pdDy=",pdDy)
@@ -1661,7 +1661,7 @@ func run(promptSubPath string){
 
 
 		// Brute force legacy
-		brute := false
+		brute := true
 
 		if brute {
 
