@@ -5060,7 +5060,7 @@ func call_gain_perc(x float64, call callfunc) float64{
 	//				math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor)))-1
 	//				 = math.Abs(1.0/call.factor)/(call.cost*call.factor) *x - math.Abs(1.0/call.factor)*call.base/(call.cost*call.factor)
 	//return math.Max(-1,math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor))-1)*100
-	return math.Max(-1,1.0*((x-call.base)/(call.cost))-1)*100
+	return math.Max(-1,call.factor*((x-call.base)/(call.cost))-1)*100
 }
 
 /*
@@ -5198,13 +5198,13 @@ func (call callfunc) ToSpline(a,b float64) my_spline {
 			splineType: []string{"3","2","=Sl","=Cv","EQSl"},//not really
 			x:          []float64{a,call.base,b},
 			y:          []float64{call.At(a),-100,-100},
-			//coeffs:     []float64{call.factor/call.cost*100,-100-100*call.base*call.factor/call.cost,0,-100},
+			coeffs:     []float64{call.factor/call.cost*100,-100-100*call.base*call.factor/call.cost,0,-100},
 			//100*Max[-1,  %.4f*((x-%.3f)/%.10f)-1   ,math.Abs(1.0/call.factor)  ,  call.base  ,  call.cost*call.factor
 			//				math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor)))-1
 			//				 = math.Abs(1.0/call.factor)/(call.cost*call.factor) *x - math.Abs(1.0/call.factor)*call.base/(call.cost*call.factor)
 			//coeffs:     []float64{call.factor*call.cost*100,-100-100*call.base*call.factor*call.cost   ,0,-100},
 			//coeffs:     []float64{math.Abs(1.0/call.factor)/(call.cost*call.factor)*100 , -100-100*call.base*math.Abs(1.0/call.factor)/(call.cost*call.factor)   ,0,-100},
-			coeffs:     []float64{1.0/(call.cost)*100 , -100-100*call.base*1.0/(call.cost)   ,0,-100},
+			//coeffs:     []float64{1.0/(call.cost)*100 , -100-100*call.base*1.0/(call.cost)   ,0,-100},
 			unique:     false,
 		}
 	}
@@ -5213,10 +5213,10 @@ func (call callfunc) ToSpline(a,b float64) my_spline {
 			splineType: []string{"3","2","=Sl","=Cv","EQSl"},//not really
 			x:          []float64{a,call.base,b},
 			y:          []float64{-100,-100,call.At(b)},
-			//coeffs:     []float64{0,-100,call.factor/call.cost*100,-100-100*call.base*call.factor/call.cost},
+			coeffs:     []float64{0,-100,call.factor/call.cost*100,-100-100*call.base*call.factor/call.cost},
 			//coeffs:     []float64{0,-100,call.factor*call.cost*100,-100-100*call.base*call.factor*call.cost},
 			//coeffs:     []float64{0,-100  ,  math.Abs(1.0/call.factor)/(call.cost*call.factor)*100,-100-100*call.base*math.Abs(1.0/call.factor)/(call.cost*call.factor)},
-			coeffs:     []float64{0,-100  ,  1.0/(call.cost)*100,-100-100*call.base*1.0/(call.cost)},
+			//coeffs:     []float64{0,-100  ,  1.0/(call.cost)*100,-100-100*call.base*1.0/(call.cost)},
 			unique:     false,
 		}
 }
