@@ -1,0 +1,13 @@
+{
+"Cash": 500.0
+"OptionsHeld": [
+[
+"base": 0,
+"cost": 250,
+"factor": 1.0,
+"date": [2023,9,30],
+"optionType": "long"
+],
+"amount": 2
+]
+}
