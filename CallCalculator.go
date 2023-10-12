@@ -1849,7 +1849,7 @@ func run(promptSubPath string){
 				fmt.Println("done. (took",tDelta/1000.0/60.0,"mins, created and compared",totalCount,"spreads (",float64(tDelta)/float64(totalCount),"ms per spread) and found a spread with exp. return",bestSpreadExp,"%)")
 				timeTally1 := timeTallys[0]
 				timeTally2 := timeTallys[1]
-				fmt.Printf("%.1f %% (%.1f seconds) of time was spend riskProfile(), the remaining %.1f %% (%.1f seconds) were spend in the rest of BestSpread2CombinationManual()\n",timeTally2/(timeTally1+timeTally2)*100,timeTally2/1000.0,timeTally1/(timeTally1+timeTally2)*100,timeTally1/1000.0)
+				fmt.Printf("%.1f %% (%.1f seconds) of time was spent riskProfile(), the remaining %.1f %% (%.1f seconds) were spent in the rest of BestSpread2CombinationManual()\n",timeTally2/(timeTally1+timeTally2)*100,timeTally2/1000.0,timeTally1/(timeTally1+timeTally2)*100,timeTally1/1000.0)
 			}
 
 
