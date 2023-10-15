@@ -5357,9 +5357,18 @@ func MathematicaCodeZeroIntersection(callList []callfunc) string {
 
 // ------------------------------- general functions -------------------------------
 
+//careful: only all calls or all puts
+func OptionLeastSquare(callList []callfunc) error {
+	callType := callList[0].optionType
+	for _,c := range callList[1:] {
+		if c.optionType != callType {return fmt.Errorf("not same option type (call,put)")}
+	}
+	
+	return nil
+}
 
 func LeastSquare(x,y []float64) {
-	
+
 }
 
 /*
