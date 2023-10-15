@@ -563,6 +563,7 @@ func run(promptSubPath string){
 	forceUpdate := false
 	debug := false
 	info := true
+	brute := false
 
 	promptName := strings.Split(strings.Split(strings.Split(promptSubPath,"\\")[2],".")[0],"_")[1]
 	fmt.Println("promptName=",promptName)
@@ -664,11 +665,7 @@ func run(promptSubPath string){
 
 
 	if info {
-		if forceUpdate{
-			fmt.Print("Making API Calls to pull neccessary data...")
-		} else {
-			fmt.Print("Making API Calls to pull currency ratios and the current share price but not Optionsdata as update=false ...")
-		}
+		fmt.Print("Making API Calls to pull neccessary data...")
 		startTime = time.Now()
 	}
 
@@ -683,7 +680,11 @@ func run(promptSubPath string){
 	//Pull USDEUR
 	usdtoeur,err = strconv.ParseFloat(body,64)
 	check(err)
-	eurtousd = 1/usdtoeur
+	eurtousd = 1.0/usdtoeur
+	if info{
+		fmt.Printf("Data pulled: EURUSD=%.3f\n",eurtousd)
+	}
+
 
 
 	//Pull share price
@@ -698,6 +699,10 @@ func run(promptSubPath string){
 	share_price,err = strconv.ParseFloat(body,64)
 	check(err)
 	//fmt.Println("share_price(",ticker,"): ",share_price)
+
+	if info{
+		fmt.Printf("Data pulled: share_price(%s)=%.3f\n",ticker,share_price)
+	}
 
 
 
@@ -734,7 +739,7 @@ func run(promptSubPath string){
 			fmt.Println("outOfDate=",outOfDate)
 			fmt.Println("pulledDate=",pulledDate)
 		}
-		var hoursLimit int = 12
+		var hoursLimit int = 36
 		if outOfDate > float64(hoursLimit*60) {
 			fmt.Printf("optionsdata %v h %v m old which is too old (%vh limit) - pulling data again through the API\n",(int)(outOfDate/60),int(math.Mod(outOfDate,60)),hoursLimit)
 			options = options_tmp
@@ -844,7 +849,7 @@ func run(promptSubPath string){
 	if info {
 		fmt.Println("Found ",len(optionsDates), "(",optionsDates,") dates.")
 		fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
-		fmt.Printf("Brute force 2-spread comparison will compare %d spreads for all %v dates.\n Assuming a calculation time of 0.08 ms per spread, this will take approx. %.1f hours.\n",comparisonApprox,len(optionsDates),float64(comparisonApprox)*0.08/1000.0/60.0/24.0)
+		if brute{fmt.Printf("Brute force 2-spread comparison will compare %d spreads for all %v dates.\n Assuming a calculation time of 0.08 ms per spread, this will take approx. %.1f hours.\n",comparisonApprox,len(optionsDates),float64(comparisonApprox)*0.08/1000.0/60.0/24.0)}
 	}
 
 	/*
@@ -900,7 +905,7 @@ func run(promptSubPath string){
 	*/
 
 
-	debug = false
+	//debug = true
 	if debug {
 		fmt.Println("len of optionsDates2: ", len(optionsMap), " aka. for how many different dates call options got loaded.\n These are all the dates:")
 		for _,d := range optionsDates {
@@ -978,12 +983,12 @@ func run(promptSubPath string){
 		for i := j ; i < len(optionsDates) ; i++ {
 			comparisonApprox += int(math.Pow(float64(len(optionsMap[optionsDates[i]])),2)*float64(len(weights)))
 		}
-		if info {
+		if info && brute{
 			fmt.Printf("Brute force 2-spread comparison will compare %d spreads for the remaining %v dates.\n Assuming a calculation time of 0.08 ms per spread, this will take approx. %.3f hours.\n",comparisonApprox,len(optionsDates)-j-1,float64(comparisonApprox)*0.08/1000.0/60.0/24.0)
 		}
 
 		comparisonApprox = int(math.Pow(float64(len(optionsMap[d])),2)*float64(len(weights)))
-		if info {
+		if info && brute {
 			fmt.Printf("Brute force 2-spread comparison will compare %d spreads for this date (%s).\n Assuming a calculation time of 0.08 ms per spread, this will take approx. %.3f hours.\n",comparisonApprox,d,float64(comparisonApprox)*0.08/1000.0/60.0/24.0)
 		}
 
@@ -993,7 +998,7 @@ func run(promptSubPath string){
 		check(err)
 
 
-		hoursToExpiry := dDate.Sub(time.Now()).Hours()
+		hoursToExpiry := float64(dDate.Sub(time.Now()).Hours())
 		daysToExpiry := hoursToExpiry/24.0
 		yearsToExpiry := float64(daysToExpiry)/365.0
 
@@ -1119,6 +1124,33 @@ func run(promptSubPath string){
 		if info{
 			fmt.Println("Found ",len(optionsList)," options for ",ticker," on the date ",d)
 		}
+
+
+		//debugging - print all(?, just one call,put each?) calls and puts through PrintMathematicaCode()
+		debugBasic := false
+		if debugBasic{
+			testCode := mathCode
+			var testCallPut []callfunc
+			var callIn, putIn bool = false,false
+			for _,c := range callList {
+				if len(testCallPut)== 2{
+					testCode += testCallPut[0].ToSpline(0.0,1000.0).MathematicaExport2("Red",testCallPut[1].ToSpline(0.0,1000.0),"Red","",false,folderName,"-testCallPut",mathematicaCompressionLevel,mathematicaImageResolution,"Automatic")
+					WriteFile("testCallPut.nb",testCode,"/tmp/"+live+"/"+promptName+"/")
+					//"output.nb",content,"/tmp/"+live+"/"+promptName+"/"
+					//WriteFile("testCallPut.nb",testCode,"")
+					os.Exit(124)
+				}
+				if c.optionType=="call" && !callIn && c.base>200.0 {
+					testCallPut = append(testCallPut,c)
+					callIn=true
+				}
+				if c.optionType=="put" && !putIn && c.base>200.0 {
+					testCallPut = append(testCallPut,c)
+					putIn=true
+				}
+			}
+		}
+
 
 
 		// Pdist
@@ -1661,7 +1693,6 @@ func run(promptSubPath string){
 
 
 		// Brute force legacy
-		brute := true
 
 		if brute {
 
@@ -5056,11 +5087,8 @@ func call_breakeven_base(call callfunc, curbase float64) float64{
 func call_gain_perc(x float64, call callfunc) float64{
 	//return math.Max(-1,x/(call.cost/call.factor)-call.base/(call.cost/call.factor)-1)*100
 	//return math.Max(-1,((1.0/call.factor*(x-call.base))/call.cost)-1)*100
-	//100*Max[-1,  %.4f*((x-%.3f)/%.10f)-1   ,math.Abs(1.0/call.factor)  ,  call.base  ,  call.cost*call.factor
-	//				math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor)))-1
-	//				 = math.Abs(1.0/call.factor)/(call.cost*call.factor) *x - math.Abs(1.0/call.factor)*call.base/(call.cost*call.factor)
-	//return math.Max(-1,math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor))-1)*100
-	return math.Max(-1,call.factor*((x-call.base)/(call.cost))-1)*100
+	//100*Max[-1,abs(1/fac)*((x-base)/(cost*factor))-1],{x,0,%.3f},ImageSize->Large, PlotRange->Automatic];\n",math.Abs(1.0/call.factor),call.base,call.cost*call.factor
+	return math.Max(-1,math.Abs(call.factor)*((x-call.base)/(call.cost*call.factor))-1)*100
 }
 
 /*
@@ -5198,13 +5226,13 @@ func (call callfunc) ToSpline(a,b float64) my_spline {
 			splineType: []string{"3","2","=Sl","=Cv","EQSl"},//not really
 			x:          []float64{a,call.base,b},
 			y:          []float64{call.At(a),-100,-100},
-			//coeffs:     []float64{call.factor/call.cost*100,-100-100*call.base*call.factor/call.cost,0,-100},
+			coeffs:     []float64{call.factor/call.cost*100,-100-100*call.base*call.factor/call.cost,0,-100},
 			//100*Max[-1,  %.4f*((x-%.3f)/%.10f)-1   ,math.Abs(1.0/call.factor)  ,  call.base  ,  call.cost*call.factor
 			//				math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor)))-1
 			//				 = math.Abs(1.0/call.factor)/(call.cost*call.factor) *x - math.Abs(1.0/call.factor)*call.base/(call.cost*call.factor)
 			//coeffs:     []float64{call.factor*call.cost*100,-100-100*call.base*call.factor*call.cost   ,0,-100},
 			//coeffs:     []float64{math.Abs(1.0/call.factor)/(call.cost*call.factor)*100 , -100-100*call.base*math.Abs(1.0/call.factor)/(call.cost*call.factor)   ,0,-100},
-			coeffs:     []float64{1.0/(call.cost)*100 , -100-100*call.base*1.0/(call.cost)   ,0,-100},
+			//coeffs:     []float64{1.0/(call.cost)*100 , -100-100*call.base*1.0/(call.cost)   ,0,-100},
 			unique:     false,
 		}
 	}
@@ -5213,10 +5241,10 @@ func (call callfunc) ToSpline(a,b float64) my_spline {
 			splineType: []string{"3","2","=Sl","=Cv","EQSl"},//not really
 			x:          []float64{a,call.base,b},
 			y:          []float64{-100,-100,call.At(b)},
-			//coeffs:     []float64{0,-100,call.factor/call.cost*100,-100-100*call.base*call.factor/call.cost},
+			coeffs:     []float64{0,-100,call.factor/call.cost*100,-100-100*call.base*call.factor/call.cost},
 			//coeffs:     []float64{0,-100,call.factor*call.cost*100,-100-100*call.base*call.factor*call.cost},
 			//coeffs:     []float64{0,-100  ,  math.Abs(1.0/call.factor)/(call.cost*call.factor)*100,-100-100*call.base*math.Abs(1.0/call.factor)/(call.cost*call.factor)},
-			coeffs:     []float64{0,-100  ,  1.0/(call.cost)*100,-100-100*call.base*1.0/(call.cost)},
+			//coeffs:     []float64{0,-100  ,  1.0/(call.cost)*100,-100-100*call.base*1.0/(call.cost)},
 			unique:     false,
 		}
 }
@@ -5798,6 +5826,7 @@ func WriteFile(filename string, content string, pathExt string) {
 
 }
 
+//returns a bool whether item is contained in list with tolerance eps
 func containsFloat(list []float64, item float64, eps float64) bool {
 	//eps := 0.01
 	for _,l := range list {
@@ -5808,6 +5837,7 @@ func containsFloat(list []float64, item float64, eps float64) bool {
 	return false
 }
 
+//piecewise addition for two []float64
 func addFloat(l1, l2 []float64) ([]float64,error) {
 	if len(l1)!=len(l2){return []float64{},fmt.Errorf("list not same length")}
 	var newL []float64
