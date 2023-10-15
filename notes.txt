@@ -8,3 +8,6 @@ sols:
 - make Huellkurve and implement idealistic optimum using idealistic huellkurve and perhaps then search in that area.
 For mispricings, make list of options differing to the ideal huellkurve more than a threshold and comparing those.
 Way to find huellkurve through least squares for example?
+
+ToDo:
+- implement LeastSquare() with tolerance and document in latex (later: ideal huellkurve)

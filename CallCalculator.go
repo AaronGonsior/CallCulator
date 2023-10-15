@@ -5358,6 +5358,9 @@ func MathematicaCodeZeroIntersection(callList []callfunc) string {
 // ------------------------------- general functions -------------------------------
 
 
+func LeastSquare(x,y []float64) {
+	
+}
 
 /*
 func LoadPromptJson(path string, filename string) (string, []string, map[string][]float64, map[string][]float64, []int, string){
