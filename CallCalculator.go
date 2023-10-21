@@ -5237,7 +5237,7 @@ func (call callfunc) ToSpline(a,b float64) my_spline {
 			//				 = math.Abs(1.0/call.factor)/(call.cost*call.factor) *x - math.Abs(1.0/call.factor)*call.base/(call.cost*call.factor)
 			//coeffs:     []float64{call.factor*call.cost*100,-100-100*call.base*call.factor*call.cost   ,0,-100},
 			//coeffs:     []float64{math.Abs(1.0/call.factor)/(call.cost*call.factor)*100 , -100-100*call.base*math.Abs(1.0/call.factor)/(call.cost*call.factor)   ,0,-100},
-			coeffs:     []float64{1.0/(call.cost)*100 , -100-100*call.base*1.0/(call.cost)   ,0,-100},
+			coeffs:     []float64{call.factor/math.Abs(call.factor)*1.0/(call.cost)*100 , -100-100*call.factor/math.Abs(call.factor)*call.base*1.0/(call.cost)   ,0,-100},
 			unique:     false,
 		}
 	}
@@ -5249,7 +5249,7 @@ func (call callfunc) ToSpline(a,b float64) my_spline {
 			//coeffs:     []float64{0,-100,call.factor/call.cost*100,-100-100*call.base*call.factor/call.cost},
 			//coeffs:     []float64{0,-100,call.factor*call.cost*100,-100-100*call.base*call.factor*call.cost},
 			//coeffs:     []float64{0,-100  ,  math.Abs(1.0/call.factor)/(call.cost*call.factor)*100,-100-100*call.base*math.Abs(1.0/call.factor)/(call.cost*call.factor)},
-			coeffs:     []float64{0,-100  ,  1.0/(call.cost)*100,-100-100*call.base*1.0/(call.cost)},
+			coeffs:     []float64{0,-100  ,  call.factor/math.Abs(call.factor)*1.0/(call.cost)*100,-100-100*call.base*call.factor/math.Abs(call.factor)*1.0/(call.cost)},
 			unique:     false,
 		}
 }
