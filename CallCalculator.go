@@ -623,6 +623,7 @@ func run(promptSubPath string){
 		s := NewSpline(splinetype,pdistX[d],pdistY[d])
 		ns := NewNormedSpline(s)
 		pdistSplines[d] = ns
+		if !s.unique {fmt.Println("Caution: pdist spline not unique!")}
 	}
 
 	riskTolSpline := NewSpline([]string{"1","2"},riskTolX,riskTolY)
@@ -739,7 +740,7 @@ func run(promptSubPath string){
 			fmt.Println("outOfDate=",outOfDate)
 			fmt.Println("pulledDate=",pulledDate)
 		}
-		var hoursLimit int = 36
+		var hoursLimit int = 12
 		if outOfDate > float64(hoursLimit*60) {
 			fmt.Printf("optionsdata %v h %v m old which is too old (%vh limit) - pulling data again through the API\n",(int)(outOfDate/60),int(math.Mod(outOfDate,60)),hoursLimit)
 			options = options_tmp
@@ -1127,7 +1128,7 @@ func run(promptSubPath string){
 
 
 		//debugging - print all(?, just one call,put each?) calls and puts through PrintMathematicaCode()
-		debugBasic := false
+		debugBasic := true
 		if debugBasic{
 			testCode := mathCode
 			var testCallPut []callfunc
@@ -1700,7 +1701,7 @@ func run(promptSubPath string){
 			// all 2-combinations of calls and {0.5,0.75,0.25} weighing in both directions (buy&sell)
 			if info{
 				fmt.Println("Forming and comparing spreads and creating wolfram mathematica export codes...")
-				fmt.Println("00.0 %")
+				//fmt.Println("00.0 %")
 				startTime = time.Now()
 			}
 			/*
@@ -1863,9 +1864,6 @@ func run(promptSubPath string){
 			selling := true
 			//weights := []float64{0.0,0.1,0.25,0.5,0.75,0.9,1.0}
 			bestSpread,bestSpreadExp,riskMatchCount,totalCount,timeTallys := BestSpread2CombinationsManual(pdist,callList,weights,riskCompare,riskTolSpline,selling)
-			if info{
-				fmt.Println("100.0 %")
-			}
 
 
 			riskTolExclusion = ""
@@ -2152,9 +2150,9 @@ func BestSpread2CombinationsManual(pdist my_spline, callList []callfunc, weights
 	timeStart2 := time.Now()
 	var percSteps float64
 	if riskCompare{
-		percSteps = 0.1
+		percSteps = 0.001
 	} else {
-		percSteps = 0.1
+		percSteps = 0.001
 	}
 	spreadCount := 0
 	riskMatchCount := 0
@@ -2310,14 +2308,19 @@ func BestSpread2CombinationsManual(pdist my_spline, callList []callfunc, weights
 				if math.Mod(float64(spreadCount),percSteps*float64(totalCount)) < 4 {
 					elapsed := time.Now().Sub(timeStart).Milliseconds()
 					elapsedPerSpread := float64(elapsed)/float64(spreadCount-spreadStart)
-					fmt.Println(fmt.Sprintf("%.1f",100.0*float64(spreadCount)/float64(totalCount)) , "% (took "+fmt.Sprintf("%v milliseconds - %.4f ms per spread",elapsed,elapsedPerSpread)+") - est. time rem.:",fmt.Sprintf("%.2f",float64(totalCount-spreadCount)*elapsedPerSpread/1000/60),"mins")
-					timeStart = time.Now()
-					spreadStart = spreadCount
+					//fmt.Println(fmt.Sprintf("%.1f",100.0*float64(spreadCount)/float64(totalCount)) , "% (took "+fmt.Sprintf("%v milliseconds - %.4f ms per spread",elapsed,elapsedPerSpread)+") - est. time rem.:",fmt.Sprintf("%.2f",float64(totalCount-spreadCount)*elapsedPerSpread/1000/60),"mins")
+					fmt.Printf("\r                                                                                                                                                ")
+					fmt.Printf("\r %.1f %% (compared %v spreads, took %v milliseconds - %.4f ms per spread - %.0f spreads/s) - est. time rem.: %vm%.0fs",100.0*float64(spreadCount)/float64(totalCount),spreadCount,elapsed,elapsedPerSpread,1000*1.0/elapsedPerSpread,int(float64(totalCount-spreadCount)*elapsedPerSpread/1000/60),math.Mod(float64(int(float64(totalCount-spreadCount)*elapsedPerSpread/1000)),60))
+					//timeStart = time.Now()
+					//spreadStart = spreadCount
 				}
 
 			}
 		}
 	}
+	elapsed := time.Now().Sub(timeStart).Milliseconds()
+	elapsedPerSpread := float64(elapsed)/float64(spreadCount-spreadStart)
+	fmt.Printf("\n\r %.1f %% (compared %v spreads, took %v milliseconds - %.4f ms per spread - %.0f spreads/s) - est. time rem.: %vm%.0fs",100.0,spreadCount,elapsed,elapsedPerSpread,1000*1.0/elapsedPerSpread,int(float64(totalCount-spreadCount)*elapsedPerSpread/1000/60),math.Mod(float64(int(float64(totalCount-spreadCount)*elapsedPerSpread/1000)),60))
 
 	timeTally1 += float64(time.Now().Sub(timeStart1).Microseconds())/1000.0
 
@@ -3569,9 +3572,11 @@ func (ms my_spline) Init(splineType []string, x []float64, y []float64) my_splin
 	lgs, err := SplineLGSInit(splineType, x, y)
 	check(err)
 	ms.unique = lgs.GaussElimination()
+	/*
 	if !ms.unique{
 		fmt.Println("Caution: Solution not unique!")
 	}
+	 */
 	ms.coeffs = lgs.y
 	tmp, err := strconv.ParseFloat(splineType[0],64)
 	check(err)
