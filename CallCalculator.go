@@ -1128,7 +1128,7 @@ func run(promptSubPath string){
 
 
 		//debugging - print all(?, just one call,put each?) calls and puts through PrintMathematicaCode()
-		debugBasic := true
+		debugBasic := false
 		if debugBasic{
 			testCode := mathCode
 			var testCallPut []callfunc
@@ -2320,7 +2320,7 @@ func BestSpread2CombinationsManual(pdist my_spline, callList []callfunc, weights
 	}
 	elapsed := time.Now().Sub(timeStart).Milliseconds()
 	elapsedPerSpread := float64(elapsed)/float64(spreadCount-spreadStart)
-	fmt.Printf("\n\r %.1f %% (compared %v spreads, took %v milliseconds - %.4f ms per spread - %.0f spreads/s) - est. time rem.: %vm%.0fs",100.0,spreadCount,elapsed,elapsedPerSpread,1000*1.0/elapsedPerSpread,int(float64(totalCount-spreadCount)*elapsedPerSpread/1000/60),math.Mod(float64(int(float64(totalCount-spreadCount)*elapsedPerSpread/1000)),60))
+	fmt.Printf("\r %.1f %% (compared %v spreads, took %v milliseconds - %.4f ms per spread - %.0f spreads/s) - est. time rem.: %vm%.0fs\n",100.0,spreadCount,elapsed,elapsedPerSpread,1000*1.0/elapsedPerSpread,int(float64(totalCount-spreadCount)*elapsedPerSpread/1000/60),math.Mod(float64(int(float64(totalCount-spreadCount)*elapsedPerSpread/1000)),60))
 
 	timeTally1 += float64(time.Now().Sub(timeStart1).Microseconds())/1000.0
 
