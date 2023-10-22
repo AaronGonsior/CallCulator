@@ -563,7 +563,7 @@ func run(promptSubPath string){
 	forceUpdate := false
 	debug := false
 	info := true
-	brute := false
+	brute := true
 
 	promptName := strings.Split(strings.Split(strings.Split(promptSubPath,"\\")[2],".")[0],"_")[1]
 	fmt.Println("promptName=",promptName)
@@ -1194,7 +1194,7 @@ func run(promptSubPath string){
 		mathCode = bestcall.PrintMathematicaCode(max(pdist.x))
 		//fmt.Println(mathCode)
 		bestCallCAGR := (math.Pow(bestE/100.0+1.0,1.0/yearsToExpiry)-1.0)*100
-		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the %s with strike %.1f has the highest expected return out of all call options available with %.1f %% expected return (%.2f %%). Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date,bestcall.optionType, bestcall.base, bestE,bestCallCAGR, ticker, long.ExpectedReturn(pdist))
+		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the %s with strike %.1f has the highest expected return out of all call options available with %.1f %% expected return (%.2f %% CAGR). Owning the underlying asset (%v) has an expected return of %.1f %% (%.1f %% CAGR).  \"];\n\n", callList[0].date,bestcall.optionType, bestcall.base, bestE,bestCallCAGR, ticker, long.ExpectedReturn(pdist),(math.Pow(long.ExpectedReturn(pdist)/100.0+1.0,1.0/yearsToExpiry)-1.0)*100.0)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",idPdist) +", Show[call,long]}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 		if info {
@@ -1866,7 +1866,7 @@ func run(promptSubPath string){
 
 			riskTolExclusion = ""
 			if riskCompare {
-				riskTolExclusion = fmt.Sprintf("%.5f Percent (%v out of %v) of spreads were excluded due to the risk profile not matching.\n",100.0*float64(totalCount-riskMatchCount)/float64(totalCount),totalCount-riskMatchCount,totalCount)
+				riskTolExclusion = fmt.Sprintf("%.5f Percent (%v out of %v) of spreads were excluded due to the risk profile not matching. %v spreads are feasible. \n",100.0*float64(totalCount-riskMatchCount)/float64(totalCount),totalCount-riskMatchCount,totalCount,riskMatchCount)
 				overallBestSpreadTotalCount += totalCount
 				fmt.Println(riskTolExclusion)
 			}
@@ -1879,7 +1879,7 @@ func run(promptSubPath string){
 				fmt.Printf("%.1f %% (%.1f seconds) of time was spent riskProfile(), the remaining %.1f %% (%.1f seconds) were spent in the rest of BestSpread2CombinationManual()\n",timeTally2/(timeTally1+timeTally2)*100,timeTally2/1000.0,timeTally1/(timeTally1+timeTally2)*100,timeTally1/1000.0)
 			}
 
-			debug = true
+			//debug = false
 
 			//fmt.Printf("Assuming the probability distribution for the date %v, the 2-spread with strikes and weights {(%.1f, %.2f),(%.1f, %.2f)} has the highest expected return out of all call options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%. %s", bestSpread.calls[0].date, bestSpread.calls[0].base,bestSpread.weights[0],bestSpread.calls[1].base,bestSpread.weights[1], bestSpreadExp, ticker, long.ExpectedReturn(pdist),riskTolExclusion)
 			if riskMatchCount == 0 {
@@ -1894,7 +1894,7 @@ func run(promptSubPath string){
 				}
 				longExp := long.ExpectedReturn(pdist)
 				longCAGR := math.Pow(longExp,1.0/yearsToExpiry)
-				msg := fmt.Sprintf("Assuming the probability distribution for the date %v, the 2-spread with strikes and weights {(%s,%.1f, %.2f),(%s,%.1f, %.2f)} has the highest expected return out of all call options available with %.1f Percent expected return (%.1f Percent CAGR). Owning the underlying asset (%v) has an expected return of %.1f Percent. (%.1f Percent CAGR) %s", bestSpread.calls[0].date,bestSpread.calls[0].optionType, bestSpread.calls[0].base,bestSpread.weights[0],bestSpread.calls[1].optionType,bestSpread.calls[1].base,bestSpread.weights[1], bestSpreadExp,bestSpreadCAGR, ticker, longExp,longCAGR,riskTolExclusion)
+				msg := fmt.Sprintf("Assuming the probability distribution for the date %v, the 2-spread with strikes and weights {(%s,%.1f, %.2f),(%s,%.1f, %.2f)} has the highest expected return out of all call options available with %.1f Percent expected return (%.1f %% CAGR). Owning the underlying asset (%v) has an expected return of %.1f Percent. (%.1f %% CAGR) %s", bestSpread.calls[0].date,bestSpread.calls[0].optionType, bestSpread.calls[0].base,bestSpread.weights[0],bestSpread.calls[1].optionType,bestSpread.calls[1].base,bestSpread.weights[1], bestSpreadExp,bestSpreadCAGR, ticker, longExp,longCAGR,riskTolExclusion)
 				longSpline := long.ToSpline(min(pdist.x),max(pdist.x))
 				bestSpreadSpline := bestSpread.ToSpline(min(pdist.x),max(pdist.x))
 				content += bestSpreadSpline.MathematicaExport2("Blue",longSpline,"Red",msg,false,folderName,"-bestSpread",mathematicaCompressionLevel,mathematicaImageResolution,PlotRange(pdist,bestSpreadSpline,longSpline))
