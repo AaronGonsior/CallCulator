@@ -5092,8 +5092,8 @@ func call_breakeven_base(call callfunc, curbase float64) float64{
 func call_gain_perc(x float64, call callfunc) float64{
 	//return math.Max(-1,x/(call.cost/call.factor)-call.base/(call.cost/call.factor)-1)*100
 	//return math.Max(-1,((1.0/call.factor*(x-call.base))/call.cost)-1)*100
-	//100*Max[-1,abs(1/fac)*((x-base)/(cost*factor))-1],{x,0,%.3f},ImageSize->Large, PlotRange->Automatic];\n",math.Abs(1.0/call.factor),call.base,call.cost*call.factor
-	return math.Max(-1,math.Abs(call.factor)*((x-call.base)/(call.cost*call.factor))-1)*100
+	//100*Max[-1,math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor)))-1]
+	return math.Max(-1,math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor))-1)*100
 }
 
 /*
