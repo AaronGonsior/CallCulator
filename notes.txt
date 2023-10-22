@@ -1,10 +1,7 @@
 bug:
-- CAGR wrong
-- put slope wrong factor *-1
+- in iterative search: condition of risk profile messes up gradient decent, big time
 
 sols:
-- put wrong: removed math.abs() from 1/call.factor in PrintMathematicaCode()
-- CAGR wrong: changed debug=true. Pay attention to yearsToExpiry etc.
 - make Huellkurve and implement idealistic optimum using idealistic huellkurve and perhaps then search in that area.
 For mispricings, make list of options differing to the ideal huellkurve more than a threshold and comparing those.
 Way to find huellkurve through least squares for example?
