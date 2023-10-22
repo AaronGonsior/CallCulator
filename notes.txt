@@ -1,5 +1,5 @@
 bug:
-- in iterative search: condition of risk profile messes up gradient decent, big time
+- in iterative search: condition of risk profile messes up gradient decent, big time!
 
 sols:
 - make Huellkurve and implement idealistic optimum using idealistic huellkurve and perhaps then search in that area.
@@ -7,4 +7,5 @@ For mispricings, make list of options differing to the ideal huellkurve more tha
 Way to find huellkurve through least squares for example?
 
 ToDo:
-- implement LeastSquare() with tolerance and document in latex (later: ideal huellkurve)
+- implement LeastSquare() with tolerance and document in latex
+	(later: ideal huellkurve and subseq. calcs)
