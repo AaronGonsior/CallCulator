@@ -563,7 +563,7 @@ func run(promptSubPath string){
 	forceUpdate := false
 	debug := false
 	info := true
-	brute := true
+	brute := false
 
 	promptName := strings.Split(strings.Split(strings.Split(promptSubPath,"\\")[2],".")[0],"_")[1]
 	fmt.Println("promptName=",promptName)
@@ -953,7 +953,8 @@ func run(promptSubPath string){
 	mathematicaImageResolution := "250"
 
 	var overallBestSpread spread
-	var overallBestSpreadExp float64 = -1000
+	//var overallBestSpreadExp float64 = -1000
+	var overallBestSpredExpCAGR float64
 	//var overallBestSpreadRiskTolExclusion string
 	var overallBestSpreadTotalCount int
 	var overallBestSpreadRiskMatchCount int
@@ -993,12 +994,8 @@ func run(promptSubPath string){
 			fmt.Printf("Brute force 2-spread comparison will compare %d spreads for this date (%s).\n Assuming a calculation time of 0.08 ms per spread, this will take approx. %.3f hours.\n",comparisonApprox,d,float64(comparisonApprox)*0.08/1000.0/60.0/24.0)
 		}
 
-
-
 		dDate, err := time.Parse("2006-01-02", d)
 		check(err)
-
-
 		hoursToExpiry := float64(dDate.Sub(time.Now()).Hours())
 		daysToExpiry := hoursToExpiry/24.0
 		yearsToExpiry := float64(daysToExpiry)/365.0
@@ -1196,7 +1193,8 @@ func run(promptSubPath string){
 		//fmt.Println("Best Call:", bestcall, "\nwith expected return:", bestE)
 		mathCode = bestcall.PrintMathematicaCode(max(pdist.x))
 		//fmt.Println(mathCode)
-		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the %s with strike %.1f has the highest expected return out of all call options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date,bestcall.optionType, bestcall.base, bestE, ticker, long.ExpectedReturn(pdist))
+		bestCallCAGR := (math.Pow(bestE/100.0+1.0,1.0/yearsToExpiry)-1.0)*100
+		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the %s with strike %.1f has the highest expected return out of all call options available with %.1f %% expected return (%.2f %%). Owning the underlying asset (%v) has an expected return of %.1f %%.  \"];\n\n", callList[0].date,bestcall.optionType, bestcall.base, bestE,bestCallCAGR, ticker, long.ExpectedReturn(pdist))
 		content += mathCode
 		content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",idPdist) +", Show[call,long]}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 		if info {
@@ -1881,7 +1879,7 @@ func run(promptSubPath string){
 				fmt.Printf("%.1f %% (%.1f seconds) of time was spent riskProfile(), the remaining %.1f %% (%.1f seconds) were spent in the rest of BestSpread2CombinationManual()\n",timeTally2/(timeTally1+timeTally2)*100,timeTally2/1000.0,timeTally1/(timeTally1+timeTally2)*100,timeTally1/1000.0)
 			}
 
-
+			debug = true
 
 			//fmt.Printf("Assuming the probability distribution for the date %v, the 2-spread with strikes and weights {(%.1f, %.2f),(%.1f, %.2f)} has the highest expected return out of all call options available with %.1f %% expected return. Owning the underlying asset (%v) has an expected return of %.1f %%. %s", bestSpread.calls[0].date, bestSpread.calls[0].base,bestSpread.weights[0],bestSpread.calls[1].base,bestSpread.weights[1], bestSpreadExp, ticker, long.ExpectedReturn(pdist),riskTolExclusion)
 			if riskMatchCount == 0 {
@@ -1909,8 +1907,9 @@ func run(promptSubPath string){
 				}
 
 				// Overall update check
-				if overallBestSpreadExp < bestSpreadExp {
-					overallBestSpreadExp = bestSpreadExp
+				if overallBestSpredExpCAGR < bestSpreadCAGR {
+					overallBestSpredExpCAGR = bestSpreadCAGR
+					//overallBestSpreadExp = bestSpreadExp
 					overallBestSpread = bestSpread
 					//overallBestSpreadRiskTolExclusion = riskTolExclusion
 					//overallBestSpreadTotalCount = totalCount
