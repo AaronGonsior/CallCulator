@@ -804,8 +804,8 @@ func run(promptSubPath string){
 		os.Mkdir("options"+"\\"+ticker+"\\"+live,0755)
 		//os.Mkdir("options"+"\\"+ticker+"\\"+live+"\\",0755)
 
-		//replace with proper json!
 		/*
+		//replaced with proper json
 		opt.WriteJson("options"+"\\"+ticker+"\\"+live+"\\"+"options.json",fmt.Sprint(options))
 		opt.WriteJson("options"+"\\"+ticker+"\\"+"options_latest.json",fmt.Sprint(options))
 		 */
@@ -1194,7 +1194,7 @@ func run(promptSubPath string){
 		mathCode = bestcall.PrintMathematicaCode(max(pdist.x))
 		//fmt.Println(mathCode)
 		bestCallCAGR := (math.Pow(bestE/100.0+1.0,1.0/yearsToExpiry)-1.0)*100
-		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the %s with strike %.1f has the highest expected return out of all call options available with %.1f %% expected return (%.2f %% CAGR). Owning the underlying asset (%v) has an expected return of %.1f %% (%.1f %% CAGR).  \"];\n\n", callList[0].date,bestcall.optionType, bestcall.base, bestE,bestCallCAGR, ticker, long.ExpectedReturn(pdist),(math.Pow(long.ExpectedReturn(pdist)/100.0+1.0,1.0/yearsToExpiry)-1.0)*100.0)
+		content += fmt.Sprintf("msg1 := Text[\"Assuming the probability distribution (left) for the date %v, the %s with strike %.1f has the highest expected return out of all call options available with %.1f %% expected return (%.2f Percent CAGR). Owning the underlying asset (%v) has an expected return of %.1f %% (%.1f Percent CAGR).  \"];\n\n", callList[0].date,bestcall.optionType, bestcall.base, bestE,bestCallCAGR, ticker, long.ExpectedReturn(pdist),(math.Pow(long.ExpectedReturn(pdist)/100.0+1.0,1.0/yearsToExpiry)-1.0)*100.0)
 		content += mathCode
 		content += "Export[\"" + folderName + "\\-bestCall.png\", {msg1 \n , "+fmt.Sprintf("Show[fctplot%v]",idPdist) +", Show[call,long]}, \"CompressionLevel\" -> "+mathematicaCompressionLevel+", \n ImageResolution -> "+mathematicaImageResolution+"];\n"
 		if info {
@@ -1887,14 +1887,14 @@ func run(promptSubPath string){
 				content += riskTolSpline.MathematicaExport("Darker[Red]","No spreads matching risk profile. Continue with next prompt.",false,folderName,"-bestSpreadRiskProfile",mathematicaCompressionLevel,mathematicaImageResolution,riskPlotRange(riskTolSpline,riskTolSpline))
 				continue
 			} else {
-				bestSpreadCAGR := math.Pow(bestSpreadExp,1.0/yearsToExpiry)
+				bestSpreadCAGR := (math.Pow(1.0+bestSpreadExp/100.0,1.0/yearsToExpiry)-1.0)*100.0
 				if debug {
 					fmt.Println("yearsToExpiry=",yearsToExpiry)
 					fmt.Println("bestSpreadCAGR=",bestSpreadCAGR)
 				}
 				longExp := long.ExpectedReturn(pdist)
-				longCAGR := math.Pow(longExp,1.0/yearsToExpiry)
-				msg := fmt.Sprintf("Assuming the probability distribution for the date %v, the 2-spread with strikes and weights {(%s,%.1f, %.2f),(%s,%.1f, %.2f)} has the highest expected return out of all call options available with %.1f Percent expected return (%.1f %% CAGR). Owning the underlying asset (%v) has an expected return of %.1f Percent. (%.1f %% CAGR) %s", bestSpread.calls[0].date,bestSpread.calls[0].optionType, bestSpread.calls[0].base,bestSpread.weights[0],bestSpread.calls[1].optionType,bestSpread.calls[1].base,bestSpread.weights[1], bestSpreadExp,bestSpreadCAGR, ticker, longExp,longCAGR,riskTolExclusion)
+				longCAGR := (math.Pow(1.0+longExp/100.0,1.0/yearsToExpiry)-1.0)*100.0
+				msg := fmt.Sprintf("Assuming the probability distribution for the date %v, the 2-spread with strikes and weights {(%s,%.1f, %.2f),(%s,%.1f, %.2f)} has the highest expected return out of all call options available with %.1f Percent expected return (%.1f Percent CAGR). Owning the underlying asset (%v) has an expected return of %.1f Percent. (%.1f Percent CAGR) %s", bestSpread.calls[0].date,bestSpread.calls[0].optionType, bestSpread.calls[0].base,bestSpread.weights[0],bestSpread.calls[1].optionType,bestSpread.calls[1].base,bestSpread.weights[1], bestSpreadExp,bestSpreadCAGR, ticker, longExp,longCAGR,riskTolExclusion)
 				longSpline := long.ToSpline(min(pdist.x),max(pdist.x))
 				bestSpreadSpline := bestSpread.ToSpline(min(pdist.x),max(pdist.x))
 				content += bestSpreadSpline.MathematicaExport2("Blue",longSpline,"Red",msg,false,folderName,"-bestSpread",mathematicaCompressionLevel,mathematicaImageResolution,PlotRange(pdist,bestSpreadSpline,longSpline))
