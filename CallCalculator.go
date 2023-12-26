@@ -88,6 +88,13 @@ type callfunc struct{
 	factor float64
 	date []int
 	optionType string
+	isin string
+}
+
+type portfolio struct{
+	cash float64
+	assets []callfunc
+	weights []float64
 }
 
 /*
@@ -99,6 +106,7 @@ type spread struct{
  */
 
 type spread struct{
+	//add nonInvestment / Cash
 	num int
 	calls []callfunc
 	weights []float64
@@ -1053,6 +1061,9 @@ func prompt(promptSubPath string){
 		}
 
 
+
+
+
 		//Distribution Chart for Call-Long intersections
 		/*
 		//fmt.Println("\nDistribution Chart for Call-Long intersections:\n")
@@ -1239,6 +1250,42 @@ func prompt(promptSubPath string){
 				fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
 			}
 		}
+
+		runs := 1000000
+		iterationss := 20
+		if info{
+			fmt.Println("RiskProfileIterativeMeanReturn:")
+			fmt.Println("iterations=",iterationss)
+			fmt.Println("(avg-ing out) runs=",runs)
+		}
+		IterativeRiskProfile,_,returnsAr,cagrs,cagrsAr := RiskProfileIterativeMeanReturn(riskSpline,iterationss,runs,info)
+		ReturnPercAbove0 := returnsAr[3]
+		cagrPercabove0 := cagrsAr[3]
+		ReturnPercAbove4Perc := returnsAr[4]
+		cagrPercabove4Perc := cagrsAr[4]
+
+		//fmt.Println(ReturnPercAbove0,cagrPercabove0,ReturnPercAbove4Perc,cagrPercabove4Perc)
+		fmt.Printf("WorstCAGR=%.2f\nMeanCagr=%.2f\nBestCagr=%.2f\nCagrPercAbove0=%.2f\nCagrPercAbove4Perc=%.2f\n",cagrsAr[0],cagrsAr[1],cagrsAr[2],cagrsAr[3],cagrsAr[4])
+
+		//refactor
+		if info&&ASCIIPlots {
+			fmt.Println("IterativeRiskProfile CAGR:")
+			fmt.Println(IterativeRiskProfile.PrintASCII(0,float64(len(cagrs)),130,35,true))
+		}
+		msgCall := ""
+		msgCall += fmt.Sprintf("returnPercAbove0=%.2f Percent\n",ReturnPercAbove0)
+		msgCall += fmt.Sprintf("cagrPercAbove0=%.2f Percent\n",cagrPercabove0)
+		msgCall += fmt.Sprintf("returnPercAbove4Percent=%.2f Percent\n",ReturnPercAbove4Perc)
+		msgCall += fmt.Sprintf("cagrPercAbove4 Percent=%.2f Percent\n",cagrPercabove4Perc)
+
+		plotRange := fmt.Sprintf("{{0,%v},{%.1f,%.1f}}",runs,cagrsAr[0],cagrsAr[2])
+		fmt.Printf("plotRange=%s\n",plotRange)
+
+		//tmp,id := IterativeRiskProfile.PrintMathematicaCode(false,"Blue",plotRange)
+		//fmt.Printf("IterativeRiskProfile.PrintMathematicaCode: (id=%v)\n%s\n",id,tmp)
+
+		content += IterativeRiskProfile.MathematicaExport("Blue", msgCall,false,folderName,"-IterativeRiskProfileCAGRCall",mathematicaCompressionLevel,mathematicaImageResolution,plotRange)
+
 
 
 
@@ -1428,7 +1475,43 @@ func prompt(promptSubPath string){
 			fmt.Println("RiskProfile:")
 			fmt.Println(rpFind.PrintASCII(0.0,1.0,resX,resY,true))
 			fmt.Println(rpFind)
-			RiskProfileIterativeMeanReturn(rpFind)
+
+			runs := 1000000
+			iterations := 20
+			if info{
+				fmt.Println("RiskProfileIterativeMeanReturn:")
+				fmt.Println("iterations=",iterations)
+				fmt.Println("(avg-ing out) runs=",runs)
+			}
+			IterativeRiskProfile,_,returnsAr,cagrs,cagrsAr := RiskProfileIterativeMeanReturn(rpFind,iterations,runs,info)
+			ReturnPercAbove0 := returnsAr[3]
+			cagrPercabove0 := cagrsAr[3]
+			ReturnPercAbove4Perc := returnsAr[4]
+			cagrPercabove4Perc := cagrsAr[4]
+
+			//fmt.Println(ReturnPercAbove0,cagrPercabove0,ReturnPercAbove4Perc,cagrPercabove4Perc)
+			fmt.Printf("WorstCAGR=%.2f\nMeanCagr=%.2f\nBestCagr=%.2f\nCagrPercAbove0=%.2f\nCagrPercAbove4Perc=%.2f\n",cagrsAr[0],cagrsAr[1],cagrsAr[2],cagrsAr[3],cagrsAr[4])
+
+			//refactor
+			if info&&ASCIIPlots {
+				fmt.Println("IterativeRiskProfile CAGR:")
+				fmt.Println(IterativeRiskProfile.PrintASCII(0,float64(len(cagrs)),130,35,true))
+			}
+			msg = ""
+			msg += fmt.Sprintf("returnPercAbove0=%.2f Percent\n",ReturnPercAbove0)
+			msg += fmt.Sprintf("cagrPercAbove0=%.2f Percent\n",cagrPercabove0)
+			msg += fmt.Sprintf("returnPercAbove4Perc=%.2f Percent\n",ReturnPercAbove4Perc)
+			msg += fmt.Sprintf("cagrPercAbove4Perc=%.2f Percent\n",cagrPercabove4Perc)
+
+			plotRange := fmt.Sprintf("{{0,%v},{%.1f,%.1f}}",runs,cagrsAr[0],cagrsAr[2])
+			fmt.Printf("plotRange=%s\n",plotRange)
+
+			//tmp,id := IterativeRiskProfile.PrintMathematicaCode(false,"Blue",plotRange)
+			//fmt.Printf("IterativeRiskProfile.PrintMathematicaCode: (id=%v)\n%s\n",id,tmp)
+
+			content += IterativeRiskProfile.MathematicaExport("Blue", msg,false,folderName,"-IterativeRiskProfileCAGRFind",mathematicaCompressionLevel,mathematicaImageResolution,plotRange)
+
+
 
 			// riskSpline
 			/*
@@ -1523,7 +1606,41 @@ func prompt(promptSubPath string){
 				fmt.Println("RiskProfile:")
 				fmt.Println(rp.PrintASCII(0.0,1.0,resX,resY,true))
 				fmt.Println(rp)
-				RiskProfileIterativeMeanReturn(rp)
+
+				runs := 1000000
+				iterations := 20
+				if info{
+					fmt.Println("RiskProfileIterativeMeanReturn:")
+					fmt.Println("iterations=",iterations)
+					fmt.Println("(avg-ing out) runs=",runs)
+				}
+				IterativeRiskProfile,_,returnsAr,cagrs,cagrsAr := RiskProfileIterativeMeanReturn(rp,iterations,runs,info)
+				ReturnPercAbove0 := returnsAr[3]
+				cagrPercabove0 := cagrsAr[3]
+				ReturnPercAbove4Perc := returnsAr[4]
+				cagrPercabove4Perc := cagrsAr[4]
+
+				//fmt.Println(ReturnPercAbove0,cagrPercabove0,ReturnPercAbove4Perc,cagrPercabove4Perc)
+				fmt.Printf("WorstCAGR=%.2f\nMeanCagr=%.2f\nBestCagr=%.2f\nCagrPercAbove0=%.2f\nCagrPercAbove4Perc=%.2f\n",cagrsAr[0],cagrsAr[1],cagrsAr[2],cagrsAr[3],cagrsAr[4])
+
+				//refactor
+				if info&&ASCIIPlots {
+					fmt.Println("IterativeRiskProfile CAGR:")
+					fmt.Println(IterativeRiskProfile.PrintASCII(0,float64(len(cagrs)),130,35,true))
+				}
+				msg = ""
+				msg += fmt.Sprintf("returnPercAbove0=%.2f Percent\n",ReturnPercAbove0)
+				msg += fmt.Sprintf("cagrPercAbove0=%.2f Percent\n",cagrPercabove0)
+				msg += fmt.Sprintf("returnPercAbove4Percent=%.2f Percent\n",ReturnPercAbove4Perc)
+				msg += fmt.Sprintf("cagrPercAbove4 Percent=%.2f Percent\n",cagrPercabove4Perc)
+
+				plotRange := fmt.Sprintf("{{0,%v},{%.1f,%.1f}}",runs,cagrsAr[0],cagrsAr[2])
+				fmt.Printf("plotRange=%s\n",plotRange)
+
+				//tmp,id := IterativeRiskProfile.PrintMathematicaCode(false,"Blue",plotRange)
+				//fmt.Printf("IterativeRiskProfile.PrintMathematicaCode: (id=%v)\n%s\n",id,tmp)
+
+				content += IterativeRiskProfile.MathematicaExport("Blue", msg,false,folderName,"-IterativeRiskProfileCAGRBrute",mathematicaCompressionLevel,mathematicaImageResolution,plotRange)
 
 
 
@@ -1592,11 +1709,13 @@ func prompt(promptSubPath string){
 
 
 // ------------------------------- to be implemented -------------------------------
-func LoadPortfolioJson(){}
 func PDistOptimalTransport(){}
 func ChangeMeritPortfolio(best spread, transactionHistory int, taxProfile int){}
 func ChangePortfolio(newSpread spread){}
 func LeastSquare(x,y []float64){}
+
+
+
 
 //careful: only all calls or all puts
 func OptionLeastSquare(callList []callfunc) error {
@@ -1855,6 +1974,61 @@ func testingDumpster() {
 
 
 
+// ------------------------------- Portfolio specific functions -------------------------------
+
+//for now without cash
+func (sp spread) ToPortfolio() portfolio {
+	portf := portfolio{
+		cash:    0.0,
+		assets:  sp.calls,
+		weights: sp.weights,
+	}
+	return portf
+}
+
+func (p portfolio) AddCash(cash float64) portfolio {
+	p.cash = p.cash + cash
+	return p
+}
+
+//adjust weight or bare? adjusted rn
+func (p portfolio) AddAsset(asset callfunc, weight float64) portfolio {
+	p.assets = append(p.assets,asset)
+	var newWeights []float64
+	for _,w := range p.weights {
+		newWeights = append(newWeights,w*(1.0-weight))
+	}
+	newWeights = append(newWeights,weight)
+	//p.weights = append(p.weights,weight)
+	return p
+
+}
+
+func SavePortfolioJson(pathExt string, filename string, p portfolio){
+	data := map[string]interface{}{
+		"cash": p.cash,
+		"assets": p.assets,
+	}
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		fmt.Printf("could not marshal json: %s\n", err)
+		return
+	}
+	jsonDataStr := fmt.Sprintf("%s\n",jsonData)
+	jsonDataStr = strings.Replace(jsonDataStr,",",",\n",-1)
+
+	path, err := os.Getwd()
+	check(err)
+	os.Mkdir(path+pathExt,0755)
+
+	WriteFile(pathExt+filename+".json",jsonDataStr,pathExt)
+}
+
+/*
+func LoadPortfolioJson(path string,filename string) portfolio {
+
+}
+*/
 
 
 
@@ -3624,8 +3798,8 @@ func PlotRange(pdist my_spline, ms1 my_spline, ms2 my_spline) string {
 	return fmt.Sprintf("{{%.1f,%.1f},{%.1f,%.1f}}",min(pdist.x),max(pdist.x),math.Min(ms1.At(min(pdist.x)),ms2.At(min(pdist.x))),math.Max(ms1.At(max(pdist.x)),ms2.At(max(pdist.x))))
 }
 
-func RiskProfileIterativeMeanReturn(riskProfile my_spline) {
-	fmt.Println("RiskProfileIterativeMeanReturn:")
+
+func RiskProfileIterativeMeanReturn(riskProfile my_spline, iterations int, runs int, info bool) (my_spline/*IterativeRiskProfileCAGR */,[]float64 /*returns*/,[]float64/*returnsWorstMeanBest%Above0*/,[]float64 /*cagrs*/,[]float64/*cagrsWorstMeanBest%Above0*/) {
 	/*
 		//norming
 		normedRP := riskProfile.Add(constSpline(-min(riskProfile.y),[]float64{min(riskProfile.x),max(riskProfile.x)}))
@@ -3636,10 +3810,6 @@ func RiskProfileIterativeMeanReturn(riskProfile my_spline) {
 		fmt.Println(normedRP.Integrate().PrintASCII(0.0,1.0,130,35))
 	*/
 
-	runs := 1000000
-	iterations := 20
-	fmt.Println("iterations=",iterations)
-	fmt.Println("(avg-ing out) runs=",runs)
 	var returns []float64
 	/*
 		var tmpOld float64
@@ -3671,9 +3841,9 @@ func RiskProfileIterativeMeanReturn(riskProfile my_spline) {
 		//Print override testing
 		if math.Mod(float64(i),1000000)<1 {
 			tmpstr += fmt.Sprintf("\r%s",repeatstr(" ",len(tmpstr)))
-			sort.Float64s(returns)
 			//fmt.Println("returns=",returns)
 			tmpstr = "\r"
+			sort.Float64s(returns)
 			tmpstr += fmt.Sprintf("Mean[returns]=%.2f %% ",returns[len(returns)/2]*100)
 			tmpstr += fmt.Sprintf("Worst[returns]=%.2f %% ",returns[0]*100)
 			tmpstr += fmt.Sprintf("Best[returns]=%.2f %% ",returns[len(returns)-1]*100)
@@ -3681,22 +3851,65 @@ func RiskProfileIterativeMeanReturn(riskProfile my_spline) {
 			tmpstr += fmt.Sprintf("Mean[cagrs]=%.2f %% ",cagrs[len(cagrs)/2]*100)
 			tmpstr += fmt.Sprintf("Worst[cagrs]=%.2f %% ",cagrs[0]*100)
 			tmpstr += fmt.Sprintf("Best[cagrs]=%.2f %% ",cagrs[len(cagrs)-1]*100)
-			fmt.Print(tmpstr)
+			if info{fmt.Print(tmpstr)}
 		}
 
 
 	}
-	fmt.Printf("\r%s\n",repeatstr(" ",len(tmpstr)))
 	sort.Float64s(returns)
-	//fmt.Println("returns=",returns)
-	fmt.Printf("Mean[returns]=%.2f %% ",returns[len(returns)/2]*100)
-	fmt.Printf("Worst[returns]=%.2f %% ",returns[0]*100)
-	fmt.Printf("Best[returns]=%.2f %% \n",returns[len(returns)-1]*100)
-
 	sort.Float64s(cagrs)
-	fmt.Printf("Mean[cagrs]=%.2f %% ",cagrs[len(cagrs)/2]*100)
-	fmt.Printf("Worst[cagrs]=%.2f %% ",cagrs[0]*100)
-	fmt.Printf("Best[cagrs]=%.2f %% \n",cagrs[len(cagrs)-1]*100)
+	if info{
+		fmt.Printf("\r%s\n",repeatstr(" ",len(tmpstr)))
+
+		fmt.Printf("Mean[returns]=%.2f %% ",returns[len(returns)/2]*100)
+		fmt.Printf("Worst[returns]=%.2f %% ",returns[0]*100)
+		fmt.Printf("Best[returns]=%.2f %% \n",returns[len(returns)-1]*100)
+
+
+		fmt.Printf("Mean[cagrs]=%.2f %% ",cagrs[len(cagrs)/2]*100)
+		fmt.Printf("Worst[cagrs]=%.2f %% ",cagrs[0]*100)
+		fmt.Printf("Best[cagrs]=%.2f %% \n",cagrs[len(cagrs)-1]*100)
+	}
+
+
+	ReturnPercAbove0 := 0.0
+	cagrPercabove0 := 0.0
+	for i,r := range returns {
+		if r > 0.0 {
+			ReturnPercAbove0 = 100*(1.0-float64(i)/float64(len(returns)))
+			break
+		}
+	}
+	for i,c := range cagrs {
+		if c > 0.0 {
+			cagrPercabove0 = 100*(1.0-float64(i)/float64(len(cagrs)))
+			break
+		}
+	}
+	if info{
+		fmt.Printf("return%%above0=%.2f%%\n",ReturnPercAbove0)
+		fmt.Printf("cagr%%above0=%.2f%%\n",cagrPercabove0)
+	}
+
+	ReturnPercAbove4Perc := 0.0
+	cagrPercabove4Perc := 0.0
+	for i,r := range returns {
+		if r > 0.04 {
+			ReturnPercAbove4Perc = 100*(1.0-float64(i)/float64(len(returns)))
+			break
+		}
+	}
+	for i,c := range cagrs {
+		if c > 0.04 {
+			cagrPercabove4Perc = 100*(1.0-float64(i)/float64(len(cagrs)))
+			break
+		}
+	}
+	if info{
+		fmt.Printf("return%%above4%%=%.2f%%\n",ReturnPercAbove4Perc)
+		fmt.Printf("cagr%%above4%%=%.2f%%\n",cagrPercabove4Perc)
+	}
+
 
 	resX := 130-1
 	xs := []float64{}
@@ -3709,11 +3922,9 @@ func RiskProfileIterativeMeanReturn(riskProfile my_spline) {
 	}
 	splineType := []string{"1","2"}
 	IterativeRiskProfile := NewSpline(splineType,xs,ys)
-	fmt.Println("IterativeRiskProfile CAGR:")
-	fmt.Println(IterativeRiskProfile.PrintASCII(0,float64(len(cagrs)),130,35,true))
-
 	//fmt.Println(MathematicaXYPlot(xs,ys))
 
+	return IterativeRiskProfile,returns,[]float64{returns[0]*100,returns[len(returns)/2]*100,returns[len(returns)-1]*100,ReturnPercAbove0,ReturnPercAbove4Perc},cagrs,[]float64{cagrs[0]*100,cagrs[len(cagrs)/2]*100,cagrs[len(cagrs)-1]*100,cagrPercabove0,cagrPercabove4Perc}
 }
 
 func NewSpline(splineType []string, x []float64, y []float64) my_spline{
