@@ -159,6 +159,9 @@ func main(){
 	calltesting := false
 	splinetesting := false
 	newtontesting := false
+	basictesting := false
+	posnegtesting := false
+	riskprofiletesting := false
 
 	if riskAndTimePlottesting {
 
@@ -520,11 +523,247 @@ func main(){
 		roots := testFunc.NewtonRoots(0,0.01*((max(ns.y)+min(ns.y))/2),10)
 		fmt.Println("roots: ",roots)
 
-		negRange,posRange := testFunc.PosNegRange(0,0.001,100)
+		posRange,negRange := testFunc.PosNegRange(0,0.001,100)
 		fmt.Println("probReturn negRange: ",negRange)
 		fmt.Println("probReturn posRange: ",posRange)
 		os.Exit(1)
 	}
+
+	if basictesting{
+
+		//math.Max(-1,math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor))-1)*100
+		//math.Max(-1,math.Abs(1.0/-100)*((5-x)/(2.5224))-1)*100
+		//math.Max(-1,math.Abs(1.0/-100)*((5-0)/(2.5224))-1)*100
+		//math.Max(-1,math.Abs(1.0/-100)*(~2)-1)*100
+		//math.Max(-1,(~2)-1)*100
+		//~100
+
+		put5 := callfunc{
+			base:       5,
+			cost:       0.04,
+			factor:     -100,
+			date:       nil,
+			optionType: "put",
+			isin:       "",
+		}
+		call20 := callfunc{
+			base:       20,
+			cost:       232.15,
+			factor:     100,
+			date:       nil,
+			optionType: "call",
+			isin:       "",
+		}
+		gainput5 := call_gain_perc(0,put5)
+
+		//math.Max(-1,((x-call.base)/(call.cost/call.factor))-1)*100
+		//math.Max(-1,((x-5)/2.5224)-1)*100
+
+		call5 := callfunc{
+			base:       5,
+			cost:       246,
+			factor:     100,
+			date:       nil,
+			optionType: "call",
+			isin:       "",
+		}
+		callgain5 := call_gain_perc(300,call5)
+		
+
+
+		call460 := callfunc{
+			base:       460,
+			cost:       214.43,
+			factor:     100,
+			date:       nil,
+			optionType: "call",
+			isin:       "",
+		}
+		fmt.Println(call_gain_perc(100,call460))
+
+		put20 := callfunc{
+			base:       20,
+			cost:       0.35,
+			factor:     -100,
+			date:       nil,
+			optionType: "put",
+			isin:       "",
+		}
+		
+		put105 := callfunc{
+			base:       105,
+			cost:       5,
+			factor:     -100,
+			date:       nil,
+			optionType: "put",
+			isin:       "",
+		}
+		putgain105 := call_gain_perc(0,put105)
+		putgain20 := call_gain_perc(0,put20)
+
+		long250 := callfunc{
+			base:       0,
+			cost:       250,
+			factor:     1,
+			date:       nil,
+			optionType: "call",
+			isin:       "",
+		}
+		gainlong250 := call_gain_perc(250,long250)
+
+		spreadsellput5 := spread{
+			num:     2,
+			calls:   []callfunc{put5,put20},
+			weights: []float64{-0.5,0.5},
+		}
+
+		//console print best spread
+		resX := 130
+		resY := 35
+
+		fmt.Println("spreadsellput5buyput20")
+		fmt.Print(spreadsellput5.PrintASCIIPerformance(0,100,resX,resY,true))
+		fmt.Println(spreadsellput5.ToSpline(0,100).PrintMathematicaCode(false,"Blue","Automatic"))
+
+		fmt.Println("put5Spread")
+		put5Spread := put5.ToSpread()
+		fmt.Print(put5Spread.PrintASCIIPerformance(0,100,resX,resY,true))
+		fmt.Println(put5Spread.ToSpline(0,100).PrintMathematicaCode(false,"Blue","Automatic"))
+
+		fmt.Println("put5Spline")
+		put5Spline := put5.ToSpline(0,200)
+		fmt.Println(put5Spline.PrintMathematicaCode(false,"Blue","Automatic"))
+		fmt.Println(put5Spline.PrintASCII(0,100,resX,resY,true))
+
+		fmt.Println("put20Spline")
+		put20Spline := put20.ToSpline(0,200)
+		fmt.Println(put20Spline.PrintMathematicaCode(false,"Blue","Automatic"))
+		fmt.Println(put20Spline.PrintASCII(0,100,resX,resY,true))
+
+		fmt.Printf("put5Spline.At(0)=%.3f\n",put5Spline.At(0))
+		
+		fmt.Printf("gainput5(0)=%.3f\n",gainput5)
+		fmt.Printf("gainput20(0)=%.3f\n",putgain20)
+		fmt.Printf("gaincall5(300)=%.3f\n",callgain5)
+		fmt.Printf("gainput105(0)=%.3f\n",putgain105)
+		fmt.Printf("long250(250)=%.3f\n",gainlong250)
+
+		spread_tmp := spread{
+			num:     2,
+			calls:   []callfunc{put5,call20},
+			weights: []float64{0.01,0.99},
+		}
+		fmt.Println("put20call460:")
+		fmt.Println(spread_tmp.ToSpline(0,1200).PrintMathematicaCode(false,"Blue","Automatic"))
+		fmt.Println(spread_tmp.ToSpline(0,1200).PrintASCII(0,400,resX,resY,true))
+
+		fmt.Println("spread.At(1200)=",spread_tmp.ToSpline(0,1200).At(1200.0))
+		fmt.Println("spread.At(0)=",spread_tmp.ToSpline(0,1200).At(0.0))
+
+
+		os.Exit(0)
+	}
+
+	if posnegtesting{
+		splinetype := []string{"1","2"}
+		tmpX := []float64{.0,.1,.2 ,.3 ,.4,.5,.6 ,.7 ,.8 ,.9,1.}
+		tmpY := []float64{1.,.5,-.5,-1.,1.,2.,-1.,-1.,-1.,2.,2.}
+		rootBenchmark := []float64{0.15,0.35,.5666,.8333}
+		s := NewSpline(splinetype,tmpX,tmpY)
+		//ns := NewNormedSpline(s)
+		fmt.Println(s.PrintASCII(0.0,1.0,130,35,true))
+		pos,neg := s.PosNegRange(0,0.001,10)
+		fmt.Println("pos:",pos)
+		fmt.Println("neg:",neg)
+		fmt.Println("rootBenchmark:",rootBenchmark)
+		fmt.Println("s.At(0)=",s.At(0))
+		os.Exit(0)
+	}
+
+	if riskprofiletesting{
+
+		fmt.Println("MergeLeftRightTest:")
+		a := [][]float64{[]float64{0,30},[]float64{30.1,60}}
+		fmt.Println("pre-merge a:",a)
+		a = MergeLeftRight(a,0.1)
+		fmt.Println("post-merge a:",a)
+
+		var pdistX map[string][]float64 = make(map[string][]float64,0)
+		var pdistY map[string][]float64 = make(map[string][]float64,0)
+		var pdistDates []string
+
+		pdistDates = append(pdistDates,"2024-06-01")
+		pdistX["2024-06-01"] = []float64{0, 25, 50, 100 , 200	, 300  , 400  , 500  , 600  , 700  , 800  , 900  }
+		pdistY["2024-06-01"] = []float64{0, 2	, 6	, 7	  , 15	, 17   , 15   , 12   , 8    , 6    , 3    , 1     }
+
+
+		pdistDates = append(pdistDates,"2025-01-01")
+		pdistX["2025-01-01"] = []float64{0, 25, 50, 100 , 150	, 200  , 250  , 300  , 350  , 400  , 450  , 500  }
+		pdistY["2025-01-01"] = []float64{0, 2	, 5	, 7	  , 15	, 17   , 17   , 15   , 12   , 10   , 7   , 5     }
+
+		var pdistSplines map[string]my_spline
+		pdistSplines = make(map[string]my_spline,0)
+		splinetype := []string{"3","2","=Sl","=Cv","EQSl"}
+
+		for _,d := range pdistDates {
+			//fmt.Println(pdistX[d],pdistY[d])
+			s := NewSpline(splinetype,pdistX[d],pdistY[d])
+			ns := NewNormedSpline(s)
+			pdistSplines[d] = ns
+		}
+
+		pdist := pdistSplines[pdistDates[0]]
+		fmt.Println("pdist.FullIntegralSpline()=",pdist.FullIntegralSpline())
+
+		/*
+		put5 := callfunc{
+			base:       5,
+			cost:       0.04,
+			factor:     -100,
+			date:       nil,
+			optionType: "put",
+			isin:       "",
+		}
+		call20 := callfunc{
+			base:       20,
+			cost:       232.15,
+			factor:     100,
+			date:       nil,
+			optionType: "call",
+			isin:       "",
+		}
+		 */
+		call460 := callfunc{
+			base:       460,
+			cost:       214.43,
+			factor:     100,
+			date:       nil,
+			optionType: "call",
+			isin:       "",
+		}
+
+		spreadTmp := spread{
+			num:     1,
+			calls:   []callfunc{call460},
+			weights: []float64{1.},
+		}
+		spreadSpline := spreadTmp.ToSpline(0,1200)
+		fmt.Println(spreadSpline.PrintASCII(0,1200,130,35,true))
+
+		/*
+		roots := spreadSpline.NewtonRoots(0,0.01,10)
+		fmt.Println("roots=",roots)
+		os.Exit(1)
+		 */
+
+		rp,err := spreadTmp.riskProfile(pdist);check(err)
+
+		fmt.Println(rp.PrintASCII(0.,1.,130,35,true))
+		os.Exit(0)
+	}
+
+
+
 
 
 	path, err := os.Getwd()
@@ -575,7 +814,7 @@ func prompt(promptSubPath string){
 	ASCIIPlots := true
 	mathematicaExport := true
 	brute := true
-	iterativeFindN := true
+	iterativeFindN := false
 	riskCompare := true
 	selling := true
 	optionsOutdatedHoursLimit := 24
@@ -601,6 +840,9 @@ func prompt(promptSubPath string){
 
 	// Loading prompt Json
 	ticker,pdistDates,pdistX,pdistY,StrikeRange,DateRange,Contract_type,riskTolX,riskTolY := LoadPromptEasy(path,promptSubPath)
+	if len(riskTolY)==0 && len(riskTolX)==0 {
+		riskCompare = false
+	}
 
 	// Loading API Key Json
 	apiKey := opt.LoadJson("apiKey.json")
@@ -724,18 +966,21 @@ func prompt(promptSubPath string){
 			}
 
 			//options = options_tmp
-			//filter dates
+			//filter dates & strikeRange
 			if debug{
 				fmt.Println("DateRange=",DateRange)
 				fmt.Println("options[0].Expiration_date=",options_tmp[0].Expiration_date)
 				fmt.Println("DateInRange(DateRange,options_tmp[0].Expiration_date)=",DateInRange(DateRange,options_tmp[0].Expiration_date))
 				//os.Exit(610)
 			}
+
 			for _,optt := range options_tmp{
-				if DateInRange(DateRange,optt.Expiration_date) {
+				if DateInRange(DateRange,optt.Expiration_date) && floatInRange(optt.Strike_price,StrikeRange) {
 					options = append(options,optt)
 				}
 			}
+
+
 
 		}
 	}
@@ -946,13 +1191,6 @@ func prompt(promptSubPath string){
 		daysToExpiry := hoursToExpiry/24.0
 		yearsToExpiry := float64(daysToExpiry)/365.0
 
-		/*
-		fmt.Println("dDate=",dDate)
-		fmt.Println("time.Now()=",time.Now())
-		fmt.Println("daysToExpiry=",daysToExpiry)
-		fmt.Println("yearsToExpiry=",yearsToExpiry)
-		*/
-
 
 		// ---- Find closest pdist ----------
 		// !should eventually be optimal transported!
@@ -1035,6 +1273,14 @@ func prompt(promptSubPath string){
 			fmt.Println("done. (took",time.Now().Sub(startTime).Milliseconds(),"ms)")
 		}
 
+
+		//testing: callList
+		/*
+		for i := range callList{
+			fmt.Printf("%s%.0f",callList[i].optionType,callList[i].base)
+		}
+		os.Exit(0)
+		 */
 
 
 		// Best Call
@@ -1238,6 +1484,7 @@ func prompt(promptSubPath string){
 
 		// riskSpline
 		var riskSpline my_spline
+		//if riskCompare {}
 		if mathematicaExport {
 			if info{
 				fmt.Print("Creating wolfram mathematica export code for riskSpline...")
@@ -1272,11 +1519,15 @@ func prompt(promptSubPath string){
 			fmt.Println("IterativeRiskProfile CAGR:")
 			fmt.Println(IterativeRiskProfile.PrintASCII(0,float64(len(cagrs)),130,35,true))
 		}
-		msgCall := ""
-		msgCall += fmt.Sprintf("returnPercAbove0=%.2f Percent\n",ReturnPercAbove0)
-		msgCall += fmt.Sprintf("cagrPercAbove0=%.2f Percent\n",cagrPercabove0)
-		msgCall += fmt.Sprintf("returnPercAbove4Percent=%.2f Percent\n",ReturnPercAbove4Perc)
-		msgCall += fmt.Sprintf("cagrPercAbove4 Percent=%.2f Percent\n",cagrPercabove4Perc)
+
+		msgIt := ""
+		msgIt += fmt.Sprintf("Worst[cagr]=%.2f",cagrsAr[0])
+		msgIt += fmt.Sprintf("Mean[cagr]=%.2f",cagrsAr[1])
+		msgIt += fmt.Sprintf("Best[cagr]=%.2f",cagrsAr[2])
+		msgIt += fmt.Sprintf("returnPercAbove0=%.2f",ReturnPercAbove0)
+		msgIt += fmt.Sprintf("cagrPercAbove0=%.2f,",cagrPercabove0)
+		msgIt += fmt.Sprintf("returnPercAbove4Percent=%.2f",ReturnPercAbove4Perc)
+		msgIt += fmt.Sprintf("cagrPercAbove4 Percent=%.2f",cagrPercabove4Perc)
 
 		plotRange := fmt.Sprintf("{{0,%v},{%.1f,%.1f}}",runs,cagrsAr[0],cagrsAr[2])
 		fmt.Printf("plotRange=%s\n",plotRange)
@@ -1284,7 +1535,7 @@ func prompt(promptSubPath string){
 		//tmp,id := IterativeRiskProfile.PrintMathematicaCode(false,"Blue",plotRange)
 		//fmt.Printf("IterativeRiskProfile.PrintMathematicaCode: (id=%v)\n%s\n",id,tmp)
 
-		content += IterativeRiskProfile.MathematicaExport("Blue", msgCall,false,folderName,"-IterativeRiskProfileCAGRCall",mathematicaCompressionLevel,mathematicaImageResolution,plotRange)
+		content += IterativeRiskProfile.MathematicaExport("Blue", msgIt,false,folderName,"-IterativeRiskProfileCAGRCall",mathematicaCompressionLevel,mathematicaImageResolution,plotRange)
 
 
 
@@ -1448,7 +1699,7 @@ func prompt(promptSubPath string){
 				riskTolExclusion = fmt.Sprintf("%.5f Percent (%v out of %v) of spreads were excluded due to the risk profile not matching.\n",100.0*float64(riskTotalCount-riskMatchCount)/float64(riskTotalCount),riskTotalCount-riskMatchCount,riskTotalCount)
 				fmt.Println(riskTolExclusion)
 			}
-			msg = fmt.Sprintf("Assuming the probability distribution for the date %v, the (N=%v)-spread with strikes and weights %v has the highest expected return out of all call options available with %.1f Percent expected return. Owning the underlying asset (%v) has an expected return of %.1f Percent. %s", bestSpreadFindN.calls[0].date, N, bestSpreadFindN, bestSpreadFindNExp, ticker, long.ExpectedReturn(pdist),riskTolExclusion)
+			msg = fmt.Sprintf("Assuming the probability distribution for the date %v, the (N=%v)-spread with strikes and weights %v has the highest expected return out of all options available with %.1f Percent expected return. Owning the underlying asset (%v) has an expected return of %.1f Percent. %s", bestSpreadFindN.calls[0].date, N, bestSpreadFindN, bestSpreadFindNExp, ticker, long.ExpectedReturn(pdist),riskTolExclusion)
 			longSpline := long.ToSpline(min(pdist.x),max(pdist.x))
 			bestSpreadFindSpline := bestSpreadFindN.ToSpline(min(pdist.x),max(pdist.x))
 			content += bestSpreadFindSpline.MathematicaExport2("Blue",longSpline,"Red",msg,false,folderName,"-bestSpreadFindN4",mathematicaCompressionLevel,mathematicaImageResolution,PlotRange(pdist,bestSpreadFindSpline,longSpline))
@@ -1497,11 +1748,14 @@ func prompt(promptSubPath string){
 				fmt.Println("IterativeRiskProfile CAGR:")
 				fmt.Println(IterativeRiskProfile.PrintASCII(0,float64(len(cagrs)),130,35,true))
 			}
-			msg = ""
-			msg += fmt.Sprintf("returnPercAbove0=%.2f Percent\n",ReturnPercAbove0)
-			msg += fmt.Sprintf("cagrPercAbove0=%.2f Percent\n",cagrPercabove0)
-			msg += fmt.Sprintf("returnPercAbove4Perc=%.2f Percent\n",ReturnPercAbove4Perc)
-			msg += fmt.Sprintf("cagrPercAbove4Perc=%.2f Percent\n",cagrPercabove4Perc)
+			msgIt := ""
+			msgIt += fmt.Sprintf("Worst[cagr]=%.2f",cagrsAr[0])
+			msgIt += fmt.Sprintf("Mean[cagr]=%.2f",cagrsAr[1])
+			msgIt += fmt.Sprintf("Best[cagr]=%.2f",cagrsAr[2])
+			msgIt += fmt.Sprintf("returnPercAbove0=%.2f",ReturnPercAbove0)
+			msgIt += fmt.Sprintf("cagrPercAbove0=%.2f",cagrPercabove0)
+			msgIt += fmt.Sprintf("returnPercAbove4Percent=%.2f",ReturnPercAbove4Perc)
+			msgIt += fmt.Sprintf("cagrPercAbove4 Percent=%.2f",cagrPercabove4Perc)
 
 			plotRange := fmt.Sprintf("{{0,%v},{%.1f,%.1f}}",runs,cagrsAr[0],cagrsAr[2])
 			fmt.Printf("plotRange=%s\n",plotRange)
@@ -1509,7 +1763,7 @@ func prompt(promptSubPath string){
 			//tmp,id := IterativeRiskProfile.PrintMathematicaCode(false,"Blue",plotRange)
 			//fmt.Printf("IterativeRiskProfile.PrintMathematicaCode: (id=%v)\n%s\n",id,tmp)
 
-			content += IterativeRiskProfile.MathematicaExport("Blue", msg,false,folderName,"-IterativeRiskProfileCAGRFind",mathematicaCompressionLevel,mathematicaImageResolution,plotRange)
+			content += IterativeRiskProfile.MathematicaExport("Blue", msgIt,false,folderName,"-IterativeRiskProfileCAGRFind",mathematicaCompressionLevel,mathematicaImageResolution,plotRange)
 
 
 
@@ -1585,7 +1839,7 @@ func prompt(promptSubPath string){
 				}
 				longExp := long.ExpectedReturn(pdist)
 				longCAGR := CAGR(longExp,yearsToExpiry)
-				msg := fmt.Sprintf("Assuming the probability distribution for the date %v, the 2-spread with strikes and weights {(%s,%.1f, %.2f),(%s,%.1f, %.2f)} has the highest expected return out of all call options available with %.1f Percent expected return (%.1f Percent CAGR). Owning the underlying asset (%v) has an expected return of %.1f Percent. (%.1f Percent CAGR) %s", bestSpread.calls[0].date,bestSpread.calls[0].optionType, bestSpread.calls[0].base,bestSpread.weights[0],bestSpread.calls[1].optionType,bestSpread.calls[1].base,bestSpread.weights[1], bestSpreadExp,bestSpreadCAGR, ticker, longExp,longCAGR,riskTolExclusion)
+				msg := fmt.Sprintf("Assuming the probability distribution for the date %v, the 2-spread with strikes and weights {(%s,%.1f, %.2f),(%s,%.1f, %.2f)} has the highest expected return out of all options available with %.1f Percent expected return (%.1f Percent CAGR). Owning the underlying asset (%v) has an expected return of %.1f Percent. (%.1f Percent CAGR) %s", bestSpread.calls[0].date,bestSpread.calls[0].optionType, bestSpread.calls[0].base,bestSpread.weights[0],bestSpread.calls[1].optionType,bestSpread.calls[1].base,bestSpread.weights[1], bestSpreadExp,bestSpreadCAGR, ticker, longExp,longCAGR,riskTolExclusion)
 				longSpline := long.ToSpline(min(pdist.x),max(pdist.x))
 				bestSpreadSpline := bestSpread.ToSpline(min(pdist.x),max(pdist.x))
 				content += bestSpreadSpline.MathematicaExport2("Blue",longSpline,"Red",msg,false,folderName,"-bestSpread",mathematicaCompressionLevel,mathematicaImageResolution,PlotRange(pdist,bestSpreadSpline,longSpline))
@@ -1628,11 +1882,14 @@ func prompt(promptSubPath string){
 					fmt.Println("IterativeRiskProfile CAGR:")
 					fmt.Println(IterativeRiskProfile.PrintASCII(0,float64(len(cagrs)),130,35,true))
 				}
-				msg = ""
-				msg += fmt.Sprintf("returnPercAbove0=%.2f Percent\n",ReturnPercAbove0)
-				msg += fmt.Sprintf("cagrPercAbove0=%.2f Percent\n",cagrPercabove0)
-				msg += fmt.Sprintf("returnPercAbove4Percent=%.2f Percent\n",ReturnPercAbove4Perc)
-				msg += fmt.Sprintf("cagrPercAbove4 Percent=%.2f Percent\n",cagrPercabove4Perc)
+				msgIt := ""
+				msgIt += fmt.Sprintf("Worst[cagr]=%.2f",cagrsAr[0])
+				msgIt += fmt.Sprintf("Mean[cagr]=%.2f",cagrsAr[1])
+				msgIt += fmt.Sprintf("Best[cagr]=%.2f",cagrsAr[2])
+				msgIt += fmt.Sprintf("returnPercAbove0=%.2f",ReturnPercAbove0)
+				msgIt += fmt.Sprintf("cagrPercAbove0=%.2f",cagrPercabove0)
+				msgIt += fmt.Sprintf("returnPercAbove4Percent=%.2f",ReturnPercAbove4Perc)
+				msgIt += fmt.Sprintf("cagrPercAbove4 Percent=%.2f",cagrPercabove4Perc)
 
 				plotRange := fmt.Sprintf("{{0,%v},{%.1f,%.1f}}",runs,cagrsAr[0],cagrsAr[2])
 				fmt.Printf("plotRange=%s\n",plotRange)
@@ -1640,7 +1897,7 @@ func prompt(promptSubPath string){
 				//tmp,id := IterativeRiskProfile.PrintMathematicaCode(false,"Blue",plotRange)
 				//fmt.Printf("IterativeRiskProfile.PrintMathematicaCode: (id=%v)\n%s\n",id,tmp)
 
-				content += IterativeRiskProfile.MathematicaExport("Blue", msg,false,folderName,"-IterativeRiskProfileCAGRBrute",mathematicaCompressionLevel,mathematicaImageResolution,plotRange)
+				content += IterativeRiskProfile.MathematicaExport("Blue", msgIt,false,folderName,"-IterativeRiskProfileCAGRBrute",mathematicaCompressionLevel,mathematicaImageResolution,plotRange)
 
 
 
@@ -1656,7 +1913,6 @@ func prompt(promptSubPath string){
 					overallMsg = msg
 					//overallDate = d
 				}
-
 
 			}
 
@@ -1713,6 +1969,7 @@ func PDistOptimalTransport(){}
 func ChangeMeritPortfolio(best spread, transactionHistory int, taxProfile int){}
 func ChangePortfolio(newSpread spread){}
 func LeastSquare(x,y []float64){}
+func GrayScaleHeatMap(){}
 
 
 
@@ -2120,7 +2377,7 @@ func (sp spread) PrintASCIIPerformanceTransposed(pdist my_spline) string {
 
 
 func (sp spread) PrintASCIIPerformance(minX float64, maxX float64, resX int, resY int, zeroLine bool) string {
-	debug := true
+	debug := false
 	output := ""
 	//minX := min(pdist.x)
 	//maxX := max(pdist.x)
@@ -2245,12 +2502,12 @@ func (ms my_spline) PrintASCII(minX float64, maxX float64, resX int, resY int, z
 
 		if maxY-minY < 10 {
 			if maxY-minY < 1000{
-				tmp = fmt.Sprintf("%.6f",maxY-float64(j)*(maxY-minY)/float64(resY-1))
+				tmp = fmt.Sprintf("%.6f",maxY-(maxY-minY)*float64(j)/float64(resY-1))
 			} else {
-				tmp = fmt.Sprintf("%.2f",maxY-float64(j)*(maxY-minY)/float64(resY-1))
+				tmp = fmt.Sprintf("%.2f",maxY-(maxY-minY)*float64(j)/float64(resY-1))
 			}
 		} else {
-			tmp = fmt.Sprintf("%.0f",maxY-float64(j)*(maxY-minY)/float64(resY-1))
+			tmp = fmt.Sprintf("%.0f",maxY-(maxY-minY)*float64(j)/float64(resY-1))
 		}
 		if maxPrintLength < len(tmp) {
 			if minY<0{
@@ -2265,7 +2522,7 @@ func (ms my_spline) PrintASCII(minX float64, maxX float64, resX int, resY int, z
 		if math.Floor(maxY-float64(j)*(maxY-minY)/float64(resY-1)) < 0 {output+=" "}
 
 		for i := 0 ; i < resX ; i++ {
-			if math.Abs(  ms.At( minX+float64(i+1)*(maxX-minX)/float64(resX) ) - (maxY-float64(j)*(maxY-minY)/float64(resY-1))  ) < eps {
+			if math.Abs(  ms.At( minX+(maxX-minX)*float64(i+1)/float64(resX) ) - (maxY-(maxY-minY)*float64(j)/float64(resY-1))  ) < eps {
 				if debug{fmt.Printf("at:%.1f",ms.At( minX+float64(i+1)*(maxX-minX)/float64(resX) ))}
 				//plot[i][j] = "*"
 				output += "*"
@@ -2332,7 +2589,7 @@ func DigitsBase10 (number float64) int {
 //returns best spread,bestSpreadExp, riskMatchCount, totalCount
 func BestSpread2CombinationsManual(pdist my_spline, callList []callfunc, weights []float64, riskCompare bool, riskTolSpline my_spline, selling bool) (spread,float64,int,int,[]float64) {
 
-	bestSpreadExp := -10000.0
+	bestSpreadExp := riskTolSpline.At(0)
 	var bestSpread spread
 	var spread_tmp spread
 	var riskMatchBool bool
@@ -2497,14 +2754,17 @@ func BestSpread2CombinationsManual(pdist my_spline, callList []callfunc, weights
 				}
 
 
-
 				//if math.Mod(float64(spreadCount)/float64(totalCount),percSteps) < percSteps/2000 {
 				if math.Mod(float64(spreadCount),percSteps*float64(totalCount)) < 4 {
 					elapsed := time.Now().Sub(timeStart).Milliseconds()
 					elapsedPerSpread := float64(elapsed)/float64(spreadCount-spreadStart)
 					//fmt.Println(fmt.Sprintf("%.1f",100.0*float64(spreadCount)/float64(totalCount)) , "% (took "+fmt.Sprintf("%v milliseconds - %.4f ms per spread",elapsed,elapsedPerSpread)+") - est. time rem.:",fmt.Sprintf("%.2f",float64(totalCount-spreadCount)*elapsedPerSpread/1000/60),"mins")
 					fmt.Printf("\r                                                                                                                                                         ")
-					fmt.Printf("\r %.1f %% (compared %v spreads, took %v ms - %.4f ms per spread - %.0f spreads/s - best exp. return found: %.1f %%) - est. time rem.: %vm%.0fs",100.0*float64(spreadCount)/float64(totalCount),spreadCount,elapsed,elapsedPerSpread,1000*1.0/elapsedPerSpread,bestSpreadExp,int(float64(totalCount-spreadCount)*elapsedPerSpread/1000/60),math.Mod(float64(int(float64(totalCount-spreadCount)*elapsedPerSpread/1000)),60))
+					if riskMatchCount>0{
+						fmt.Printf("\r %.1f %% (compared %v spreads - %.4f ms per spread - %.0f spreads/s - best exp. return found: %.1f %%) - est. time rem.: %vm%.0fs",100.0*float64(spreadCount)/float64(totalCount),spreadCount,elapsedPerSpread,1000*1.0/elapsedPerSpread,bestSpreadExp,int(float64(totalCount-spreadCount)*elapsedPerSpread/1000/60),math.Mod(float64(int(float64(totalCount-spreadCount)*elapsedPerSpread/1000)),60))
+					} else {
+						fmt.Printf("\r %.1f %% (compared %v spreads - %.4f ms per spread - %.0f spreads/s - no feasible found - best exp. return found: --- ) - est. time rem.: %vm%.0fs",100.0*float64(spreadCount)/float64(totalCount),spreadCount,elapsedPerSpread,1000*1.0/elapsedPerSpread,int(float64(totalCount-spreadCount)*elapsedPerSpread/1000/60),math.Mod(float64(int(float64(totalCount-spreadCount)*elapsedPerSpread/1000)),60))
+					}
 					//timeStart = time.Now()
 					//spreadStart = spreadCount
 				}
@@ -3268,7 +3528,7 @@ func BestSpreadIterativeFindN(N int, pdist my_spline, optionsList []callfunc, we
 		//var alterIndex int
 		var alterDirection int
 
-		startSpreadExpBefore := -1000.0
+		startSpreadExpBefore := riskTolSpline.At(0)
 		startRiskProfile,err = startSpread.riskProfile(pdist)
 		check(err)
 
@@ -3674,6 +3934,7 @@ func (sp spread) ExpectedReturn(pdist my_spline) float64 {
 	return expReturns
 }
 
+//make dy dynamic around the beginning to have higher resolution!
 func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 	debug := false
 	if debug {fmt.Println("riskProfile debug:")}
@@ -3681,13 +3942,15 @@ func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 	var ys []float64
 	var probs []float64
 
-	n := 10
-	tolYPerc := 0.01 //basically in NewtonRoot()
+	n := 30
+	tolYPerc := 0.0001 //basically in NewtonRoot()
 	var probsMap map[float64]float64
 	probsMap = make(map[float64]float64)
 	start := min(spreadPerf.y)
 	end := max(spreadPerf.y)
-	dy := (end-start)/float64(n)
+	//dy := (end-start)/float64(n)
+	//???
+	/*
 	if math.Abs(dy) < 0.00000001 {
 		return NewSpline([]string{"1","2"},[]float64{min(pdist.x),max(pdist.x)},[]float64{min(spreadPerf.y),max(spreadPerf.y)}), nil
 	}
@@ -3697,11 +3960,21 @@ func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 		fmt.Println( "max(spreadPerf.y) :",max(spreadPerf.y) )
 		//os.Exit(0)
 	}
+	 */
 
-	for y := start  /*-2*math.Abs(dy*min(spreadPerf.y))*/ ; y <= end ; y += dy /*dy + dy*(-math.Pow (y - (start + end)/2, 2) + math.Pow ((start + end)/2, 2))/math.Pow ((start + end)/2, 2)*/ { //normally dy but I'm trying to concentrate more towards start and end
+	//change to index i
+	for i := 0 ; i <= n ; i++ {
+		y := start + (end-start)*float64(i*i)/float64(n*n)
+		//y := start + (end-start)*float64(i)/float64(n)
+	//for y := start  /*-2*math.Abs(dy*min(spreadPerf.y))*/ ; y <= end ; y += dy /*dy + dy*(-math.Pow (y - (start + end)/2, 2) + math.Pow ((start + end)/2, 2))/math.Pow ((start + end)/2, 2)*/ { //normally dy but I'm trying to concentrate more towards start and end
 		if debug {fmt.Println("y: ",y)}
-		neg,_ := spreadPerf.PosNegRange(y,tolYPerc,30/*4*n*/)
-		if debug {fmt.Println(neg)}
+		_,neg:= spreadPerf.PosNegRange(y,tolYPerc,30)
+
+		if debug {fmt.Println("neg=",neg)}
+		/*
+		neg = MergeLeftRight(neg,0.1)
+		if debug {fmt.Println("post-merge neg:",neg)}
+		 */
 		if len(neg) == 0 {
 			probs = append(probs,0.0)
 			probsMap[y] = 0.0
@@ -3710,14 +3983,21 @@ func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 
 		prob_tmp := 0.0
 		for i := range neg {
+			if debug {
+				fmt.Println("neg[i]=",neg[i])
+				fmt.Println("pdist.IntegralSpline(neg[i][0],neg[i][1])=",pdist.IntegralSpline(neg[i][0],neg[i][1]))
+			}
 			prob_tmp += pdist.IntegralSpline(neg[i][0],neg[i][1])
 		}
 		//discard decreasing probs - not an ideal solution! kinda hacky, messy
-		if len(probs) == 0 || prob_tmp > probs[len(probs)-1] {
+
+		//if len(probs) == 0 || prob_tmp > probs[len(probs)-1] {
 			probs = append(probs,prob_tmp)
 			probsMap[y] = prob_tmp
 			ys = append(ys, y)
-		}
+		//}
+
+
 		if debug {
 			fmt.Println("probs: ",probs)
 			fmt.Println("ys: ",ys)
@@ -3752,6 +4032,7 @@ func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 
 	//splinetype = []string{"3","2","=Sl","=Cv","E0Sl"}
 	splinetype := []string{"1","2"}
+	//splinetype := []string{"0"}
 	if len(probs) != len(ys){
 		fmt.Println("len(probs)!=len(ys)!!")
 		os.Exit(0)
@@ -5158,7 +5439,16 @@ func (ms my_spline) PosNegRange (y float64, tolYPerc float64, n int) ([][]float6
 	//tolXPerc := 0.01
 	//span := max(ms.x)-min(ms.x)
 	//tolX := tolXPerc*span
+
 	roots := ms.NewtonRoots(y,tolYPerc,n)
+
+	/*
+	if debug{
+		fmt.Println(ms.PrintASCII(min(ms.x),max(ms.x),130,35,true))
+		fmt.Println("NewtonRoots(y=",y,"):",roots)
+		fmt.Println("ms.At(roots[0])=",ms.At(roots[0]))
+	}
+	 */
 
 	//replace start and end separation
 	roots = append(roots,min(ms.x))
@@ -5290,27 +5580,46 @@ func (ms my_spline) PosNegRange (y float64, tolYPerc float64, n int) ([][]float6
 	neg = MergeLeftRight(neg,0.01)
 	pos = MergeLeftRight(pos,0.01)
 
+	//merge overlaps
+	//neg= [[0 36] [0 54] [18 72] [36 90] [54 108] [72 126] [90 144] [108 162] [126 180] [144 198] [162 216] [180 234] [198 252] [216 270] [234 288] [252 306] [270 324] [288 342] [306 360] [324 378] [342 396] [360 414] [378 432] [396 450] [414 461.09999999999997] [432 461.09999999999997]]
+	/*
+	var newNeg [][]float64
+	for i := range neg {
+		for j := range neg{
+
+		}
+	}
+	 */
 
 
-	return neg,pos
+	return pos,neg
 }
 
 //e.g. MergeLeftRight([[100,200],[200.1,300]],0.1/(300-100))=[[100,300]]
 func MergeLeftRight (a [][]float64, tolPerc float64) [][]float64 {
-	if len(a) == 0 {return a}
-	span := a[0][0]-a[len(a)-1][1]
+	debug := false
+	if len(a) <= 1 {return a}
+	span := math.Abs(a[0][0]-a[len(a)-1][1])
 	tol := tolPerc * span
 
 	var tmp [][]float64
 	var left, right float64
-	for i := 0 ; i < len(a) ; i++ {
-		left = a[i][0]
-		right = a[i][1]
-		for i+1 < len(a) && math.Abs(a[i][1]-a[i+1][0]) <= tol {
-			right = a[i+1][1]
-			i++
+	var ileft, iright int
+	for i := 0 ; i+1 < len(a) ; i++ {
+		ileft = i
+		iright = i+1
+		left = a[i][1]
+		right = a[i+1][0]
+		if debug {
+			fmt.Println("MergeLeftRight: left=",left,", right=",right,", tol=",tol,", math.Abs(right-left) <= tol=",math.Abs(right-left) <= tol)
 		}
-		tmp = append(tmp,[]float64{left,right})
+		for iright+1 < len(a) && math.Abs(a[ileft][1]-a[iright][0]) <= tol {
+			//merge
+			//right = a[i+1][1]
+			iright++
+			//i++
+		}
+		tmp = append(tmp,[]float64{a[ileft][0],a[iright][1]})
 	}
 	return tmp
 }
@@ -5458,19 +5767,29 @@ func call_gain_perc(x float64, call callfunc) float64{
 	//return math.Max(-1,x/(call.cost/call.factor)-call.base/(call.cost/call.factor)-1)*100
 	//return math.Max(-1,((1.0/call.factor*(x-call.base))/call.cost)-1)*100
 	//100*Max[-1,math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor)))-1]
-	return math.Max(-1,math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor))-1)*100
+	//return math.Max(-1,math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor))-1)*100
+	if call.optionType=="call"{return math.Max(-1,((x-call.base)/(call.cost/**math.Abs(call.factor)*/))-1)*100}
+	if call.optionType=="put"{return math.Max(-1,(-(x-call.base)/(call.cost/**math.Abs(call.factor)*/))-1)*100}
+	//return math.Max(-1,((x-call.base)/(call.cost/call.factor))-1)*100
+	return -100
 }
 
 func (call callfunc) PrintMathematicaCode(lr float64) string{
 	//fmt.Println("Mathematica Code to visualize call option value\n\n")
 	code := ""
 	//code += fmt.Sprintln("call:=Plot[100*Max[-1,(x/(",call.cost/call.factor,")-(",call.base/(call.cost/call.factor),")-1)],{x,0,",lr,"},ImageSize->Large, PlotRange->Automatic];")
-	code += fmt.Sprintf("call:=Plot[100*Max[-1,%.4f*((x-%.3f)/%.10f)-1],{x,0,%.3f},ImageSize->Large, PlotRange->Automatic];\n",math.Abs(1.0/call.factor),call.base,call.cost*call.factor,lr)
+	//code += fmt.Sprintf("call:=Plot[100*Max[-1,%.4f*((x-%.3f)/%.10f)-1],{x,0,%.3f},ImageSize->Large, PlotRange->Automatic];\n",math.Abs(1.0/call.factor),call.base,call.cost*call.factor,lr)
+	if call.optionType=="call"{
+		code += fmt.Sprintf("call:=Plot[100*Max[-1,((x-%.3f)/%.10f)-1],{x,0,%.3f},ImageSize->Large, PlotRange->Automatic];\n",call.base,call.cost,lr)
+	}
+	if call.optionType == "put"{
+		code += fmt.Sprintf("call:=Plot[100*Max[-1,(-(x-%.3f)/%.10f)-1],{x,0,%.3f},ImageSize->Large, PlotRange->Automatic];\n",call.base,call.cost,lr)
+	}
 	code += fmt.Sprintln("Show[call]")
 	return code
 }
 
-//doesn't do it properly for puts
+//doesn't do it properly for puts, fixed?!
 func PrintMathematicaCode(calls []callfunc, share_price float64, callsColor string, longColor string, includeShort bool) string {
 	//fmt.Println("Mathematica Code to visualize call option value\n\n")
 	xmax := calls[0].base
@@ -5483,7 +5802,13 @@ func PrintMathematicaCode(calls []callfunc, share_price float64, callsColor stri
 	for i,call := range calls {
 		code += fmt.Sprintf("(* strike: %v *)\n",call.base)
 		//code += fmt.Sprint("call"+strconv.Itoa(i)+":=Plot[100*Max[-1,(x/(",call.cost/call.factor,")-(",call.base/(call.cost/call.factor),")-1)],{x,0,xmax},ImageSize->Large, PlotRange->Automatic, PlotStyle -> "+callsColor+", AxesOrigin -> {0, 0}];\n")
-		code += fmt.Sprintf("call%v:=Plot[100*Max[-1,%.4f*((x-%.3f)/%.10f)-1],{x,0,xmax},ImageSize->Large, PlotRange->Automatic, PlotStyle -> %s, AxesOrigin -> {0, 0}];\n",strconv.Itoa(i),math.Abs(1.0/call.factor),call.base,call.cost/call.factor,callsColor )
+		//code += fmt.Sprintf("call%v:=Plot[100*Max[-1,%.4f*((x-%.3f)/%.10f)-1],{x,0,xmax},ImageSize->Large, PlotRange->Automatic, PlotStyle -> %s, AxesOrigin -> {0, 0}];\n",strconv.Itoa(i),math.Abs(1.0/call.factor),call.base,call.cost/call.factor,callsColor )
+		if call.optionType=="call"{
+			code += fmt.Sprintf("call%v:=Plot[100*Max[-1,((x-%.3f)/(%.10f))-1],{x,0,xmax},ImageSize->Large, PlotRange->Automatic, PlotStyle -> %s, AxesOrigin -> {0, 0}];\n",strconv.Itoa(i),call.base,call.cost/*,call.factor*/,callsColor )
+		}
+		if call.optionType=="put"{
+			code += fmt.Sprintf("call%v:=Plot[100*Max[-1,(-(x-%.3f)/(%.10f))-1],{x,0,xmax},ImageSize->Large, PlotRange->Automatic, PlotStyle -> %s, AxesOrigin -> {0, 0}];\n",strconv.Itoa(i),call.base,call.cost/*,call.factor*/,callsColor )
+		}
 	}
 
 	code += "long := Plot[100*(x - "+fmt.Sprintf("%.2f",share_price)+")/"+fmt.Sprintf("%.2f",share_price)+", {x, 0, xmax}, PlotStyle -> "+longColor+", AxesOrigin -> {0, 0}];\n"
@@ -5565,6 +5890,13 @@ func (call callfunc) ExpectedReturnDX (pdist my_spline,dx float64) float64{
 }
 
 func (call callfunc) ToSpline(a,b float64) my_spline {
+	//from perf_gain_func:
+	//if call.optionType=="call"{return math.Max(-1,((x-call.base)/(call.cost))-1)*100}
+	//((x-call.base)/(call.cost))-1)*100
+	//x/cost -base/cost-1
+	//if call.optionType=="put"{return math.Max(-1,(-(x-call.base)/(call.cost))-1)*100}
+	//(-(x-call.base)/(call.cost))-1)*100
+	//-1/cost*x + base/cost-1
 	if call.optionType == "put" {
 		return my_spline{
 			deg:        1,
@@ -5577,7 +5909,8 @@ func (call callfunc) ToSpline(a,b float64) my_spline {
 			//				 = math.Abs(1.0/call.factor)/(call.cost*call.factor) *x - math.Abs(1.0/call.factor)*call.base/(call.cost*call.factor)
 			//coeffs:     []float64{call.factor*call.cost*100,-100-100*call.base*call.factor*call.cost   ,0,-100},
 			//coeffs:     []float64{math.Abs(1.0/call.factor)/(call.cost*call.factor)*100 , -100-100*call.base*math.Abs(1.0/call.factor)/(call.cost*call.factor)   ,0,-100},
-			coeffs:     []float64{call.factor/math.Abs(call.factor)*1.0/(call.cost)*100 , -100-100*call.factor/math.Abs(call.factor)*call.base*1.0/(call.cost)   ,0,-100},
+			//coeffs:     []float64{call.factor/math.Abs(call.factor)*1.0/(call.cost)*100 , -100-100*call.factor/math.Abs(call.factor)*call.base*1.0/(call.cost)   ,0,-100},
+			coeffs:     []float64{-1.0/(call.cost)*100 , (call.base/call.cost-1)*100   ,0,-100},
 			unique:     false,
 		}
 	}
@@ -5589,7 +5922,8 @@ func (call callfunc) ToSpline(a,b float64) my_spline {
 			//coeffs:     []float64{0,-100,call.factor/call.cost*100,-100-100*call.base*call.factor/call.cost},
 			//coeffs:     []float64{0,-100,call.factor*call.cost*100,-100-100*call.base*call.factor*call.cost},
 			//coeffs:     []float64{0,-100  ,  math.Abs(1.0/call.factor)/(call.cost*call.factor)*100,-100-100*call.base*math.Abs(1.0/call.factor)/(call.cost*call.factor)},
-			coeffs:     []float64{0,-100  ,  call.factor/math.Abs(call.factor)*1.0/(call.cost)*100,-100-100*call.base*call.factor/math.Abs(call.factor)*1.0/(call.cost)},
+			//coeffs:     []float64{0,-100  ,  call.factor/math.Abs(call.factor)*1.0/(call.cost)*100,-100-100*call.base*call.factor/math.Abs(call.factor)*1.0/(call.cost)},
+			coeffs:     []float64{0,-100  ,  1.0/(call.cost)*100,(-call.base/call.cost-1)*100 },
 			unique:     false,
 		}
 }
@@ -5759,6 +6093,11 @@ func DateInRange(dateRange []string, dateStr string) bool {
 	date, err := time.Parse("2006-01-02",dateStr)
 	check(err)
 	return date.Before(dateHigh) && date.After(dateLow)
+}
+
+func floatInRange(x float64,floatRange []int) bool {
+	if len(floatRange)!=2 {return false}
+	return float64(floatRange[0]) < x && x < float64(floatRange[1])
 }
 
 
