@@ -716,6 +716,40 @@ func main(){
 		fmt.Println("pdist.FullIntegralSpline()=",pdist.FullIntegralSpline())
 
 		/*
+		50.0 % : call 510.0 buy 0.5
+		-50.0 % : call 530.0 sell -0.5
+		 */
+
+		/*
+		2026-01-16
+		call 460 50%
+		call 470 -50%
+		 */
+		
+		
+		call510 := callfunc{
+			base:       510,
+			cost:       25.05,
+			factor:     100,
+			date:       nil,
+			optionType: "call",
+			isin:       "",
+		}
+		call530 := callfunc{
+			base:       530,
+			cost:       23.2,
+			factor:     100,
+			date:       nil,
+			optionType: "call",
+			isin:       "",
+		}
+		spread510530 := spread{
+			num:     2,
+			calls:   []callfunc{call510,call530},
+			weights: []float64{-0.5,0.5},
+		}
+
+		/*
 		put5 := callfunc{
 			base:       5,
 			cost:       0.04,
@@ -735,12 +769,66 @@ func main(){
 		 */
 		call460 := callfunc{
 			base:       460,
-			cost:       214.43,
+			cost:       27.92,
 			factor:     100,
 			date:       nil,
 			optionType: "call",
 			isin:       "",
 		}
+		call470 := callfunc{
+			base:       470,
+			cost:       30.5,
+			factor:     100,
+			date:       nil,
+			optionType: "call",
+			isin:       "",
+		}
+		spreadcall460470 := spread{
+			num:     2,
+			calls:   []callfunc{call460,call470},
+			weights: []float64{.5,-.5},
+		}
+
+		long := callfunc{
+			base:       0,
+			cost:       248,
+			factor:     1,
+			date:       nil,
+			optionType: "call",
+			isin:       "",
+		}
+
+		put400 := callfunc{
+			base:       400,
+			cost:       144,
+			factor:     -100,
+			date:       nil,
+			optionType: "put",
+			isin: "",
+		}
+		put610 := callfunc{
+			base:       610,
+			cost:       353.8,
+			factor:     100,
+			date:       nil,
+			optionType: "put",
+			isin:       "",
+		}
+
+		spreadlongput610 := spread{
+			num:     2,
+			calls:   []callfunc{long,put610},
+			weights: []float64{0.45,0.55},
+		}
+
+		spreadlongput400put610 := spread{
+			num:     3,
+			calls:   []callfunc{long,put400,put610},
+			weights: []float64{0.5,0.1,0.4},
+		}
+
+		//why doesn't ManualBrute() find smth like this?
+
 
 		spreadTmp := spread{
 			num:     1,
@@ -757,8 +845,92 @@ func main(){
 		 */
 
 		rp,err := spreadTmp.riskProfile(pdist);check(err)
-
 		fmt.Println(rp.PrintASCII(0.,1.,130,35,true))
+
+		//spread510530
+		fmt.Println("spread510530")
+		spread510530Spline := spread510530.ToSpline(0,1200)
+		fmt.Println(spread510530Spline.PrintASCII(0,1200,130,35,true))
+		rp,err = spread510530.riskProfile(pdist);check(err)
+		fmt.Println(rp.PrintASCII(0.,1.,130,35,true))
+
+		//spreadlongput400put610
+		fmt.Println("spreadlongput400put610")
+		spreadlongput400put610Spline := spreadlongput400put610.ToSpline(0,1200)
+		fmt.Println(spreadlongput400put610Spline.PrintASCII(0,1200,130,35,true))
+		rp,err = spreadlongput400put610.riskProfile(pdist);check(err)
+		fmt.Println(rp.PrintASCII(0.,1.,130,35,true))
+		IterativeRiskProfile,_,_/*returnsAr*/,cagrs,cagrsAr := RiskProfileIterativeMeanReturn(rp,20,1000000,true)
+		fmt.Printf("WorstCAGR=%.2f\nMeanCagr=%.2f\nBestCagr=%.2f\nCagrPercAbove0=%.2f\nCagrPercAbove4Perc=%.2f\n",cagrsAr[0],cagrsAr[1],cagrsAr[2],cagrsAr[3],cagrsAr[4])
+		fmt.Println("IterativeRiskProfile CAGR:")
+		fmt.Println(IterativeRiskProfile.PrintASCII(0,float64(len(cagrs)),130,35,true))
+
+
+		//spreadlongput610
+		fmt.Println("spreadlongput610")
+		spreadlongput610Spline := spreadlongput610.ToSpline(0,1200)
+		fmt.Println(spreadlongput610Spline.PrintASCII(0,1200,130,35,true))
+		rp,err = spreadlongput610.riskProfile(pdist);check(err)
+		fmt.Println(rp.PrintASCII(0.,1.,130,35,true))
+		IterativeRiskProfile,_,_/*returnsAr*/,cagrs,cagrsAr = RiskProfileIterativeMeanReturn(rp,20,1000000,true)
+		fmt.Printf("WorstCAGR=%.2f\nMeanCagr=%.2f\nBestCagr=%.2f\nCagrPercAbove0=%.2f\nCagrPercAbove4Perc=%.2f\n",cagrsAr[0],cagrsAr[1],cagrsAr[2],cagrsAr[3],cagrsAr[4])
+		fmt.Println("IterativeRiskProfile CAGR:")
+		fmt.Println(IterativeRiskProfile.PrintASCII(0,float64(len(cagrs)),130,35,true))
+
+		//debug:
+		/*
+		50.0 % : call 410.0 buy 0.49999999999999994
+		-50.0 % : call 425.0 sell -0.5
+		riskProfile does not make sense
+		 */
+
+		//spreadcall460470
+		fmt.Println("spreadcall460470")
+		spreadcall460470Spline := spreadcall460470.ToSpline(0,1200)
+		fmt.Println(spreadcall460470Spline.PrintASCII(0,1200,130,35,true))
+		rp,err = spreadcall460470.riskProfile(pdist);check(err)
+		fmt.Println(rp.PrintASCII(0.,1.,130,35,true))
+		IterativeRiskProfile,_,_/*returnsAr*/,cagrs,cagrsAr = RiskProfileIterativeMeanReturn(rp,20,1000000,true)
+		fmt.Printf("WorstCAGR=%.2f\nMeanCagr=%.2f\nBestCagr=%.2f\nCagrPercAbove0=%.2f\nCagrPercAbove4Perc=%.2f\n",cagrsAr[0],cagrsAr[1],cagrsAr[2],cagrsAr[3],cagrsAr[4])
+		fmt.Println("IterativeRiskProfile CAGR:")
+		fmt.Println(IterativeRiskProfile.PrintASCII(0,float64(len(cagrs)),130,35,true))
+
+		/*
+		call30 := callfunc{
+			base:       30,
+			cost:       0,
+			factor:     100,
+			date:       nil,
+			optionType: "call",
+			isin:       "",
+		}
+		 */
+		put270 := callfunc{
+			base:       300,
+			cost:       87.3,
+			factor:     -10,
+			date:       nil,
+			optionType: "put",
+			isin:       "",
+		}
+		spread30270 := spread{
+			num:     2,
+			calls:   []callfunc{long,put270},
+			weights: []float64{.7,.3},
+		}
+
+		//spread30270
+		fmt.Println("spread30270")
+		spread30270Spline := spread30270.ToSpline(0,1200)
+		fmt.Println(spread30270Spline.PrintASCII(0,1200,130,35,true))
+		rp,err = spread30270.riskProfile(pdist);check(err)
+		fmt.Println(rp.PrintASCII(0.,1.,130,35,true))
+		IterativeRiskProfile,_,_/*returnsAr*/,cagrs,cagrsAr = RiskProfileIterativeMeanReturn(rp,20,1000000,true)
+		fmt.Printf("WorstCAGR=%.2f\nMeanCagr=%.2f\nBestCagr=%.2f\nCagrPercAbove0=%.2f\nCagrPercAbove4Perc=%.2f\n",cagrsAr[0],cagrsAr[1],cagrsAr[2],cagrsAr[3],cagrsAr[4])
+		fmt.Println("IterativeRiskProfile CAGR:")
+		fmt.Println(IterativeRiskProfile.PrintASCII(0,float64(len(cagrs)),130,35,true))
+
+
 		os.Exit(0)
 	}
 
@@ -816,7 +988,7 @@ func prompt(promptSubPath string){
 	brute := true
 	iterativeFindN := false
 	riskCompare := true
-	selling := true
+	selling := false
 	optionsOutdatedHoursLimit := 24
 
 	promptName := strings.Split(strings.Split(strings.Split(promptSubPath,"\\")[2],".")[0],"_")[1]
@@ -1036,7 +1208,13 @@ func prompt(promptSubPath string){
 
 
 	// weights for brute force
-	weights := []float64{0.0,0.1,0.25,0.5,0.75,0.9,1.0}
+	//weights := []float64{0.0,0.1,0.25,0.5,0.75,0.9,1.0}
+
+	var weights []float64
+	dw := 0.05
+	for w := 0.0 ; w <= 1.0 ; w += dw {
+		weights = append(weights,w)
+	}
 
 	// Estimate calculation time for brute force
 	var comparisonApprox int
@@ -1516,7 +1694,7 @@ func prompt(promptSubPath string){
 
 		//refactor
 		if info&&ASCIIPlots {
-			fmt.Println("IterativeRiskProfile CAGR:")
+			fmt.Println("IterativeRiskProfile CAGR for best call:")
 			fmt.Println(IterativeRiskProfile.PrintASCII(0,float64(len(cagrs)),130,35,true))
 		}
 
@@ -1971,6 +2149,11 @@ func ChangePortfolio(newSpread spread){}
 func LeastSquare(x,y []float64){}
 func GrayScaleHeatMap(){}
 
+/*
+important for FindN: start with loose riskTol to expand search space and
+once iterative find converges, tighten riskTol, gradually getting closer to users riskTol
+perhaps also implement distance metric to riskTol
+ */
 
 
 
@@ -3935,10 +4118,11 @@ func (sp spread) ExpectedReturn(pdist my_spline) float64 {
 }
 
 //make dy dynamic around the beginning to have higher resolution!
+//something wrong, especially around 0 and it's jumpy!
 func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 	debug := false
 	if debug {fmt.Println("riskProfile debug:")}
-	spreadPerf := sp.ToSpline(min(pdist.x),max(pdist.x))
+	spreadPerf := sp.ToSpline(0.0,max(pdist.x))
 	var ys []float64
 	var probs []float64
 
@@ -3948,7 +4132,7 @@ func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 	probsMap = make(map[float64]float64)
 	start := min(spreadPerf.y)
 	end := max(spreadPerf.y)
-	//dy := (end-start)/float64(n)
+
 	//???
 	/*
 	if math.Abs(dy) < 0.00000001 {
@@ -3967,14 +4151,14 @@ func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 		y := start + (end-start)*float64(i*i)/float64(n*n)
 		//y := start + (end-start)*float64(i)/float64(n)
 	//for y := start  /*-2*math.Abs(dy*min(spreadPerf.y))*/ ; y <= end ; y += dy /*dy + dy*(-math.Pow (y - (start + end)/2, 2) + math.Pow ((start + end)/2, 2))/math.Pow ((start + end)/2, 2)*/ { //normally dy but I'm trying to concentrate more towards start and end
-		if debug {fmt.Println("y: ",y)}
+
 		_,neg:= spreadPerf.PosNegRange(y,tolYPerc,30)
 
-		if debug {fmt.Println("neg=",neg)}
-		/*
-		neg = MergeLeftRight(neg,0.1)
-		if debug {fmt.Println("post-merge neg:",neg)}
-		 */
+		if debug {
+			fmt.Println("y: ",y)
+			fmt.Println("neg=",neg)
+		}
+
 		if len(neg) == 0 {
 			probs = append(probs,0.0)
 			probsMap[y] = 0.0
@@ -3989,13 +4173,13 @@ func (sp spread) riskProfile(pdist my_spline) (my_spline,error) {
 			}
 			prob_tmp += pdist.IntegralSpline(neg[i][0],neg[i][1])
 		}
-		//discard decreasing probs - not an ideal solution! kinda hacky, messy
 
-		//if len(probs) == 0 || prob_tmp > probs[len(probs)-1] {
+		//discard decreasing probs - not an ideal solution! kinda hacky, messy
+		if len(probs) == 0 || prob_tmp > probs[len(probs)-1] {
 			probs = append(probs,prob_tmp)
 			probsMap[y] = prob_tmp
 			ys = append(ys, y)
-		//}
+		}
 
 
 		if debug {
@@ -5769,7 +5953,7 @@ func call_gain_perc(x float64, call callfunc) float64{
 	//100*Max[-1,math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor)))-1]
 	//return math.Max(-1,math.Abs(1.0/call.factor)*((x-call.base)/(call.cost*call.factor))-1)*100
 	if call.optionType=="call"{return math.Max(-1,((x-call.base)/(call.cost/**math.Abs(call.factor)*/))-1)*100}
-	if call.optionType=="put"{return math.Max(-1,(-(x-call.base)/(call.cost/**math.Abs(call.factor)*/))-1)*100}
+	if call.optionType=="put"{return math.Max(-1,(-(x-call.base)/(call.cost/*math.Abs(call.factor)*/))-1)*100}
 	//return math.Max(-1,((x-call.base)/(call.cost/call.factor))-1)*100
 	return -100
 }
@@ -5910,7 +6094,7 @@ func (call callfunc) ToSpline(a,b float64) my_spline {
 			//coeffs:     []float64{call.factor*call.cost*100,-100-100*call.base*call.factor*call.cost   ,0,-100},
 			//coeffs:     []float64{math.Abs(1.0/call.factor)/(call.cost*call.factor)*100 , -100-100*call.base*math.Abs(1.0/call.factor)/(call.cost*call.factor)   ,0,-100},
 			//coeffs:     []float64{call.factor/math.Abs(call.factor)*1.0/(call.cost)*100 , -100-100*call.factor/math.Abs(call.factor)*call.base*1.0/(call.cost)   ,0,-100},
-			coeffs:     []float64{-1.0/(call.cost)*100 , (call.base/call.cost-1)*100   ,0,-100},
+			coeffs:     []float64{-1.0/(call.cost/**math.Abs(call.factor)*/)*100 , (call.base/(call.cost/**math.Abs(call.factor)*/)-1)*100   ,0,-100},
 			unique:     false,
 		}
 	}
@@ -5923,7 +6107,7 @@ func (call callfunc) ToSpline(a,b float64) my_spline {
 			//coeffs:     []float64{0,-100,call.factor*call.cost*100,-100-100*call.base*call.factor*call.cost},
 			//coeffs:     []float64{0,-100  ,  math.Abs(1.0/call.factor)/(call.cost*call.factor)*100,-100-100*call.base*math.Abs(1.0/call.factor)/(call.cost*call.factor)},
 			//coeffs:     []float64{0,-100  ,  call.factor/math.Abs(call.factor)*1.0/(call.cost)*100,-100-100*call.base*call.factor/math.Abs(call.factor)*1.0/(call.cost)},
-			coeffs:     []float64{0,-100  ,  1.0/(call.cost)*100,(-call.base/call.cost-1)*100 },
+			coeffs:     []float64{0,-100  ,  1.0/(call.cost/**math.Abs(call.factor)*/)*100,(-call.base/(call.cost/**math.Abs(call.factor)*/)-1)*100 },
 			unique:     false,
 		}
 }
